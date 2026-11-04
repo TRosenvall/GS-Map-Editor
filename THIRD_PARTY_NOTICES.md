@@ -1,8 +1,8 @@
 # Third-party software
 
 GS Map Editor's app bundles the software below. Each keeps its own licence;
-this file lists them so nothing is left unsaid. **The editor's own licence is
-not yet chosen, and neither game art nor a ROM is included in it.**
+this file lists them so nothing is left unsaid. **The editor's own code is under the
+MIT licence (see `LICENSE`), and neither game art nor a ROM is included in it.**
 
 | Software | Used for | Licence | Source |
 |---|---|---|---|
