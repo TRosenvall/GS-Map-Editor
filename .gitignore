@@ -1,0 +1,14 @@
+# Build output and caches
+.venv/
+build/
+dist/
+__pycache__/
+*.pyc
+packaging/.cache/
+packaging/toolchain/
+
+# Never commit game files
+*.gba
+*.sav
+.gsmap-journal/
+.DS_Store

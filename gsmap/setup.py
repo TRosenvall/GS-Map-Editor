@@ -1,0 +1,299 @@
+"""First-run setup for the desktop app: what's needed to build the game, in
+plain words, and jobs that put each piece in place.
+
+Steps, in order (each is checked, never assumed):
+  1. Apple's command line tools: clang, make, git.
+  2. Homebrew and the packages alchemy's INSTALL.md lists for macOS.
+  3. The game source: an existing alchemy checkout, or a fresh download at
+     the commit this editor was tested with.
+  4. alchemy's compilers (`make bootstrap`, once, a few minutes).
+  5. A first build of the English Broken Seal (`make tbs-en`).
+
+Long steps run as background jobs whose output the setup page shows live.
+"""
+
+import atexit
+import contextlib
+import json
+import os
+import shutil
+import signal
+import subprocess
+import threading
+
+from . import layout, preflight
+from .fsio import atomic_write
+
+APP_NAME = "GS Map Editor"
+SUPPORT = os.path.expanduser(f"~/Library/Application Support/{APP_NAME}")
+SETTINGS = os.path.join(SUPPORT, "settings.json")
+# Build folders have no spaces: alchemy's compiler Makefile (like most
+# Makefiles) breaks on paths with spaces.
+DEFAULT_WORKSPACE = os.path.expanduser("~/Documents/GSMapEditor")
+EXPORTS = os.path.join(DEFAULT_WORKSPACE, "Exports")
+CACHE = os.path.expanduser("~/Library/Caches/GSMapEditor")
+ALCHEMY_URL = "https://github.com/PascalPixel/alchemy"
+# The alchemy commit this editor was last tested against (round trip,
+# render-all, build). Newer commits usually work; this one is known to.
+ALCHEMY_PIN = "f6c08e64dd947e449baf8db86ab8e12f3ed5749e"
+BREW_PACKAGES = ["arm-none-eabi-binutils", "pkg-config", "libpng", "utf8proc"]
+BREW_DIRS = ["/opt/homebrew/bin", "/usr/local/bin"]
+# Give up on a stalled download rather than wait forever.
+GIT_LIMITS = ["git", "-c", "http.lowSpeedLimit=1000", "-c", "http.lowSpeedTime=120"]
+
+
+def GIT_PATIENT_ARGS(folder):
+    return GIT_LIMITS + ["-C", folder]
+
+
+def load_settings():
+    try:
+        return json.load(open(SETTINGS, encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def save_settings(s):
+    os.makedirs(SUPPORT, exist_ok=True)
+    atomic_write(SETTINGS, json.dumps(s, indent=1))
+
+
+def bundled_toolchain():
+    """The toolchain the app carries (packaging/build_toolchain.py), if any:
+    inside the app bundle, or packaging/toolchain when running from source."""
+    import sys
+    for base in (getattr(sys, "_MEIPASS", None), os.path.join(os.path.dirname(__file__), "..", "packaging")):
+        if base:
+            tc = os.path.abspath(os.path.join(base, "toolchain"))
+            if os.path.exists(os.path.join(tc, "bin", "arm-none-eabi-as")):
+                return _no_spaces(tc)
+    return None
+
+
+def _no_spaces(path):
+    """The build can't take a path with spaces, and the app is "GS Map Editor.app":
+    reach the toolchain through a link in the cache folder."""
+    if " " not in path:
+        return path
+    link = os.path.join(CACHE, "toolchain")
+    os.makedirs(CACHE, exist_ok=True)
+    if os.path.realpath(link) != os.path.realpath(path):
+        if os.path.islink(link):
+            os.remove(link)
+        os.symlink(path, link)
+    return link
+
+
+def _brew_dirs():
+    return [] if os.environ.get("GSMAP_NO_BREW") else BREW_DIRS
+
+
+def build_env():
+    """The bundled toolchain first, then Homebrew: a devkitPro or system
+    pkg-config earlier on PATH can't see the libpng and utf8proc alchemy's
+    tools need. GSMAP_NO_BREW=1 leaves Homebrew out (to test the bundle)."""
+    env = dict(os.environ)
+    tc = bundled_toolchain()
+    dirs = ([os.path.join(tc, "bin")] if tc else []) + _brew_dirs()
+    rest = env.get("PATH", "") if not os.environ.get("GSMAP_NO_BREW") else ""
+    env["PATH"] = ":".join(dirs + ["/usr/bin", "/bin", "/usr/sbin", "/sbin"] + ([rest] if rest else []))
+    env.pop("PKG_CONFIG", None)
+    for d in dirs:
+        if os.path.exists(os.path.join(d, "pkg-config")):
+            env["PKG_CONFIG"] = os.path.join(d, "pkg-config")
+            break
+    return env
+
+
+def _run(cmd, cwd=None, timeout=60):
+    try:
+        p = subprocess.run(cmd, cwd=cwd, env=build_env(), capture_output=True, text=True, timeout=timeout)
+        return p.returncode, (p.stdout + p.stderr).strip()
+    except (OSError, subprocess.SubprocessError) as e:
+        return 1, str(e)
+
+
+def brew():
+    return next((os.path.join(d, "brew") for d in _brew_dirs() if os.path.exists(os.path.join(d, "brew"))), None)
+
+
+def path_problem(root):
+    """Why a checkout path can't be built, in words, or None."""
+    if " " in root:
+        return (f"{root} has a space in its path, which the game's build can't handle. "
+                "Move it (or rename a folder) so the path has no spaces.")
+    return None
+
+
+def is_alchemy(root):
+    """A checkout in the layout this editor reads (map/maps.c arrived with it)."""
+    return bool(root) and os.path.exists(os.path.join(root, "Makefile")) and \
+        os.path.exists(os.path.join(root, layout.MAP_TABLE))
+
+
+def has_compiler_source(root):
+    """The submodule step finished: a dropped connection can leave it empty."""
+    return os.path.exists(os.path.join(root, "alchemy-gcc", "Makefile"))
+
+
+def checks(root):
+    """[{id, title, ok, detail, action}] in setup order."""
+    out = []
+    clt = _run(["xcode-select", "-p"])[0] == 0 and _run(["/usr/bin/clang", "--version"])[0] == 0
+    out.append({"id": "clt", "title": "Apple's developer tools", "ok": clt,
+                "detail": "Installed." if clt else "Needed to build the game. Apple installs them for free.",
+                "action": None if clt else "Install"})
+    tc = bundled_toolchain()
+    if tc and not missing_packages():
+        out.append({"id": "packages", "title": "The tools for building the game", "ok": True,
+                    "detail": "Included with the app.", "action": None})
+        return out + _source_steps(root)
+    b = brew()
+    out.append({"id": "brew", "title": "Homebrew", "ok": bool(b),
+                "detail": "Installed." if b else "A free package manager for the remaining tools. Install it from brew.sh "
+                          "(paste its one line into Terminal), then come back and press Check again.",
+                "action": None if b else "Open brew.sh"})
+    missing = []
+    if b:
+        missing = missing_packages()
+    out.append({"id": "packages", "title": "The tools for building the game",
+                "ok": bool(b) and not missing,
+                "detail": "Installed." if b and not missing else
+                          ("Needs Homebrew first." if not b else f"Missing: {', '.join(missing)}."),
+                "action": "Install" if b and missing else None})
+    return out + _source_steps(root)
+
+
+def _source_steps(root):
+    out = []
+    src = is_alchemy(root) and has_compiler_source(root)
+    problems = preflight.check(root) if src else []
+    if problems:
+        out.append({"id": "source", "title": "The game's source", "ok": False,
+                    "detail": f"{root} is a version this editor can't read yet: {problems[0]} "
+                              "Use a fresh download, or move this folder aside.",
+                    "action": None})
+        return out + [{"id": "bootstrap", "title": "Preparing the build", "ok": False, "detail": "Needs the game source first.",
+                       "action": None},
+                      {"id": "build", "title": "A first build of the game", "ok": False, "detail": "Needs the compilers first.",
+                       "action": None}]
+    out.append({"id": "source", "title": "The game's source", "ok": src,
+                "detail": f"Using {root}." if src else "Downloads about 1 GB. If you already have a copy, choose its folder instead.", "action": None if src else "Download"})
+    boot = src and all(os.path.exists(os.path.join(root, p)) for p in
+                       ("tools/out/compilers/xgcc", "tools/out/compilers/as", "tools/out/compiler-runtime/libgcc.a"))
+    out.append({"id": "bootstrap", "title": "Preparing the build", "ok": bool(boot),
+                "detail": "Built." if boot else "Done once. Takes several minutes and shows a lot of scrolling text; that's normal.",
+                "action": None if boot or not src else "Build"})
+    rom = src and os.path.exists(os.path.join(root, layout.ROM))
+    out.append({"id": "build", "title": "A first build of the game", "ok": bool(rom),
+                "detail": "Done: the editor is ready." if rom else "Makes the game once, to check everything works.",
+                "action": None if rom or not boot else "Build"})
+    return out
+
+
+def missing_packages():
+    """Homebrew packages whose job isn't done: checked by what the build uses
+    (commands, and pkg-config finding the libraries), not by formula names,
+    which Homebrew renames (pkg-config is now pkgconf)."""
+    env = build_env()
+    missing = []
+    if not shutil.which("arm-none-eabi-as", path=env["PATH"]):
+        missing.append("arm-none-eabi-binutils")
+    pc = env.get("PKG_CONFIG")
+    if not pc:
+        missing.append("pkg-config")
+    else:
+        for lib, pkg in (("libpng", "libpng"), ("libutf8proc", "utf8proc")):
+            if _run([pc, "--exists", lib])[0] != 0:
+                missing.append(pkg)
+    return missing
+
+
+RUNNING = set()  # builds and downloads in progress
+
+
+def stop_running():
+    """Quitting the app takes its builds and downloads with it."""
+    for p in list(RUNNING):
+        with contextlib.suppress(OSError):
+            os.killpg(p.pid, signal.SIGTERM)
+    RUNNING.clear()
+
+
+atexit.register(stop_running)
+
+
+class Job:
+    """One background command sequence with a live log."""
+
+    def __init__(self, name, steps, cwd=None, on_done=None):
+        self.name, self.steps, self.cwd, self.on_done = name, steps, cwd, on_done
+        self.log, self.done, self.ok = [], False, None
+        threading.Thread(target=self._run, daemon=True).start()
+
+    def _run(self):
+        ok = True
+        for cmd in self.steps:
+            self.log.append("$ " + " ".join(cmd))
+            try:
+                p = subprocess.Popen(cmd, cwd=self.cwd, env=build_env(), stdout=subprocess.PIPE,
+                                     stderr=subprocess.STDOUT, text=True, bufsize=1, start_new_session=True)
+                RUNNING.add(p)
+                for line in p.stdout:
+                    self.log.append(line.rstrip("\n"))
+                    if len(self.log) > 4000:
+                        del self.log[:1000]
+                ok = p.wait() == 0
+                RUNNING.discard(p)
+            except OSError as e:
+                self.log.append(str(e))
+                ok = False
+            if not ok:
+                break
+        self.ok, self.done = ok, True
+        if ok and self.on_done:
+            self.on_done()
+
+    def status(self, since=0):
+        return {"name": self.name, "done": self.done, "ok": self.ok,
+                "log": self.log[since:], "next": len(self.log)}
+
+
+def start(action, root, workspace=None):
+    """Start the job for a setup step; returns (job, new root or None)."""
+    b = brew()
+    if action == "clt":
+        # Apple's own installer dialog; the page asks to press Check when it's done.
+        return Job("Apple developer tools", [["xcode-select", "--install"]]), None
+    if action == "packages":
+        if not b:
+            raise ValueError("Install Homebrew first")
+        return Job("Build tools", [[b, "install"] + (missing_packages() or BREW_PACKAGES)]), None
+    if action == "source":
+        dest = os.path.join(workspace or DEFAULT_WORKSPACE, "alchemy")
+        if os.path.exists(dest) and os.listdir(dest):
+            if is_alchemy(dest):
+                return Job("Game source", [GIT_PATIENT_ARGS(dest) + ["submodule", "update", "--init", "--recursive",
+                                                                      "alchemy-gcc"]], on_done=None), dest
+            raise ValueError(f"{dest} already exists, but it isn't a version of alchemy this editor can read. "
+                             "Move it aside (your mod's changes are in it) and press Download again.")
+        os.makedirs(os.path.dirname(dest), exist_ok=True)
+        # Everything happens in a folder that's only named as the game once it's
+        # whole, so a dropped connection just means pressing the button again.
+        partial = dest + ".partial"
+        return Job("Game source", [
+            ["rm", "-rf", partial],
+            GIT_LIMITS + ["clone", ALCHEMY_URL, partial],
+            GIT_PATIENT_ARGS(partial) + ["checkout", "-q", ALCHEMY_PIN],
+            GIT_PATIENT_ARGS(partial) + ["submodule", "update", "--init", "--recursive", "alchemy-gcc"],
+            ["mv", partial, dest],
+        ]), dest
+    if action == "bootstrap":
+        return Job("Compilers", [["make", "bootstrap"]], cwd=root), None
+    if action == "build":
+        return Job("First build", [["make", "-j4", "tbs-en"]], cwd=root), None
+    raise ValueError(f"unknown step {action}")
+
+
+def which(cmd):
+    return shutil.which(cmd, path=build_env()["PATH"])

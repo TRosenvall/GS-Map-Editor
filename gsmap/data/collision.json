@@ -1,0 +1,175 @@
+{
+"ranges": [
+{
+"lo": 0,
+"hi": 0,
+"name": "Floor",
+"category": "walk",
+"editor": "brush",
+"color": "#00000000",
+"meaning": "Plain ground you can walk on."
+},
+{
+"lo": 1,
+"hi": 99,
+"name": "Scene trigger (exit/touch/search)",
+"category": "trigger",
+"editor": "trigger",
+"color": "#ffcc00",
+"meaning": "A spot that runs something when stepped on: an exit or a scene event. What it does depends on the place."
+},
+{
+"lo": 100,
+"hi": 239,
+"name": "Chest / search spot id",
+"category": "trigger",
+"editor": "trigger (markers own 100..239)",
+"color": "#ff8800",
+"meaning": "A chest or hidden item spot. Also runs something when stepped on, like the lower codes."
+},
+{
+"lo": 240,
+"hi": 240,
+"name": "Encounter ground A",
+"category": "walk",
+"editor": "brush",
+"color": "#88cc44",
+"meaning": "Walkable; random battles here use the place's first encounter zone."
+},
+{
+"lo": 241,
+"hi": 241,
+"name": "Encounter ground B",
+"category": "walk",
+"editor": "brush",
+"color": "#44aa88",
+"meaning": "Walkable; random battles here use the place's second encounter zone. No stock map uses it."
+},
+{
+"lo": 242,
+"hi": 242,
+"name": "Empty jar (search spot)",
+"category": "search",
+"editor": "brush",
+"color": "#aa66ff",
+"meaning": "Searching it finds nothing: an empty jar. Usually a wall too, through its height."
+},
+{
+"lo": 243,
+"hi": 243,
+"name": "Empty barrel (search spot)",
+"category": "search",
+"editor": "brush",
+"color": "#aa66ff",
+"meaning": "Searching it finds nothing: an empty barrel. Usually a wall too, through its height."
+},
+{
+"lo": 244,
+"hi": 244,
+"name": "Empty wooden box (search spot)",
+"category": "search",
+"editor": "brush",
+"color": "#aa66ff",
+"meaning": "Searching it finds nothing: an empty box. Usually a wall too, through its height."
+},
+{
+"lo": 245,
+"hi": 245,
+"name": "Empty grave (search spot)",
+"category": "search",
+"editor": "brush",
+"color": "#aa66ff",
+"meaning": "Searching it finds nothing: an empty grave. Usually a wall too, through its height."
+},
+{
+"lo": 246,
+"hi": 246,
+"name": "Empty books (search spot)",
+"category": "search",
+"editor": "brush",
+"color": "#aa66ff",
+"meaning": "Searching it finds nothing: books. Usually a wall too, through its height."
+},
+{
+"lo": 247,
+"hi": 247,
+"name": "Empty well (search spot)",
+"category": "search",
+"editor": "brush",
+"color": "#aa66ff",
+"meaning": "Searching it finds nothing: an empty well. Usually a wall too, through its height."
+},
+{
+"lo": 248,
+"hi": 248,
+"name": "Unused",
+"category": "unknown",
+"editor": "don't-touch",
+"color": null,
+"meaning": "Nothing in the game reads it, and no map uses it."
+},
+{
+"lo": 249,
+"hi": 249,
+"name": "Chain-jump spot",
+"category": "move",
+"editor": "brush (advanced)",
+"color": "#00aaff",
+"meaning": "Landing here after a forward jump jumps again, for hops across stepping stones."
+},
+{
+"lo": 250,
+"hi": 250,
+"name": "Hazard ground",
+"category": "walk",
+"editor": "brush",
+"color": "#ff3333",
+"meaning": "Walkable, but walking on it hurts the party after enough steps, if the scene turns that on."
+},
+{
+"lo": 251,
+"hi": 251,
+"name": "Cloak shadow",
+"category": "walk",
+"editor": "brush",
+"color": "#334466",
+"meaning": "Walkable; the only ground where the Cloak Psynergy keeps the party hidden."
+},
+{
+"lo": 252,
+"hi": 252,
+"name": "Ledge (jump down)",
+"category": "move",
+"editor": "brush",
+"color": "#00ccff",
+"meaning": "Hold Down against it for a moment and the leader jumps down the ledge."
+},
+{
+"lo": 253,
+"hi": 253,
+"name": "Climbable wall / ladder",
+"category": "move",
+"editor": "brush",
+"color": "#ffff66",
+"meaning": "Hold Up or Down against it for a moment to climb."
+},
+{
+"lo": 254,
+"hi": 254,
+"name": "Jump gap (jump forward)",
+"category": "move",
+"editor": "brush",
+"color": "#66ffcc",
+"meaning": "Push against it for a moment and the leader jumps over it, if the far side allows landing."
+},
+{
+"lo": 255,
+"hi": 255,
+"name": "Wall",
+"category": "block",
+"editor": "brush",
+"color": "#ff000080",
+"meaning": "Blocks walking, whatever the height."
+}
+]
+}

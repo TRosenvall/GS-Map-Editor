@@ -1,0 +1,390 @@
+"""The overworld (Golden Sun: The Broken Seal world map). Sources and evidence:
+docs/research/overworld.md.
+
+  blocks.tsv   320 rows x 512 hex words: 640 chunks of 16x16 cells, laid 32
+               chunks wide; chunk c (0-255) sits at world chunk (c%16, c//16),
+               layer 1 is chunk c+320, 256-319 are alternates swapped in by code.
+  cell word    bits 0-15 block, 16-23 step code, 24-30 terrain kind
+               (encounter region; 21 = snowy graphics), 31 behaviour bank.
+               Layer 1 uses only the block.
+  default/cell_pictures.tsv  4 tile bytes per block (TL TR BL BR).
+  default/collision.txt      per 8x8 tile, 4x4 walkability nibbles, written as
+               sheets of 16 tiles across; upper layer wins, then lower, else
+               7; 5-12 walkable.
+  graphics     set A: tiles a+b (ground) c+d (overlay), palette a;
+               set B (snowy north, kind 21): tiles f+g, h+i, palette b.
+
+Coordinates: a cell is 16 BG px (32 world px); the world is 256x256 cells.
+Entrances and placements are in world px (placements 16.16).
+"""
+
+import os
+
+from PIL import Image
+
+from . import layout
+from . import table as tablemod
+from .fsio import atomic_write
+
+CHUNKS, LAYER1 = 640, 320
+WORLD_CHUNKS = 16  # per side
+SNOW_KIND = 21
+SET_B_SWAPS = {10: 0x10A, 11: 0x10B, 12: 0x10C, 26: 0x11A, 27: 0x11B, 28: 0x11C}
+SETS = {"a": ("a", "b", "c", "d", "palette_a"), "b": ("f", "g", "h", "i", "palette_b")}
+WALK_MIN, WALK_MAX = 5, 12
+
+
+def parse_collision(text):
+    """collision.txt as the bytes the game reads: 8 per tile, 2 per row of 4
+    nibbles, the first nibble of each pair in its low half. The sheet has 16
+    tiles across, 4 lines per row of tiles, and a blank line between rows."""
+    out = []
+    rows = [[line.split() for line in part.split("\n")] for part in text.strip("\n").split("\n\n")]
+    for row in rows:
+        for tile in range(len(row[0])):
+            for line in row:
+                n = [int(c, 16) for c in line[tile]]
+                out += [n[0] | n[1] << 4, n[2] | n[3] << 4]
+    return out
+
+
+def parse_blocks(text):
+    lines = text.split("\n")
+    if lines[-1] == "":
+        lines.pop()
+    return [[int(t, 16) for t in line.split("\t")] for line in lines]
+
+
+def format_blocks(rows):
+    return "".join("\t".join(format(v, "x") for v in row) + "\n" for row in rows)
+
+
+class World:
+    def __init__(self, root):
+        self.root = root
+        self.blocks_path = os.path.join(root, layout.WORLD_BLOCKS)
+        self.cells_path = os.path.join(root, layout.WORLD_CELLS)
+        self.attr_path = os.path.join(root, layout.WORLD_COLLISION)
+        self.gfx = os.path.join(root, layout.WORLD_GRAPHICS)
+        self.rows = parse_blocks(open(self.blocks_path, encoding="utf-8").read())
+        flat = [v for r in tablemod.load(self.cells_path).rows for v in r]
+        self.block_tiles = [flat[i:i + 4] for i in range(0, len(flat) - 3, 4)]
+        self.attr = parse_collision(open(self.attr_path, encoding="utf-8").read())  # 0x000-0x7ff lower tiles, 0x800-0xfff upper
+        self._tiles = {}
+        self._snowy = {}
+
+    # ---- cells -------------------------------------------------------------------
+
+    @staticmethod
+    def chunk_of(cx, cy, snowy=False):
+        slot = cy * WORLD_CHUNKS + cx
+        return SET_B_SWAPS.get(slot, slot) if snowy else slot
+
+    def word(self, chunk, x, y):
+        return self.rows[(chunk // 32) * 16 + y][(chunk % 32) * 16 + x]
+
+    def set_word(self, chunk, x, y, v):
+        self._snowy.clear()
+        self.rows[(chunk // 32) * 16 + y][(chunk % 32) * 16 + x] = v
+
+    def cell(self, gx, gy):
+        """Layer-0 and layer-1 words at world cell (gx, gy), as shown."""
+        c = self.shown_chunk(gx // 16, gy // 16)
+        return self.word(c, gx % 16, gy % 16), self.word(c + LAYER1, gx % 16, gy % 16)
+
+    @staticmethod
+    def decode(word):
+        return {"block": word & 0xFFFF, "code": (word >> 16) & 0xFF,
+                "kind": (word >> 24) & 0x7F, "bank": word >> 31}
+
+    def save(self):
+        atomic_write(self.blocks_path, format_blocks(self.rows))
+
+    # ---- graphics -------------------------------------------------------------------
+
+    def _tile_images(self, set_name, layer):
+        """256 RGBA 8x8 tiles of one bank; layer 1 keeps colour 0 transparent."""
+        key = (set_name, layer)
+        if key not in self._tiles:
+            names = SETS[set_name]
+            pal = Image.open(os.path.join(self.gfx, names[4] + ".png")).convert("RGB")
+            colours = [pal.getpixel((i % 16, i // 16)) for i in range(16 * pal.height)]
+            flat = [c for rgb in colours for c in rgb]
+            tiles = []
+            for sheet in names[layer * 2: layer * 2 + 2]:
+                src = Image.open(os.path.join(self.gfx, f"tiles_{sheet}.png"))
+                idx = src.copy()
+                idx.putpalette((flat + [0] * 768)[:768])
+                rgba = idx.convert("RGBA")
+                if layer == 1:
+                    mask = Image.new("L", src.size)
+                    mask.putdata([0 if v == 0 else 255 for v in src.getdata()])
+                    rgba.putalpha(mask)
+                for t in range(128):
+                    tiles.append(rgba.crop(((t % 16) * 8, (t // 16) * 8, (t % 16) * 8 + 8, (t // 16) * 8 + 8)))
+            self._tiles[key] = tiles
+        return self._tiles[key]
+
+    def block_image(self, block, layer, set_name="a"):
+        tiles = self._tile_images(set_name, layer)
+        img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+        if block < len(self.block_tiles):
+            for k, t in enumerate(self.block_tiles[block]):
+                img.alpha_composite(tiles[t], ((k & 1) * 8, (k >> 1) * 8))
+        return img
+
+    def is_snowy(self, cx, cy):
+        """A chunk is drawn in set B (snowy) when most of its ground cells are
+        kind 21, as the game picks the set from where the party stands."""
+        if (cx, cy) not in self._snowy:
+            slot = self.chunk_of(cx, cy)
+            self._snowy[cx, cy] = sum(1 for y in range(16) for x in range(16)
+                                      if (self.word(slot, x, y) >> 24) & 0x7F == SNOW_KIND) > 128
+        return self._snowy[cx, cy]
+
+    def shown_chunk(self, cx, cy):
+        """The chunk drawn at (cx, cy): set B's alternate where it's snowy, so
+        an edit lands on the cells you see."""
+        return self.chunk_of(cx, cy, self.is_snowy(cx, cy))
+
+    def render_chunk(self, cx, cy, layers=(0, 1)):
+        """256x256 BG px of world chunk (cx, cy), in the set the game shows there."""
+        snowy = self.is_snowy(cx, cy)
+        set_name = "b" if snowy else "a"
+        c = self.chunk_of(cx, cy, snowy)
+        img = Image.new("RGBA", (256, 256), (0, 0, 0, 255))
+        for layer in layers:
+            tiles = self._tile_images(set_name, layer)
+            base = c + LAYER1 * layer
+            for y in range(16):
+                for x in range(16):
+                    b = self.word(base, x, y) & 0xFFFF
+                    if b >= len(self.block_tiles):
+                        continue
+                    for k, t in enumerate(self.block_tiles[b]):
+                        img.alpha_composite(tiles[t], (x * 16 + (k & 1) * 8, y * 16 + (k >> 1) * 8))
+        return img
+
+    # ---- walkability and regions -------------------------------------------------------
+
+    def _nibble(self, upper, tile, px, py):
+        """Walkability value of 2x2-px unit (px, py) (0..3) of a tile."""
+        byte = self.attr[(0x800 if upper else 0) + tile * 8 + py * 2 + px // 2]
+        return (byte >> 4) if px & 1 else (byte & 0xF)
+
+    def walk_grid(self, cx, cy):
+        """64x64 walkability values (one per 4x4 world px) for chunk (cx, cy), set A."""
+        c = self.chunk_of(cx, cy)
+        out = [[7] * 128 for _ in range(128)]
+        for y in range(16):
+            for x in range(16):
+                lo = self.block_tiles[self.word(c, x, y) & 0xFFFF] if (self.word(c, x, y) & 0xFFFF) < len(self.block_tiles) else [0] * 4
+                hb = self.word(c + LAYER1, x, y) & 0xFFFF
+                hi = self.block_tiles[hb] if hb < len(self.block_tiles) else [0] * 4
+                for k in range(4):
+                    for py in range(4):
+                        for px in range(4):
+                            v = self._nibble(True, hi[k], px, py) or self._nibble(False, lo[k], px, py) or 7
+                            out[y * 8 + (k >> 1) * 4 + py][x * 8 + (k & 1) * 4 + px] = v
+        return out
+
+    def render_walk(self, cx, cy):
+        """256x256 overlay: blocked ground tinted red, the rest clear."""
+        g = self.walk_grid(cx, cy)
+        small = Image.new("RGBA", (128, 128))
+        small.putdata([(0, 0, 0, 0) if WALK_MIN <= v <= WALK_MAX else (230, 60, 50, 120)
+                       for row in g for v in row])
+        return small.resize((256, 256), Image.NEAREST)
+
+    def render_kind(self, cx, cy, colours):
+        """256x256 overlay: each cell tinted by its terrain kind (encounter region)."""
+        c = self.chunk_of(cx, cy)
+        small = Image.new("RGBA", (16, 16))
+        small.putdata([colours.get((self.word(c, x, y) >> 24) & 0x7F, (0, 0, 0, 0))
+                       for y in range(16) for x in range(16)])
+        return small.resize((256, 256), Image.NEAREST)
+
+    def chunk_cells(self, cx, cy):
+        """[[ground word, overlay word]] for the 16x16 cells of a world chunk, as shown."""
+        c = self.shown_chunk(cx, cy)
+        return [[[self.word(c, x, y), self.word(c + LAYER1, x, y)] for x in range(16)] for y in range(16)]
+
+
+# ---- the world map scene: town icons, step codes, arrival points -----------------------
+
+WORLD_SCENE = 2
+ICON_TRIGGER = 100  # touching actor N raises trigger 100 + N
+FIRST_ACTOR = 8
+
+
+def world_places(world, project, scenes, names):
+    """Icons (placements) and step-code cells with where they lead, and the
+    arrival points, from the world map scene's tables as the mod sees them."""
+    from .doors import DoorEditor
+    de = DoorEditor(project, scenes, names)
+    sc = next(s for s in scenes.scenes if s["id"] == WORLD_SCENE)
+    o = scenes.overlay(sc["overlay"])
+    ov = de._read_overrides()
+    events = de._tables([o], ov, "events")
+    exits = de._tables([o], ov, "exits")
+
+    def lead(trigger):
+        kind, scripted = de._exit_kind(events, trigger)
+        if kind is None:
+            return None
+        ex = de._destination(exits, WORLD_SCENE, kind)
+        if ex is None:
+            return {"kind": kind, "scene": None, "entrance": None, "label": None, "scripted": scripted}
+        return {"kind": kind, "scene": ex["scene"], "entrance": ex["entrance"],
+                "label": names.scene_label(ex["scene"]), "scripted": scripted}
+
+    icons = []
+    rows = de._tables([o], ov, "placements")
+    main = next((r for _, name, r in rows if name == layout.WORLD_PLACEMENTS), [])
+    for i, r in enumerate(main):
+        if r["sprite"] < 0:
+            break
+        actor = FIRST_ACTOR + i
+        icons.append({"actor": actor, "row": i, "sprite": r["sprite"], "x": r["x"] >> 16, "z": r["z"] >> 16,
+                      "lead": lead(ICON_TRIGGER + actor)})
+    steps = []
+    for gy in range(256):
+        for gx in range(256):
+            code = (world.cell(gx, gy)[0] >> 16) & 0xFF
+            if 1 <= code <= 239:
+                steps.append({"gx": gx, "gy": gy, "code": code, "lead": lead(code)})
+    arrivals = []
+    for _, _, rs in de._tables([o], ov, "entrances", need=False):
+        for r in rs:
+            if r["entrance"] >= 0 and all(a["entrance"] != r["entrance"] for a in arrivals):
+                arrivals.append({"entrance": r["entrance"], "x": r["x"], "z": r["z"]})
+    return {"icons": icons, "steps": steps, "arrivals": arrivals}
+
+
+def region_names(world, places, names):
+    """{kind: label}: each terrain kind (encounter region) named after the
+    places whose icons stand in it."""
+    near = {}
+    for ic in places["icons"]:
+        if ic["lead"] and ic["lead"]["scene"] is not None and ic["x"]:
+            kind = (world.cell(ic["x"] // 32, ic["z"] // 32)[0] >> 24) & 0x7F
+            area = (names.places.get(ic["lead"]["scene"]) or {}).get("area_name") or ic["lead"]["label"]
+            near.setdefault(kind, [])
+            if area not in near[kind]:
+                near[kind].append(area)
+    out = {}
+    for kind in sorted({(w >> 24) & 0x7F for row in world.rows[:160] for w in row}):
+        if kind == 0:
+            out[0] = "No encounters"
+            continue
+        towns = near.get(kind, [])
+        base = "Snowfield" if kind == SNOW_KIND else f"Region {kind}"
+        out[kind] = base + (f" ({', '.join(towns[:3])}{'…' if len(towns) > 3 else ''})" if towns else "")
+    return out
+
+
+def apply_world_edits(world, edits):
+    """edits: [{gx, gy, layer, word? | block?, kind?, code?}] in world cells
+    (set A). Returns the words they replaced, for undo."""
+    before = []
+    for e in edits:
+        gx, gy, layer = int(e["gx"]), int(e["gy"]), int(e.get("layer", 0))
+        if not (0 <= gx < 256 and 0 <= gy < 256 and layer in (0, 1)):
+            raise ValueError(f"cell {gx},{gy} is outside the world")
+        c = world.shown_chunk(gx // 16, gy // 16) + LAYER1 * layer
+        w = world.word(c, gx % 16, gy % 16)
+        before.append({"gx": gx, "gy": gy, "layer": layer, "word": w})
+        if "word" in e:
+            w = int(e["word"]) & 0xFFFFFFFF
+            if (w & 0xFFFF) >= len(world.block_tiles) or (layer == 1 and w >> 16):
+                raise ValueError("bad cell word")
+        if "block" in e:
+            b = int(e["block"])
+            if not 0 <= b < len(world.block_tiles):
+                raise ValueError(f"block {b} doesn't exist")
+            w = (w & ~0xFFFF) | b
+        if layer == 0 and "kind" in e:
+            k = int(e["kind"])
+            if not 0 <= k <= 0x7F:
+                raise ValueError("bad region")
+            w = (w & ~(0x7F << 24)) | (k << 24)
+        if layer == 0 and "code" in e:
+            k = int(e["code"])
+            if not 0 <= k <= 0xFF:
+                raise ValueError("bad step code")
+            w = (w & ~(0xFF << 16)) | (k << 16)
+        world.set_word(c, gx % 16, gy % 16, w & 0xFFFFFFFF)
+    world.save()
+    return before
+
+
+def block_atlas(world, layer, cols=64):
+    """All blocks of one layer (set A), `cols` per row."""
+    n = len(world.block_tiles)
+    img = Image.new("RGBA", (cols * 16, ((n + cols - 1) // cols) * 16), (0, 0, 0, 0))
+    for b in range(n):
+        img.alpha_composite(world.block_image(b, layer), ((b % cols) * 16, (b // cols) * 16))
+    return img
+
+
+def move_icon(project, scenes, names, actor, x, z, move_arrivals=True):
+    """Move a town icon to world px (x, z), in every story stage's placement
+    table that has it at the same spot. With move_arrivals, the arrival
+    points the town's exits use (where the party appears on leaving it) move
+    by the same amount, so leaving still puts you beside the icon."""
+    from .connections import Connections
+    from .doors import DoorEditor
+    from .modgen import Overrides, generate
+    de = DoorEditor(project, scenes, names)
+    sc = next(s for s in scenes.scenes if s["id"] == WORLD_SCENE)
+    o = scenes.overlay(sc["overlay"])
+    ov = Overrides(project.root)
+    placements = de._tables([o], ov, "placements")
+    main = next(r for _, name, r in placements if name == layout.WORLD_PLACEMENTS)
+    row = actor - FIRST_ACTOR
+    if not 0 <= row < len(main) or main[row]["sprite"] < 0:
+        raise ValueError(f"no icon {actor}")
+    if not (0 <= x < 8192 and 0 <= z < 8192):
+        raise ValueError("that spot is outside the world")
+    old = main[row]
+    ox, oz, sprite = old["x"] >> 16, old["z"] >> 16, old["sprite"]
+    dx, dz = x - ox, z - oz
+    changed = []
+    for t in placements:
+        _, name, rows = t
+        for i, r in enumerate(rows):
+            if r["sprite"] == sprite and (r["x"] >> 16, r["z"] >> 16) == (ox, oz) and (name != layout.WORLD_PLACEMENTS or i == row):
+                r["x"], r["z"] = x << 16, z << 16
+                if t not in changed:
+                    changed.append(t)
+    moved = []
+    if move_arrivals and (dx or dz):
+        lead = None
+        events = de._tables([o], ov, "events")
+        kind, _ = de._exit_kind(events, ICON_TRIGGER + actor)
+        ex = de._destination(de._tables([o], ov, "exits"), WORLD_SCENE, kind) if kind is not None else None
+        if ex:
+            lead = ex["scene"]
+        if lead is not None:
+            # arrival points that exits from the town (and its other parts) use
+            idx = Connections(project, scenes, names).index()
+            area = (names.places.get(lead) or {}).get("area_name")
+            towns = {s["id"] for s in scenes.scenes
+                     if s["id"] == lead or (area and (names.places.get(s["id"]) or {}).get("area_name") == area)}
+            nums = {e["entrance"] for t in towns for e in idx.get(t, []) if e["scene"] == WORLD_SCENE}
+            for t in de._tables([o], ov, "entrances"):
+                for r in t[2]:
+                    if r["entrance"] in nums:
+                        r["x"], r["z"] = r["x"] + dx, r["z"] + dz
+                        if r["entrance"] not in moved:
+                            moved.append(r["entrance"])
+                        if t not in changed:
+                            changed.append(t)
+    for oo, name, rows in changed:
+        if rows == oo.rows(name):
+            ov.remove(oo.id, name)
+        else:
+            ov.set(oo.id, name, oo.tables[name]["kind"], rows)
+    ov.save()
+    generate(project.root, scenes, ov)
+    return {"actor": actor, "x": x, "z": z, "arrivals_moved": sorted(moved)}
