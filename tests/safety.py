@@ -15,6 +15,7 @@ import zlib
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from gsmap import fsio, grid, patch, preflight  # noqa: E402
+from gsmap import tileset as tilesetmod  # noqa: E402
 from gsmap.chests import ChestEditor  # noqa: E402
 from gsmap.doors import DoorEditor  # noqa: E402
 from gsmap.events import EventEditor  # noqa: E402
@@ -23,7 +24,7 @@ from gsmap.modgen import Overrides, ensure_hook, generate, reconcile, validate_r
 from gsmap.names import Names  # noqa: E402
 from gsmap.project import DirectoryError, Project  # noqa: E402
 from gsmap.scenes import Scenes  # noqa: E402
-from gsmap.setup import build_env  # noqa: E402
+from gsmap.setup import ALCHEMY_PIN, build_env  # noqa: E402
 from gsmap.tileset import own_tileset  # noqa: E402
 from gsmap.world import World, apply_world_edits  # noqa: E402
 
@@ -293,6 +294,16 @@ refused("a UPS asking for a huge game", lambda: patch.ups_apply(src, crc_tail(b"
 refused("an IPS cut short", lambda: patch.ips_apply(src, b"PATCH\x00\x00\x10\x00\xff"))
 refused("a damaged BPS", lambda: patch.bps_apply(src, good[:40] + b"!" + good[41:]))
 refused("rubbish", lambda: patch.apply_any(src, b"this is not a patch"))
+
+# The README names the alchemy commit setup really downloads.
+readme = open(os.path.join(os.path.dirname(__file__), "..", "README.md"), encoding="utf-8").read()
+check("README names the pinned alchemy commit", ALCHEMY_PIN in readme and f"`{ALCHEMY_PIN[:10]}`" in readme)
+
+# The list the import refusal offers agrees with the check an import makes.
+listed = set(tilesetmod.own_tileset_maps(Project(source)))
+listing = Project(source)
+check("import: the places offered are the ones an import accepts",
+      listed == {n for n, m in listing.maps.items() if own_tileset(listing, m)})
 
 # Names come from the player's checkout, and none ship in the editor's data.
 names = Names(source)

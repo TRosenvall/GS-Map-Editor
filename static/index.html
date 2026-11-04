@@ -1264,7 +1264,7 @@ function drawStampOverlay() {
 
 function pasteStamp(x, y) {
   const m = S.map, c = S.clip;
-  if (!stampFits(c)) return status('<span class="err">This map uses a different block set, so the stamp would draw the wrong tiles. Paste it into a map that shares its blocks (e.g. Vale ↔ Debug · Sandbox).</span>');
+  if (!stampFits(c)) return status('<span class="err">This map uses a different block set, so the stamp would draw the wrong tiles. Paste it into a place that shares its blocks.</span>');
   const retired = retiredSet();
   const bad = c.layers.filter(Boolean).some(L => L.block.flat().some(v => v != null && retired.has(v & 0xfff)));
   if (bad) return status('<span class="err">This stamp uses blocks this map retired to make room for custom tiles, so they would draw the wrong art here.</span>');
@@ -1707,8 +1707,15 @@ $('#pkOk').onclick = () => {
 
 // ---- import an image into this map's own tile set ------------------------------
 let importData = null;
+// Names some places that can take a picture, so the refusal says where to go.
+async function explainNoImport() {
+  const own = await api('/api/maps/own-tileset').catch(() => []);
+  const names = [...new Set(S.maps.filter(m => own.includes(m.number)).map(m => m.label || m.folder))];
+  const some = names.length ? ` You can import into ${own.length} places, such as ${names.slice(0, 3).map(esc).join(', ')}.` : '';
+  status(`<span class="warn">This place shares its art with other places, so a picture here would change them too.${some}</span>`);
+}
 $('#importBtn').onclick = () => {
-  if (!S.map.own_tileset) return status('<span class="warn">This map shares its tile set with other maps. Import images into Debug · Sandbox, which has its own.</span>');
+  if (!S.map.own_tileset) return explainNoImport();
   $('#importFile').value = ''; $('#importFile').click();
 };
 $('#importFile').onchange = async () => {
@@ -1949,7 +1956,7 @@ $('#ptGo').onclick = async () => {
 // ---- checks: what your changes would break, in plain words ------------------------
 let checkResult = null;
 async function runChecks() {
-  $('#check').disabled = true; status('Checking every map… (about 30 seconds)');
+  $('#check').disabled = true; status('Checking every map…');
   const r = await api('/api/check');
   $('#check').disabled = false;
   if (r.error) { status(`<span class="err">${esc(r.error)}</span>`); return null; }

@@ -6,6 +6,8 @@ The editor works on [alchemy](https://github.com/PascalPixel/alchemy), a project
 
 > **Early days:** the editor covers the English edition of The Broken Seal, on macOS only. It has mostly been tested on an Intel Mac; Apple Silicon Macs haven't had a full test yet. There's no ready-made download yet, so for now you build the app yourself (see [Getting started](#getting-started)). Keep a backup of any mod you care about.
 
+**Alchemy version:** this editor is tested with alchemy commit [`f6c08e64dd`](https://github.com/PascalPixel/alchemy/commit/f6c08e64dd947e449baf8db86ab8e12f3ed5749e) (2026-11-02). Setup downloads exactly that commit. Alchemy changes quickly, so a newer copy may not work until the editor catches up.
+
 ## Contents
 
 - [Getting started](#getting-started)
@@ -353,7 +355,7 @@ To back up your mod, copy the game source folder somewhere safe. Your changes ar
 | "Play needs mGBA" | Install it from [mgba.io](https://mgba.io) and press Play again. |
 | The editor says the game source is a version it can't read | The source has changed in a way this editor doesn't understand yet. Use a fresh download from the setup screen, or move that folder aside. |
 | "This map uses a different block set" | Stamp only pastes between places that share a block set. |
-| "This map shares its tile set with other maps" | Import only works on places with their own art. Try a different place. |
+| "This place shares its art with other places" | Import only works on places with their own art. The message names some you can use. |
 | "That block was retired" | Its art was reused for an imported picture. Pick another block. |
 | "The game has no room for more chests" | The game has run out of free "opened" flags. Remove a chest you've added. |
 | A chest is missing in the game | A place shows only its first 10 chests and stones. Run **Check**. |

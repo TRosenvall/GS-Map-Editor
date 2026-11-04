@@ -358,6 +358,8 @@ def make_handler(project, token=None, local_only=True):
             try:
                 if path == "/api/history":
                     return self.send_json({"last": fsio.last_saved(history)})
+                if path == "/api/maps/own-tileset":
+                    return self.send_json(tilesetmod.own_tileset_maps(project))
                 if path == "/api/maps":
                     out = []
                     rm = {}

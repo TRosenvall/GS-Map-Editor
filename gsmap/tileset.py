@@ -17,6 +17,7 @@ the block family (the table a map's blocks were copied from, for Stamp) are
 kept in alchemy's games/tbs/src/mod/tilesets.json.
 """
 
+from collections import Counter
 import base64
 import hashlib
 import io
@@ -68,16 +69,24 @@ def retired_blocks(project, info):
     return set(load_meta(project.root).get(info.number, {}).get("retired", []))
 
 
+def _sheets(project, info):
+    return {project.label_path(label) for row in [info.resources] + info.alternates if row
+            for label in row["blocks"] if label} - {None}
+
+
+def own_tileset_maps(project):
+    """Map numbers own_tileset accepts, working out every map's sheets once."""
+    sheets = {n: _sheets(project, m) for n, m in project.maps.items()}
+    users = Counter(path for paths in sheets.values() for path in paths)
+    return sorted(n for n, paths in sheets.items() if paths and all(users[p] == 1 for p in paths))
+
+
 def own_tileset(project, info):
     """True when no other map draws any of this map's tile sheets. Compares the
     files, since a set's label can be built from another set's sheet; one
     shared sheet is enough for an import to change how another map looks."""
-    def sheets(m):
-        return {project.label_path(label) for row in [m.resources] + m.alternates if row
-                for label in row["blocks"] if label} - {None}
-
-    mine = sheets(info)
-    return bool(mine) and not any(m is not info and mine & sheets(m) for m in project.maps.values())
+    mine = _sheets(project, info)
+    return bool(mine) and not any(m is not info and mine & _sheets(project, m) for m in project.maps.values())
 
 
 def _tile(img, t):
@@ -100,7 +109,7 @@ def import_image(project, info, png_bytes, layer, dry_run=True):
     """Fit an image into info's tile set for drawing on `layer`.
     Returns a report; unless dry_run, writes sheets, blocks and metadata."""
     if not own_tileset(project, info):
-        raise ValueError("This place shares its tile art with other places, so a picture here would change them too. Import pictures into the practice map.")
+        raise ValueError("This place shares its tile art with other places, so a picture here would change them too. Import pictures into a place with art of its own.")
     base = info.char_base[layer]
     reach = [b for b in (base, base + 1) if 1 <= b <= 3]  # char blocks a layer's 1024 tiles span
     sheets = {b: Image.open(project.label_path(info.resources["blocks"][b - 1])) for b in (1, 2, 3)}

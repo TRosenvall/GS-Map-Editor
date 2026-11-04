@@ -116,7 +116,7 @@ Next stages are in the build plan in [`SPEC.md`](SPEC.md).
 
 ### Keeping up with alchemy
 
-Everything the editor knows about alchemy's layout is in `gsmap/layout.py`. To try a new version:
+Everything the editor knows about alchemy's layout is in `gsmap/layout.py`. The commit it's tested with is `ALCHEMY_PIN` in `gsmap/setup.py`. When you change it, update the version line in the README too, or the safety test fails. To try a new version:
 
 1. `python3 -m gsmap.preflight path/to/alchemy` says in plain words what no longer matches. It runs at every start too, and stops there rather than drawing maps with the wrong tiles.
 2. Build it, then `python3 tools/snapshot.py path/to/alchemy new.json` and `python3 tools/snapshot.py --compare old.json new.json` show every difference in what the editor reads. The two versions build the same game, so results should only change where you expect.
