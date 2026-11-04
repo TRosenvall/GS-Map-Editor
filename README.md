@@ -1,138 +1,374 @@
-# gs-mapedit
+# GS Map Editor
 
-A local map viewer, and in time an editor, for **Golden Sun: The Broken Seal** as
-decompiled by [alchemy](https://github.com/PascalPixel/alchemy). It reads and
-writes alchemy's source files directly. It never touches a ROM.
+Make your own version of **Golden Sun: The Broken Seal** without writing code. Repaint towns, hide chests, write new dialogue, add people and doors, reshape the world map, then press **▶ Play** and walk around in your change. When you're happy with it, export a small patch to share.
 
-```sh
-python3 server.py                  # alchemy at ~/gs_project/alchemy-port
-python3 server.py --root /path/to/alchemy --port 8765
-# open http://127.0.0.1:8765/
-```
+The editor works on [alchemy](https://github.com/PascalPixel/alchemy), a project that rebuilds the game from readable source files. It builds your game from that source on your own Mac, so you don't need a ROM to make a mod.
 
-Needs Python 3 with Pillow.
+> **Early days:** the editor covers the English edition of The Broken Seal, on macOS only. It has mostly been tested on an Intel Mac; Apple Silicon Macs haven't had a full test yet. There's no ready-made download yet, so for now you build the app yourself (see [Getting started](#getting-started)). Keep a backup of any mod you care about.
 
-### Desktop app (macOS)
+## Contents
 
-`GS Map Editor.app` is the editor in its own window, for players who never open a terminal.
+- [Getting started](#getting-started)
+- [Your first mod in two minutes](#your-first-mod-in-two-minutes)
+- [The editor at a glance](#the-editor-at-a-glance)
+- [Saving and undoing](#saving-and-undoing)
+- [Looking around](#looking-around)
+- [Paint: what the ground looks like](#paint-what-the-ground-looks-like)
+- [Walkability: where you can walk](#walkability-where-you-can-walk)
+- [Height: how high the ground is](#height-how-high-the-ground-is)
+- [Chests](#chests)
+- [Events: people, signs and messages](#events-people-signs-and-messages)
+- [Doors](#doors)
+- [Move people](#move-people)
+- [Stamp: copy and paste](#stamp-copy-and-paste)
+- [Importing your own pictures](#importing-your-own-pictures)
+- [Story and scene tables](#story-and-scene-tables)
+- [Connections](#connections)
+- [The world map](#the-world-map)
+- [Check: finding problems](#check-finding-problems)
+- [Playing your game](#playing-your-game)
+- [Sharing your mod](#sharing-your-mod)
+- [Playing someone else's mod](#playing-someone-elses-mod)
+- [Where your work lives](#where-your-work-lives)
+- [Keyboard shortcuts](#keyboard-shortcuts)
+- [What it can't do yet](#what-it-cant-do-yet)
+- [Troubleshooting](#troubleshooting)
+- [Legal](#legal)
 
-```sh
-python3 -m venv .venv && .venv/bin/pip install pywebview pyinstaller pillow
-python3 packaging/build_toolchain.py                          # GBA binutils + libpng + utf8proc, ~10 min, once
-.venv/bin/python packaging/make_icon.py                       # packaging/icon.icns
-.venv/bin/pyinstaller --noconfirm packaging/gsmapedit.spec    # -> dist/GS Map Editor.app
-python3 packaging/make_dmg.py                                 # -> dist/GS-Map-Editor-<version>.dmg
-python3 packaging/sign_and_notarize.py --identity "Developer ID Application: …"   # needs an Apple Developer account
-.venv/bin/python desktop.py                                   # or run it without packaging
-```
+## Getting started
 
-The app carries its own build tools (`packaging/toolchain`, 16 MB): GNU binutils for the GBA, static libpng and utf8proc, and a small `pkg-config` stand-in. They're built from pinned, checksummed sources and need nothing but macOS. With them, players need only Apple's free developer tools; Homebrew is used only by a build without the toolchain. `GSMAP_NO_BREW=1` hides Homebrew, to prove a build doesn't need it.
+### What you need
 
-On first run it shows a setup checklist (`static/setup.html`, `gsmap/setup.py`). Each step is checked, never assumed, and long steps show their log live:
-1. Apple's developer tools (opens Apple's installer).
-2. The build tools: included with the app. A build without them falls back to Homebrew and the packages from alchemy's INSTALL.md, checked by what the build uses rather than by formula names.
-3. The game source: download alchemy (pinned to the commit this editor was tested with) into `~/Documents/GSMapEditor/` (no spaces: the build can't handle them), or choose an existing checkout.
-4. `make bootstrap` (with GAS 2.10 built at `-O0`, because Apple clang miscompiles it at `-O2` on Intel Macs) (the game's compilers, once), then a first `make tbs-en`.
+- A Mac, with about 1 GB of free space for the game's source, plus room for the build.
+- [mGBA](https://mgba.io), a free Game Boy Advance emulator, to play your game.
+- An internet connection for the first setup.
 
-After that, the app opens straight into the editor. Settings live in `~/Library/Application Support/GS Map Editor/`. The app holds no game data: the game is built from alchemy's source on the player's Mac. Both of its servers listen on this machine only, behind a random token. `desktop.py --no-window` prints their addresses, for testing.
+### Get the app
 
-## Status
+Build it by following [Desktop app](docs/DEVELOPING.md#desktop-app-macos) in the developer notes. If you're comfortable with a terminal and already have a built alchemy checkout, you can skip the app and run `python3 server.py --root /path/to/alchemy`, then open http://127.0.0.1:8765/.
 
-**Working now** (local maps, The Broken Seal, English edition):
-- **View:** all 182 maps, with correct tilesets and placeholders, per-layer toggles and opacity, collision and height overlays.
-- **Paint:** blocks, collision and height, with ⌥-click eyedropper and undo/redo. Saves are byte-exact for anything unedited.
-- **Stamp** (S): drag a rectangle to copy an area, then click to paste it, here or in another map with the same block set (Vale ↔ Debug · Sandbox).
-  - The copy carries all three layers plus walkability and height.
-  - **Objects only** pastes just the trees and other objects, not the ground under them (a colour test against each layer's background block).
-  - A paste is one undo step. The clipboard survives switching maps and reloading the page. Esc goes back to copying.
-  - Maps with a different block set refuse the paste, since every block number would draw the wrong tile.
-- **Import image** (maps with their own tile set; today the Debug · Sandbox): pick a PNG and a layer and see a preview, then **Add to tile set**. The new blocks land on the Stamp clipboard, ready to click into place.
-  - The importer cuts the image into 8×8 tiles and matches its colours to one of the map's 14 palette rows (each tile picks its own row only if no single row fits). Index 0 is transparent.
-  - Tiles already in the sheets, mirrored ones included, are reused.
-  - New tiles go into blank space first. Then come tiles used only by blocks the map never places. Those blocks are *retired* (hidden from the palette, refused by Stamp) and listed in alchemy's `games/tbs/src/mod/tilesets.json`.
-  - The preview shows the colours the game will draw, plus how much room is left.
-- **Events** (E): everything that happens in a scene, in words, for the story stage you pick:
-  - **People:** "🗨 Garet: “Ever since the tremors started…”", Mind Read thoughts, and scripts with their own description ("Asks about the mayor before departure, or the tremors after returning").
-  - **Spots:** signs (read with A), step messages, searches and what they find.
-  - **Exit areas:** boxes that act as doors, drawn on the map. Change where they lead, or remove them.
-  - Click a person to see their events and **make them say something** (or add a line for a story moment). Click any spot to **add a sign**, **a step message** or **a person**.
-  - **Change words** opens a writer with live dialogue-box previews: type normally, and a blank line starts a new box. **When…** sets "always", "only once <story flag> is set" or "only while it isn't", with flags by name.
-  - New lines are added to `en.po` in an editor-owned block. The game's own lines are never rewritten: changing what someone says points them at a new line. Text the game's font can't draw is refused before the build.
-  - When a scene shares its people and events with others (the sandbox and the debug hub do), the panel says so.
-- **Doors** (D): every door shows on the map with where it leads ("→ Vale Home"); ones that lead nowhere show red.
-  - Click a door, then **Change where it leads…**: pick a place, then click an arrival point on its map.
-  - Click any other spot and **Make a door here…** to add a door to anywhere in the game. **Remove door** turns all of a door's cells back into ground.
-  - Doors opened by scene scripts (most of Vale's) are found too, by reading which exit the script asks for. Their destination can change; the script stays.
-  - A door changes in every story stage of the scene, through exit and event overrides. Scene `.c` files are untouched.
-- **Chests** (K): click an empty spot, pick an item (with its icon) or an amount of coins, and **Add chest**. Click a chest to change what's inside or remove it.
-  - One action writes everything a chest needs: the marker, the cell's collision code, a `SEARCH(SEARCH_CHEST)` event in the scene's event table (as an override, so scene `.c` files stay untouched) and a fresh "opened" flag from the free chest range.
-  - The code is one no event table of the map's scenes uses, and no map sharing those tables has in its collision, so nothing else becomes searchable. At most 10 chests and stones per map.
-  - A chest is a `treasure_spot` line in the map's `map.s`, in the English edition's part of the file.
-- **Chests and Psynergy stones:** drag to move. The marker row and both cells' collision codes update together, and saves that break the marker/collision rule are refused.
-- **Scene tables:** for every scene using the map, pick a table.
-  - Entrances and NPCs show on the map; drag them with the Points tool.
-  - Exits are edited as a list (kind, target scene, entrance, flag), with a check that the target entrance exists.
-- **Connections:** any place in the middle, with every place that leads to it on the left and everywhere it leads on the right (door, scripted door or scene event, and the arrival point). Click a place to move there; **Open** jumps to the door in the editor.
-- **Check:** looks over every map for problems your changes would cause in the game and says them in plain words, each with a fix and a **Show** button that opens the spot:
-  - doors that lead nowhere, or to an arrival point that doesn't exist;
-  - chests that can't be opened, have nothing defined, refill because of a temporary flag, or share an "opened" flag;
-  - more than 10 chests and stones on a map; cells using missing or retired blocks;
-  - edits to scene tables that no longer match the game source (after an alchemy update).
-  - The original game has quirks of its own (115 today, e.g. 83 leftover doors). Each issue is also looked for in the unmodified game, and those are hidden unless you ask for them.
-  - **Build** runs the check first and asks before building with problems.
-- **World map** (top of the place list): the whole overworld, loaded as you scroll, with town and dungeon icons labelled by where they lead.
-  - Overlays: walkability (blocked ground in red) and encounter regions, each named after the towns inside it ("Region 1 (Vale, Lunpa…)").
-  - **Ground** / **Overlay**: paint blocks (⌥-click picks one up; recently used blocks stay at hand). **Regions**: paint encounter regions. Changes save as you paint; Undo takes the last stroke back. Cells are written into `map/world/blocks.tsv`, keeping each word's other fields.
-  - **Towns**: drag an icon to move it. Its arrival points (where you appear on leaving the town) move with it, in every story stage that has the icon there. Click an icon or a blue step spot to change where it leads.
-  - The snowy north is drawn with its own graphics set. The pause-screen map is a separate picture and doesn't follow edits.
-- **Export mod…:** saves your mod as a small `.bps` patch, plus a readme for players, in `~/Documents/GSMapEditor/Exports/`.
-  - The patch goes from the unmodified game to your build. The unmodified game is built once from the commit your mod starts from: in a separate folder via `git archive`, so your checkout is untouched. It's checked against alchemy's `rom.sha1`, so it equals the retail cartridge, and the patch applies to anyone's own dump.
-  - Patches are BPS (Rom Patcher JS, Floating IPS, emulator soft-patching). Moved data becomes copies rather than new bytes. Every patch is applied once after writing, to check it reproduces your build exactly.
-  - Export runs Check first. You share your changes, never the game.
-- **Patcher…:** applies a mod's `.bps`, `.ips` or `.ups` patch and saves the game in `~/Documents/GSMapEditor/Patched/`, with **Play in mGBA** and **Show in Finder**.
-  - Patch either the unmodified game this Mac built from source (no ROM needed) or your own ROM file. Your file is named from alchemy's `rom.sha1` ("Golden Sun (English)"), with a warning when it isn't an unmodified game.
-  - BPS and UPS refuse the wrong game. IPS can't check, so the patcher says so.
-  - Export can also write an `.ips` for older patchers. It's larger, because IPS can't record moved data (4.2 MB against 383 KB for the debug-room mod), and is checked the same way.
-- **▶ Play:** one button: saves what's unsaved, runs Check, builds, and opens your game in mGBA, starting a fresh game at the place you're editing (from the world map page, on the world map). The start is written into a throwaway copy of the game; what you export has no trace of it. If the build fails you get a plain explanation, with the technical details folded away and a Copy button for bug reports. Build on its own is under Advanced.
-- **Undo last save:** steps back through saved actions whichever tool made them, including chests, doors and events, which save immediately. The last 30 are kept.
-- **Reset place…:** puts a place back as the original game has it (Undo last save brings your version back). Scene tables other places share are left alone, and it says so.
-- **Saving is all or nothing:** one action's files land together or not at all, every file is replaced in one step, and if the editor dies part way it finishes undoing on the next start.
-- **Names:** places are listed by their in-game names ("Vale · Vale Home").
-- **Walkability brushes:** named and colour-coded (Floor, Wall, Ledge, Ladder, Jump gap, Hazard, search spots, …).
-- **Hover:** says what a cell does ("Exit → Vale", "Chest: Herb", "Scripted (probably a door to …)").
-- **NPCs:** drawn as their sprites, listed by name.
-- **Scene tables:** friendly names ("Arrival points: normal", "People: After Kalay").
-- **Advanced checkbox:** brings back raw codes.
-- **Links:** `?map=003&tool=points&kind=placements` opens straight to a place.
-- **No shipped art or text:** item, place, character, sprite and flag names, item icons and sprite previews are all read at runtime from the player's own alchemy checkout. `gsmap/data` holds only the editor's own findings: preview frames, free chest flags, and what each walkability code does.
+### First-run setup
 
-**How scene edits reach the game:** through one hook, without rewriting alchemy's scene files. See `docs/SPEC.md` and alchemy's `games/tbs/src/mod/README.md`.
-- The editor stores edited copies of tables in alchemy's `games/tbs/src/mod/overrides.json` and generates `mod.c` from it.
-- `MOD_SCENE_LOADED` in `Scene_LoadOverlay` (`system/main_routine.c`), which the editor adds to a plain checkout the first time it writes a scene edit, swaps in a wrapper that still runs each scene's own table-choosing logic.
-- With no overrides, GSMOD is off and all six editions still build byte-identical.
+The app opens on a checklist the first time. It takes around 15 minutes, mostly waiting. Press the button on each step and the editor does the rest:
 
-Next stages are in the build plan in [`docs/SPEC.md`](docs/SPEC.md).
+1. **Apple's developer tools:** opens Apple's installer.
+2. **The tools for building the game:** already included with the app.
+3. **The game's source:** downloads alchemy into `~/Documents/GSMapEditor/`. If you already have a copy, choose **I already have a copy…**.
+4. **Preparing the build:** sets up the game's compilers, once.
+5. **A first build of the game:** builds the game once.
 
-### Keeping up with alchemy
+Then press **Open the editor**. After this, the app opens straight into the editor.
 
-Everything the editor knows about alchemy's layout is in `gsmap/layout.py`. To try a new version:
+## Your first mod in two minutes
 
-1. `python3 -m gsmap.preflight path/to/alchemy` says in plain words what no longer matches. It runs at every start too, and stops there rather than drawing maps with the wrong tiles.
-2. Build it, then `python3 tools/snapshot.py path/to/alchemy new.json` and `python3 tools/snapshot.py --compare old.json new.json` show every difference in what the editor reads. The two versions build the same game, so results should only change where you expect.
-3. Run the tests below.
+1. Pick a place from the list on the left. Type in the **Find a place** box to search.
+2. Press **Chest** in the top bar, then click an empty bit of ground.
+3. Type an item name, such as `Herb`, and press **Add chest**.
+4. Press **▶ Play**. Your game opens in mGBA, in the place you were editing, a few seconds after the game boots.
+5. Walk up to the chest and open it.
 
-Saved scene edits carry a fingerprint of the table they were made for. A table renamed upstream follows it. An edit to a table whose original contents changed is kept but left out of the game, and Check reports it.
+## The editor at a glance
 
-### Tests
+| Area | What's there |
+|---|---|
+| **Left** | The list of places. The world map is at the top. |
+| **Top bar** | Zoom, layers, overlays, tools, and buttons for saving, checking and playing. |
+| **Middle** | The map. |
+| **Right** | The panel for the tool you're using. |
+| **Bottom line** | Status messages. As you hover, it says what the spot under your cursor does, such as "Chest: Herb" or where an exit leads. |
 
-- `python3 tests/safety.py`: what must never go wrong: failures and crashes leave no half-saved files, chests stay in their own rooms, bad values and hostile patches are refused, renamed or changed tables are handled, an unknown layout is reported rather than guessed at.
-- `python3 tests/edits.py`: saves block, walkability and height edits on a copy of real maps and checks they read back, with nothing else changed.
-- `python3 tests/roundtrip.py`: loads and re-saves every map grid, cell-picture and shape table, and chest list (727 files). All must come out byte-identical. This guarantees that saving a map only changes what you edited.
+Tick **Advanced** in the top bar to show raw numbers and codes and a separate **Build** button. You won't need it for normal editing.
 
-## Docs
+## Saving and undoing
 
-- [`docs/SPEC.md`](docs/SPEC.md): the editor spec, invariants and staged build plan.
-- [`docs/research/`](docs/research/): evidence with file:line references.
-  - `rendering.md`: placeholders, tilesets, windows, blending, animation.
-  - `local-connections.md`: scenes, exits, markers, NPCs, new maps.
-  - `overworld.md`: the world map.
+Some changes wait for you to save, and others save straight away:
+
+| Waits for **Save** (or ⌘S) | Saves immediately |
+|---|---|
+| Paint, Walkability, Height | Adding, changing or removing a chest |
+| Stamp pastes | Events and doors |
+| Dragging chests, stones and people | World map painting and town moves |
+
+The editor also saves for you before you switch places or press Play, so moving on won't lose your work.
+
+There are three ways back:
+
+- **Undo / Redo** (⌘Z / ⇧⌘Z) step through changes you haven't saved yet.
+- **Undo last save** steps back through saved actions, whichever tool made them. The last 30 are kept.
+- **Reset place…** puts a place back as the original game has it. If you change your mind, **Undo last save** brings your version back. Scene tables that other places share are left alone, and the editor tells you when that happens.
+
+Saving is all or nothing. If the editor stops part way through, it finishes undoing the half-done save the next time it starts.
+
+## Looking around
+
+Press **View** (V) to look without changing anything.
+
+- **Zoom:** 1× to 4×.
+- **Layers:** each place has up to three, called **Ground**, **Middle** and **Overhead**. You can hide each one or fade it to see underneath.
+- **Overlays:** tick **Collision** to see walkability, **Height** to see ground height, or **Grid** to see the squares.
+- **People, chests and doors** are drawn on the map as they appear in the game.
+
+## Paint: what the ground looks like
+
+Press **Paint** (B).
+
+1. Choose a layer in the **on** menu in the top bar.
+2. Pick a block from the **Blocks** panel on the right, or hold ⌥ and click the map to pick up the block under the cursor.
+3. Click or drag on the map.
+4. Save.
+
+Each place has its own set of blocks, so the panel changes from place to place.
+
+## Walkability: where you can walk
+
+Press **Walkability** (C). Painting a block doesn't change where you can walk, so this is a separate step. Pick a brush and paint.
+
+| Brush | What it does |
+|---|---|
+| **Floor** | Plain ground you can walk on. |
+| **Wall** | Blocks walking, whatever the height. |
+| **Ledge** | Hold Down against it for a moment and the leader jumps down. |
+| **Climbable wall / ladder** | Hold Up or Down against it for a moment to climb. |
+| **Jump gap** | Push against it for a moment and the leader jumps over it, if the far side allows landing. |
+| **Encounter ground A / B** | Walkable. Random battles use the place's first or second encounter zone. |
+| **Hazard ground** | Walkable, but hurts the party after enough steps, if the scene turns that on. |
+| **Cloak shadow** | Walkable. The only ground where the Cloak Psynergy keeps the party hidden. |
+| **Empty jar, barrel, box, grave, books, well** | Searching it finds nothing. Usually a wall too, through its height. |
+
+Tick **Advanced** to get the **Chain-jump spot**, which makes the leader jump again on landing, for hops across stepping stones.
+
+The Chest, Doors and Events tools set the special codes they need themselves, so you don't have to paint those.
+
+## Height: how high the ground is
+
+Press **Height** (H). The panel lists the heights this place already uses, such as "Flat, 24 px" or "Slope or step". Pick one and paint.
+
+Height affects walking as well as looks. People stand at the height of the ground they're on, and the game refuses a step of more than 8 pixels up or 12 pixels down, so a big difference in height acts as a wall.
+
+## Chests
+
+Press **Chest** (K).
+
+- **Add one:** click an empty spot, choose an **Item** (start typing its name) or an amount of **Coins**, then press **Add chest**.
+- **Change one:** click it, change what's inside, and confirm.
+- **Remove one:** click it and press **Remove chest**.
+- **Move one:** drag it, then save. Psynergy Stones can be dragged too.
+
+The editor handles the rest, including the flag that remembers a chest has been opened, so a chest stays empty when you come back. A place can hold at most **10 chests and stones**.
+
+## Events: people, signs and messages
+
+Press **Events** (E). The panel lists everything that happens in this place, in words: what people say, Mind Read thoughts, signs, step messages, searches and exit areas.
+
+**Story stage** at the top matters. Many places change as the story moves on, and each stage has its own people and events. Choose the stage you want to edit.
+
+### Adding things
+
+Click a spot on the map, then choose:
+
+- **Add a sign (read with A)…** for a sign or something to examine.
+- **Add a step message…** for a message that shows when you step there. It shows once per visit, so standing still doesn't trap the player.
+- **Add a person here…** to choose who it is with a picture preview, and whether they **walk around**.
+
+### Making people talk
+
+Click a person. Press **Make them say something…**, or **Add a line for a story moment…** if they already talk.
+
+### Changing what's there
+
+Each event in the list has these buttons, where they apply:
+
+- **Change words** opens the writer.
+- **When…** decides when the event happens: **Always**, **Only once** a story flag is set, or **Only while** it isn't. Flags are listed by name.
+- **Remove** deletes it.
+
+### The writer
+
+Type normally. A blank line starts a new dialogue box, and the preview shows how the boxes will look in the game. **+ hero's name** inserts whatever name the player chose. Text the game's font can't draw is refused before it can break your build.
+
+Your words are added as new lines, and the game's own text is never overwritten. If the same line is used somewhere else, it stays as it was.
+
+### Shared scenes
+
+Some places share their people and events with other places. The panel warns you when a change here will also show up there.
+
+## Doors
+
+Press **Doors** (D). Every door shows on the map with where it leads. **Blue** cells are doors, and **red** ones lead nowhere.
+
+- **Change a door:** click it, press **Change where it leads…**, pick a place, then click where the party should arrive on that place's map.
+- **Make a door:** click any other spot and press **Make a door here…**. It can lead anywhere in the game.
+- **Remove a door:** click it and press **Remove door**. Its cells turn back into ground.
+
+A door changes in every story stage of the place. Doors opened by scene scripts are found too: you can change where they lead, but the script itself stays the same.
+
+## Move people
+
+Press **Move people** (P).
+
+1. In the **Story and scene** panel, choose a scene and a table of people or arrival points.
+2. Drag them on the map. Hold ⇧ as you let go to snap to the nearest 8 pixels.
+3. Save.
+
+Arrival points are where the party appears on entering a place.
+
+## Stamp: copy and paste
+
+Press **Stamp** (S).
+
+1. Drag a rectangle on the map to copy it.
+2. Click to paste, here or in another place that uses the same block set.
+3. Press Esc to go back to copying.
+
+- **Walkability & height** copies those along with the blocks, and is on by default.
+- **Objects only** pastes just the trees and other objects, not the ground under them.
+- A paste is one undo step, and your copy survives switching places and reloading.
+- Places with a different block set refuse the paste, because every block would draw the wrong picture.
+
+## Importing your own pictures
+
+**Import image…** is in the Stamp panel. It works on places whose art isn't shared with any other place, which is 28 of the 182 in the game. Elsewhere the editor refuses, because your picture would change how other places look.
+
+1. Choose **Overlay** (drawn over the ground, with a transparent background) or **Ground**.
+2. Press **Import image…** and pick a PNG, GIF or BMP. It can cover at most 256 squares of 16×16 pixels, for example 256×256 pixels.
+3. Check the preview. It shows the colours the game will really draw, and how much room is left.
+4. Press **Add to tile set**. The new blocks land on the Stamp clipboard, ready to click into place.
+
+The picture is fitted to this place's colours, and repeated pieces are reused to save room. When the sheets are full, the editor reuses art from blocks the place never uses, and those blocks then disappear from the palette.
+
+## Story and scene tables
+
+The **Story and scene** panel shows the scenes that use this map and the tables behind them, with friendly names such as "Arrival points: normal". Arrival points and people show on the map. Exits are edited as a list, with a check that the arrival point you pick exists. Most of the time the Doors, Events and Move people tools are easier.
+
+## Connections
+
+Press **Connections** to see any place in the middle, with every place that leads to it on the left and everywhere it leads on the right. Click a place to move there, or press **Open** to jump to that door in the editor. Use the search box to find a place.
+
+## The world map
+
+Choose the world map at the top of the place list. Press **← Places** to go back.
+
+| Tool | Key | What it does |
+|---|---|---|
+| **View** | V | Hover to see a spot's region and what it does. Click a town, dungeon or blue step spot to see where it leads. |
+| **Ground** | G | Paint ground blocks. ⌥-click picks up a block, and recent blocks stay at hand. |
+| **Overlay** | O | Paint mountains, trees and coastline. Walking depends on the tiles of both layers. |
+| **Regions** | R | Paint encounter regions. Each has its own random battles, and each is named after the towns inside it. |
+| **Towns** | T | Drag a town or dungeon to move it. Click one to change where it leads. |
+
+- Tick **Walkability**, **Encounter regions** or **Places** to show those on the map.
+- When you move a town, **move its arrival points too** keeps you appearing next to it when you leave. It's on by default.
+- Changes save as you paint. **Undo** takes back the last stroke.
+- The pause-screen map is a separate picture, so it won't follow your changes.
+
+## Check: finding problems
+
+Press **Check** to look over every map for problems your changes would cause. Each one comes with a fix and a **Show** button that opens the spot. It looks for:
+
+- doors that lead nowhere or to an arrival point that doesn't exist;
+- chests that can't be opened, have nothing defined, fill up again, or share an "opened" flag;
+- more than 10 chests and stones in a place;
+- squares using a block or height the place doesn't have;
+- edits that no longer fit after the game's source was updated.
+
+The original game has quirks of its own, and those are hidden unless you tick **Also show the original game's own quirks**. Play and Export run Check for you first, and **Build** asks before building with problems.
+
+## Playing your game
+
+Press **▶ Play**. It saves, checks, builds and opens your game in mGBA, starting at the place you're editing. From the world map page, you start on the world map.
+
+- Each Play is a **fresh game**: Isaac alone, with no story progress, so a place can look like its early-game version.
+- You appear at the place's **first arrival point**, not the spot you're viewing.
+- A build after a map change takes around 20 seconds.
+- The start point only exists in a throwaway copy of the game, so your exported mod still boots normally from the title screen.
+
+## Sharing your mod
+
+Press **Export mod…**.
+
+1. Fill in a **Name**, and optionally your name and what it changes.
+2. Press **Export**.
+
+You get a small `.bps` patch and a readme for players in `~/Documents/GSMapEditor/Exports/`. Press **Show in Finder** to see them. Export runs Check first, and tests each patch once to confirm it reproduces your build exactly.
+
+Tick **Also save an .ips** if your players use older patchers. It's much larger, because IPS can't record moved data.
+
+**Share the patch, never the built game.** Players apply the patch to their own copy, so you never hand out the game itself. A `.bps` patch works with common patchers such as Rom Patcher JS and Floating IPS, as well as this editor.
+
+## Playing someone else's mod
+
+Press **Patcher…**.
+
+1. Press **Choose a patch…** and pick a `.bps`, `.ips` or `.ups` file.
+2. Choose the game to patch: **The unmodified game, built on this Mac** (no ROM needed), or **My own ROM file**.
+3. Press **Patch**.
+
+The patched game is saved in `~/Documents/GSMapEditor/Patched/`, and you can press **Play in mGBA** or **Show in Finder**. BPS and UPS patches refuse the wrong game. IPS patches can't check, and the patcher tells you so.
+
+## Where your work lives
+
+| What | Where |
+|---|---|
+| Your mod | Inside the game source folder, by default `~/Documents/GSMapEditor/` |
+| Exported patches | `~/Documents/GSMapEditor/Exports/` |
+| Patched games | `~/Documents/GSMapEditor/Patched/` |
+| Editor settings | `~/Library/Application Support/GS Map Editor/` |
+
+To back up your mod, copy the game source folder somewhere safe. Your changes are ordinary files in that folder.
+
+## Keyboard shortcuts
+
+| Key | Places | World map |
+|---|---|---|
+| V | View | View |
+| B | Paint | |
+| C | Walkability | |
+| H | Height | |
+| K | Chest | |
+| E | Events | |
+| D | Doors | |
+| P | Move people | |
+| S | Stamp | |
+| G / O / R / T | | Ground / Overlay / Regions / Towns |
+| ⌘Z | Undo | Undo |
+| ⇧⌘Z | Redo | |
+| ⌘S | Save | |
+| ⌥-click | Pick up a block | Pick up a block or region |
+| ⇧ while dropping | Snap people to the nearest 8 pixels | |
+| Esc | Close a dialog, or go back to copying in Stamp | Close a dialog |
+
+## What it can't do yet
+
+- **The Lost Age**, and editions other than English.
+- **Windows or Linux** as a packaged app.
+- **Brand new places:** there's no button for adding one.
+- **Battles and game data:** monsters, encounter tables, items, shops and music can't be edited, though you can paint which encounter region a world map spot belongs to.
+- **Story scripts:** you can change what people say and when, and add simple events, but not write cutscenes.
+- **The pause-screen map.**
+
+## Troubleshooting
+
+| You see | What to do |
+|---|---|
+| "Play needs mGBA" | Install it from [mgba.io](https://mgba.io) and press Play again. |
+| The editor says the game source is a version it can't read | The source has changed in a way this editor doesn't understand yet. Use a fresh download from the setup screen, or move that folder aside. |
+| "This map uses a different block set" | Stamp only pastes between places that share a block set. |
+| "This map shares its tile set with other maps" | Import only works on places with their own art. Try a different place. |
+| "That block was retired" | Its art was reused for an imported picture. Pick another block. |
+| "The game has no room for more chests" | The game has run out of free "opened" flags. Remove a chest you've added. |
+| A chest is missing in the game | A place shows only its first 10 chests and stones. Run **Check**. |
+| Check says an edit "no longer fits" | The game's source changed under that edit. It's kept but left out of your game. |
+| A place looks different from what you edited | You may be on another **Story stage**, and Play starts a fresh game, which shows the early version. |
+| Setup failed part way | Press **Check again**, then the step's button. The log under the checklist shows what happened. |
+
+## Legal
+
+GS Map Editor's own code is under the [MIT licence](LICENSE). Bundled tools keep their own licences, listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+The editor contains no ROM or game art, and it doesn't ship the game's text. Names and pictures are read from your own copy of the game's source while it runs. Golden Sun belongs to Nintendo and Camelot, and this project isn't affiliated with them. Alchemy is a separate project with its own terms.
+
+Please don't share built games. Share patches instead.
+
+## Developers
+
+Building the app, tests, how edits reach the game, and how to follow alchemy updates are all in [docs/DEVELOPING.md](docs/DEVELOPING.md).
