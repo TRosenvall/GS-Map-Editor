@@ -39,7 +39,12 @@ def meta_path(root):
 
 def load_meta(root):
     p = meta_path(root)
-    return json.load(open(p, encoding="utf-8")) if os.path.exists(p) else {}
+    try:
+        with open(p, encoding="utf-8") as f:
+            meta = json.load(f)
+    except (OSError, ValueError):  # no notes, or unreadable: nothing is marked as retired
+        return {}
+    return meta if isinstance(meta, dict) else {}
 
 
 def save_meta(root, meta):

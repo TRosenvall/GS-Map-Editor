@@ -21,6 +21,13 @@ from .fsio import atomic_write
 BEGIN = "# gsmod: editor messages BEGIN (gs-mapedit; lines added in the editor)"
 END = "# gsmod: editor messages END"
 LINE_WIDTH, LINES_PER_BOX = 22, 3  # what fits a dialogue box comfortably
+MAX_LINE = 4000  # far past anything the game says; a much longer line stops the build
+
+# What phones and Macs type in place of plain punctuation.
+TYPED = str.maketrans({"\u2018": "'", "\u2019": "'", "\u201c": '"', "\u201d": '"', "\u2013": "-", "\u2014": "-",
+                       "\u2026": "...", "\u00a0": " "})
+ALPHABET = re.compile(r'^"X-Alchemy-Symbol-Count: (\d+)', re.M)
+COMMAND = re.compile(r"\{[^}]*\}")
 
 ENTRY = re.compile(r'(?:^msgctxt "((?:[^"\\]|\\.)*)"\n)?^msgid "(\d{5})"\nmsgstr ((?:"(?:[^"\\]|\\.)*"\n?)+)', re.M)
 
@@ -28,6 +35,19 @@ ENTRY = re.compile(r'(?:^msgctxt "((?:[^"\\]|\\.)*)"\n)?^msgid "(\d{5})"\nmsgstr
 def _unquote(chunks):
     out = "".join(re.findall(r'"((?:[^"\\]|\\.)*)"', chunks))
     return out.replace('\\"', '"').replace("\\\\", "\\")
+
+
+def tidy(text):
+    """Smart quotes, long dashes and the like, as the plain marks the game has."""
+    return text.translate(TYPED)
+
+
+def _symbol(ch):
+    """The number ags-text gives a character, or None if it has none."""
+    try:
+        return ch.encode("cp1252")[0]
+    except UnicodeEncodeError:
+        return None
 
 
 def _quote(text):
@@ -56,8 +76,16 @@ class Messages:
                     "ctx": m.group(1), "text": _unquote(m.group(3)).replace("\\n", "\n"),
                     "start": m.start(), "end": m.end(),
                 }
-            cached = _PARSED[self.path] = (stamp, text, entries, set(re.findall(r"\{[a-z_]+(?::\d+)?\}", text)))
+            # Commands the game's own lines use: a line of ours can't vouch for itself.
+            b, e = text.find(BEGIN), text.find(END)
+            stock = text[:b] + text[e:] if 0 <= b < e else text
+            cached = _PARSED[self.path] = (stamp, text, entries, set(re.findall(r"\{[a-z_]+(?::\d+)?\}", stock)))
         _, self.text, self.entries, self.commands = cached
+
+    def alphabet(self):
+        """How many symbols this edition's text can use (its catalog's own header)."""
+        m = ALPHABET.search(self.text)
+        return int(m.group(1)) if m else 256
 
     def get(self, n):
         e = self.entries.get(n)
@@ -74,18 +102,33 @@ class Messages:
 
     def check(self, text):
         """Why the game can't show this text, or None."""
-        try:
-            re.sub(r"\{[^}]*\}", "", text).encode("cp1252")
-        except UnicodeEncodeError as e:
-            return f"the game's font has no {text[e.start]!r}"
-        for cmd in re.findall(r"\{[^}]*\}", text):
+        limit = self.alphabet()
+        if len(text) > MAX_LINE:
+            return "That's far too long for the game. Split it into several lines."
+        for ch in COMMAND.sub("", text).replace("\n", ""):
+            symbol = _symbol(ch)
+            if symbol is None or symbol < 32 or symbol >= limit:
+                return (f"The game's font has no “{ch}”, so it would stop your game from building. "
+                        "Use plain letters, numbers and punctuation, with no accents.")
+        for cmd in COMMAND.findall(text):
             if cmd not in self.commands:
-                return f"{cmd} isn't a text command the game knows"
-        if not text.strip():
-            return "the line is empty"
+                return f"{cmd} isn't a text command the game knows. Remove it, or fix its spelling."
+        if not COMMAND.sub("", text).strip():
+            return "The line is empty. Write what it says."
         return None
 
+    def bad_lines(self):
+        """[(number, text, why)] of the editor's own lines the game can't build."""
+        out = []
+        for n, ent in self.entries.items():
+            if self.owned(n):
+                problem = self.check(ent["text"])
+                if problem:
+                    out.append((n, ent["text"], problem))
+        return out
+
     def add(self, text):
+        text = tidy(text)
         problem = self.check(text)
         if problem:
             raise ValueError(problem)
@@ -102,6 +145,7 @@ class Messages:
     def set(self, n, text):
         if not self.owned(n):
             raise ValueError("only lines added in the editor are changed in place")
+        text = tidy(text)
         problem = self.check(text)
         if problem:
             raise ValueError(problem)

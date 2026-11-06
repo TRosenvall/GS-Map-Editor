@@ -215,7 +215,8 @@ class DoorEditor(SceneEditor):
         o = self.scenes.overlay(sc["overlay"])
         ov = self._read_overrides()
         seen, out = set(), []
-        for _, _, rows in self._tables([o], ov, "entrances", need=False):
+        # Only this scene's tables: rooms sharing an overlay reuse the same numbers.
+        for _, _, rows in self._tables([o], ov, "entrances", need=False, scene_ids={scene_id}):
             for r in rows:
                 if r["entrance"] >= 0 and r["entrance"] not in seen:
                     seen.add(r["entrance"])
@@ -391,5 +392,5 @@ class DoorEditor(SceneEditor):
                     if (o.id, name) not in mine for r in rs)
         if not still:
             p.apply_edits(info, [{"plane": "collision", "x": gx, "y": gz,
-                                  "value": self._neighbour_code(col, gx, gz, code)} for gx, gz in cells])
+                                  "value": self._restored_code(info, col, gx, gz, code)} for gx, gz in cells])
         return {"code": code, "cells": 0 if still else len(cells), "tables_kept": bool(others) or still}

@@ -33,7 +33,10 @@ def find_value(contents):
             raise ValueError("pick an item")
         return FIND_ITEM | item
     if "coins" in contents:
-        n = int(contents["coins"])
+        coins = contents["coins"]
+        if isinstance(coins, float) and coins != int(coins):
+            raise ValueError("coins must be a whole number")
+        n = int(coins)
         if not 1 <= n <= 0xFFFF:
             raise ValueError("coins must be between 1 and 65535")
         return FIND_COINS | n
@@ -79,6 +82,8 @@ class ChestEditor(SceneEditor):
     def add(self, info, x, z, contents):
         p = self.project
         value = find_value(contents)
+        if "item" in contents and int(contents["item"]) not in self.names.items:
+            raise ValueError("pick an item")
         overlays = self._overlays(info)
         ov = Overrides(p.root)
         tables = self._event_tables(info, ov)
@@ -129,6 +134,8 @@ class ChestEditor(SceneEditor):
 
     def set_contents(self, info, x, z, contents):
         value = find_value(contents)
+        if "item" in contents and int(contents["item"]) not in self.names.items:
+            raise ValueError("pick an item")
         _, _, _, code = self._find(info, x, z)
         ov = Overrides(self.project.root)
         hit = False
@@ -160,7 +167,7 @@ class ChestEditor(SceneEditor):
                 ov.set(o.id, name, "events", keep)
         mt.delete(i)
         mt.save()
-        restore = self._neighbour_code(p.load_grid(info, "collision").cells, x, z, code)
+        restore = self._restored_code(info, p.load_grid(info, "collision").cells, x, z, code)
         p.apply_edits(info, [{"plane": "collision", "x": x, "y": z, "value": restore}])
         ov.save()
         generate(p.root, self.scenes, ov)

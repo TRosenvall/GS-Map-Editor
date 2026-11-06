@@ -23,6 +23,7 @@ import os
 from PIL import Image
 
 from . import layout
+from .sceneedit import actor_numbers
 from . import table as tablemod
 from .fsio import atomic_write
 
@@ -214,7 +215,6 @@ class World:
 
 WORLD_SCENE = 2
 ICON_TRIGGER = 100  # touching actor N raises trigger 100 + N
-FIRST_ACTOR = 8
 
 
 def world_places(world, project, scenes, names):
@@ -241,10 +241,7 @@ def world_places(world, project, scenes, names):
     icons = []
     rows = de._tables([o], ov, "placements")
     main = next((r for _, name, r in rows if name == layout.WORLD_PLACEMENTS), [])
-    for i, r in enumerate(main):
-        if r["sprite"] < 0:
-            break
-        actor = FIRST_ACTOR + i
+    for i, (actor, r) in enumerate(zip(actor_numbers(main), main)):
         icons.append({"actor": actor, "row": i, "sprite": r["sprite"], "x": r["x"] >> 16, "z": r["z"] >> 16,
                       "lead": lead(ICON_TRIGGER + actor)})
     steps = []
@@ -341,9 +338,10 @@ def move_icon(project, scenes, names, actor, x, z, move_arrivals=True):
     ov = Overrides(project.root)
     placements = de._tables([o], ov, "placements")
     main = next(r for _, name, r in placements if name == layout.WORLD_PLACEMENTS)
-    row = actor - FIRST_ACTOR
-    if not 0 <= row < len(main) or main[row]["sprite"] < 0:
+    numbers = actor_numbers(main)
+    if actor not in numbers:
         raise ValueError(f"no icon {actor}")
+    row = numbers.index(actor)
     if not (0 <= x < 8192 and 0 <= z < 8192):
         raise ValueError("that spot is outside the world")
     old = main[row]

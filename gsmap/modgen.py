@@ -41,6 +41,10 @@ ENTRY_FIELDS = {"entrances": "entrances", "exits": "exits", "placements": "actor
 _PARSED = {}  # overrides.json path -> (mtime, parsed)
 
 
+class DamagedFile(ValueError):
+    """A file the editor saves can't be read; the message says what to do."""
+
+
 class Overrides:
     def __init__(self, root):
         self.dir = os.path.join(root, layout.MOD)
@@ -52,7 +56,19 @@ class Overrides:
             stamp = os.stat(self.path).st_mtime_ns
             cached = _PARSED.get(self.path)
             if not cached or cached[0] != stamp:
-                cached = _PARSED[self.path] = (stamp, json.load(open(self.path, encoding="utf-8")))
+                try:
+                    with open(self.path, encoding="utf-8") as f:
+                        parsed = json.load(f)
+                    tables = parsed.get("tables", {}) if isinstance(parsed, dict) else None
+                    if not isinstance(tables, dict) or not all(
+                            isinstance(t, dict) and isinstance(t.get("rows"), list) and "kind" in t and "symbol" in t
+                            for t in tables.values()):
+                        raise ValueError("not an edits file")
+                except ValueError as e:
+                    raise DamagedFile(f"The file that holds your people, door and event edits can't be read "
+                                      f"({layout.MOD}/overrides.json). Use Undo last save if a recent save caused "
+                                      "this, or restore it from your backup.") from e
+                cached = _PARSED[self.path] = (stamp, parsed)
             self.data = {**cached[1], "tables": dict(cached[1].get("tables", {}))}
 
     @staticmethod

@@ -15,7 +15,36 @@ from .modgen import PLAYTEST_SYMBOL
 from .scenes import readelf_symbols
 
 ROM_BASE = 0x08000000
+WALL = 255
+MAX_STEP_UP, MAX_STEP_DOWN = 8, 12  # pixels the game lets the party step
 KEPT = 3  # mGBA can hold a copy open, and saves beside it
+
+
+def landing(project, info, arrivals):
+    """Which arrival point Play starts at: (arrival, sure). A best guess from the
+    map: some first arrivals sit on a wall square or boxed in by height, kept for
+    a story scene that moves the party on. Others can't be told apart from the
+    files at all, so the page also offers a choice (Start at). The first that isn't
+    walled in; sure is False when every one looks it."""
+    if info is None or not arrivals:
+        return (arrivals[0] if arrivals else None), True
+    col = project.load_grid(info, "collision").cells
+
+    def wall(x, z):
+        return col[(z >> 4) % 128][(x >> 4) % 128] == WALL
+
+    def open_beside(a):
+        x, z = a["x"], a["z"]
+        if wall(x, z):
+            return False
+        here = project.ground_height(info, x, z)
+        return any(not wall(x + dx, z + dz) and -MAX_STEP_DOWN <= project.ground_height(info, x + dx, z + dz) - here <= MAX_STEP_UP
+                   for dx, dz in ((16, 0), (-16, 0), (0, 16), (0, -16)))
+
+    for a in arrivals:
+        if open_beside(a):
+            return a, True
+    return arrivals[0], False
 
 
 def make_copy(root, folder, scene, entrance):

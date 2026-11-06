@@ -19,6 +19,7 @@ import os
 import shutil
 import signal
 import subprocess
+import tempfile
 import threading
 
 from . import layout, preflight
@@ -32,6 +33,8 @@ SETTINGS = os.path.join(SUPPORT, "settings.json")
 DEFAULT_WORKSPACE = os.path.expanduser("~/Documents/GSMapEditor")
 EXPORTS = os.path.join(DEFAULT_WORKSPACE, "Exports")
 CACHE = os.path.expanduser("~/Library/Caches/GSMapEditor")
+if " " in CACHE:  # builds run from here too; macOS's per-user temporary folder has no spaces
+    CACHE = os.path.join(tempfile.gettempdir(), "GSMapEditorCache")
 ALCHEMY_URL = "https://github.com/PascalPixel/alchemy"
 # The alchemy commit this editor was last tested against (round trip,
 # render-all, build). Newer commits usually work; this one is known to.
@@ -48,9 +51,11 @@ def GIT_PATIENT_ARGS(folder):
 
 def load_settings():
     try:
-        return json.load(open(SETTINGS, encoding="utf-8"))
+        with open(SETTINGS, encoding="utf-8") as f:
+            settings = json.load(f)
     except (OSError, ValueError):
         return {}
+    return settings if isinstance(settings, dict) else {}
 
 
 def save_settings(s):
@@ -78,9 +83,13 @@ def _no_spaces(path):
     link = os.path.join(CACHE, "toolchain")
     os.makedirs(CACHE, exist_ok=True)
     if os.path.realpath(link) != os.path.realpath(path):
-        if os.path.islink(link):
-            os.remove(link)
-        os.symlink(path, link)
+        try:
+            if os.path.islink(link):
+                os.remove(link)
+            os.symlink(path, link)
+        except OSError:  # something else is in the way: this copy of the link is only ours
+            link = tempfile.mkdtemp(prefix="gsmapedit-") + "/toolchain"
+            os.symlink(path, link)
     return link
 
 
@@ -121,7 +130,7 @@ def path_problem(root):
     """Why a checkout path can't be built, in words, or None."""
     if " " in root:
         return (f"{root} has a space in its path, which the game's build can't handle. "
-                "Move it (or rename a folder) so the path has no spaces.")
+                "Choose or move a copy of the game source to a folder with no spaces in its path.")
     return None
 
 
@@ -168,10 +177,14 @@ def _source_steps(root):
     out = []
     src = is_alchemy(root) and has_compiler_source(root)
     problems = preflight.check(root) if src else []
+    if not problems and (not src or " " in (root or "")):
+        spaced = path_problem(root or DEFAULT_WORKSPACE)
+        problems = [spaced] if spaced else []
     if problems:
         out.append({"id": "source", "title": "The game's source", "ok": False,
-                    "detail": f"{root} is a version this editor can't read yet: {problems[0]} "
-                              "Use a fresh download, or move this folder aside.",
+                    "detail": problems[0] if " " in (root or DEFAULT_WORKSPACE) or "damaged" in problems[0] else
+                    f"{root} is a version this editor can't read yet: {problems[0]} "
+                    "Move this folder aside, then use a fresh download.",
                     "action": None})
         return out + [{"id": "bootstrap", "title": "Preparing the build", "ok": False, "detail": "Needs the game source first.",
                        "action": None},
@@ -237,7 +250,8 @@ class Job:
             self.log.append("$ " + " ".join(cmd))
             try:
                 p = subprocess.Popen(cmd, cwd=self.cwd, env=build_env(), stdout=subprocess.PIPE,
-                                     stderr=subprocess.STDOUT, text=True, bufsize=1, start_new_session=True)
+                                     stderr=subprocess.STDOUT, text=True, errors="replace", bufsize=1,
+                                     start_new_session=True)
                 RUNNING.add(p)
                 for line in p.stdout:
                     self.log.append(line.rstrip("\n"))
@@ -245,7 +259,7 @@ class Job:
                         del self.log[:1000]
                 ok = p.wait() == 0
                 RUNNING.discard(p)
-            except OSError as e:
+            except Exception as e:  # noqa: BLE001  the page is waiting on this job: it must end
                 self.log.append(str(e))
                 ok = False
             if not ok:
@@ -271,13 +285,23 @@ def start(action, root, workspace=None):
         return Job("Build tools", [[b, "install"] + (missing_packages() or BREW_PACKAGES)]), None
     if action == "source":
         dest = os.path.join(workspace or DEFAULT_WORKSPACE, "alchemy")
+        if os.path.exists(dest) and not [n for n in os.listdir(dest) if n != ".DS_Store"]:
+            shutil.rmtree(dest)  # an empty folder: the download below couldn't land on it
         if os.path.exists(dest) and os.listdir(dest):
             if is_alchemy(dest):
                 return Job("Game source", [GIT_PATIENT_ARGS(dest) + ["submodule", "update", "--init", "--recursive",
                                                                       "alchemy-gcc"]], on_done=None), dest
             raise ValueError(f"{dest} already exists, but it isn't a version of alchemy this editor can read. "
                              "Move it aside (your mod's changes are in it) and press Download again.")
-        os.makedirs(os.path.dirname(dest), exist_ok=True)
+        spaced = path_problem(dest)
+        if spaced:
+            raise ValueError(spaced)
+        try:
+            os.makedirs(os.path.dirname(dest), exist_ok=True)
+        except OSError as e:
+            raise ValueError(f"Couldn't create {os.path.dirname(dest)} ({e.strerror}). If macOS asked about your "
+                             "Documents folder, allow it in System Settings, Privacy & Security, Files and "
+                             "Folders, then try again.") from e
         # Everything happens in a folder that's only named as the game once it's
         # whole, so a dropped connection just means pressing the button again.
         partial = dest + ".partial"

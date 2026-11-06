@@ -9,7 +9,29 @@ therefore one that no event table of those overlays uses and no map of those
 scenes has in its collision, so nothing else starts reacting to it.
 """
 
+import os
+import subprocess
+
 from .modgen import Overrides
+
+FIRST_ACTOR, LAST_PARTY_SPRITE, MAX_ACTOR = 8, 7, 65  # field_work.h, scene_tables.h, actors.c
+
+
+def actor_numbers(rows):
+    """Each live placement row's actor number, as Event_SpawnActorPlacements gives
+    them: the party's own sprites (0 to 7) are their own actors and take no slot;
+    everyone else takes the next one, whether or not their condition lets them appear."""
+    out, slot = [], FIRST_ACTOR
+    for r in rows:
+        if r["sprite"] < 0:
+            break
+        if r["sprite"] <= LAST_PARTY_SPRITE:
+            out.append(r["sprite"])
+        else:
+            out.append(slot)
+            slot += 1
+    return out
+
 
 EVENTS_END = 0xFFFFFFFF
 EXITS_END = 0x1FF
@@ -102,6 +124,23 @@ class SceneEditor:
             except FileNotFoundError:
                 pass
         return taken
+
+    def _restored_code(self, info, col, x, z, code):
+        """What a square goes back to when its chest, door or sign goes: the
+        original game's value, if that carried no event, else a guess from around it."""
+        from . import grid as gridmod, patch
+        root = self.project.root
+        rel = os.path.relpath(info.grid_path(), root)
+        base = patch.base_commit(root)
+        shown = subprocess.run(["git", "-C", root, "show", f"{base}:{rel}"], capture_output=True) if base else None
+        if shown is not None and shown.returncode == 0:
+            try:
+                v = gridmod.parse(shown.stdout.decode("utf-8")).plane("collision").cells[z][x]
+                if v != code and not 1 <= v <= 239:
+                    return v
+            except (ValueError, IndexError, KeyError):
+                pass
+        return self._neighbour_code(col, x, z, code)
 
     @staticmethod
     def _neighbour_code(col, x, z, code):

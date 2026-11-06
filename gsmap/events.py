@@ -4,7 +4,7 @@ A scene event (the game's struct Trigger, include/field/scene_tables.h) is
 {control, trigger, condition, value} (kind, subject, condition, value there):
   control   kind in bits 3..0 (talk, exit, touch, search, item, Psynergy,
             raised, 7 = talk to a stopped person) plus detail bits;
-  trigger   the person (actor 8 + placement row) or a cell's collision code;
+  trigger   the person (their actor number, sceneedit.actor_numbers) or a cell's collision code;
   condition -1 always, flag | 0x1000 while the flag is set, else while clear;
   value     a message (< 0x10000), a FIND_* value for searches, an exit kind
             for exits, else a scene script (C, read-only here).
@@ -16,15 +16,18 @@ stage being edited): what a line says (a new message, so other uses of the old
 one stay), when an event happens, making a person say something, signs you
 read with A and messages you get by stepping somewhere, adding a person, and
 removing events. Scripts are shown with their own description. A step message
-is stored as a message; mod.c runs it through a function that shows it once
-per visit (modgen.step_message_functions).
+is stored as a message; mod.c runs it through a function that won't repeat it
+while you stand there, and shows it again once you step off and come back
+(modgen.step_message_functions).
 """
 
+import re
+
 from .doors import DoorEditor, script_docs
-from .messages import Messages, compose, plain
+from .messages import Messages, compose, plain, tidy
 from .modgen import Overrides, generate
 from .names import read_flag_names
-from .sceneedit import EVENTS_END
+from .sceneedit import EVENTS_END, FIRST_ACTOR, LAST_PARTY_SPRITE, MAX_ACTOR, actor_numbers
 
 KINDS = {0: "talk", 1: "exit", 2: "touch", 3: "search", 4: "item", 5: "psynergy", 6: "raised", 7: "talk-stopped"}
 SEARCH_TARGETS = ["something", "a chest", "a jar", "a barrel", "a wall", "the ground", "a rock", "a hole",
@@ -34,8 +37,8 @@ SEARCH_TARGETS = ["something", "a chest", "a jar", "a barrel", "a wall", "the gr
                   "a shelf", "a wardrobe", "firewood", "some books", "a well"]
 FLAG_SET = 0x1000
 ABILITY_NAMES = 819  # message 819 + ability id is its name (all 34 named abilities, ability_ids.h)
-FIRST_ACTOR = 8
-MAX_ACTOR = 65
+
+
 def flag_names(root):
     return read_flag_names(root)
 
@@ -70,12 +73,27 @@ class EventEditor(DoorEditor):
 
     @staticmethod
     def _stage_placements(symbol, placement_tables):
-        """The people table for an events table's story stage (by name), else the first."""
+        """The people table for an events table's story stage: (name, rows), or (None, [])
+        when it can't be told. The source names most pairs alike; otherwise it's the
+        scene's only people table, or the one sharing the most words of the name.
+        A wrong guess would put new people in a stage that never loads them."""
         want = symbol.replace("Triggers", "ActorPlacements")
         for _, name, rows in placement_tables:
             if name == want:
                 return name, rows
-        return (placement_tables[0][1], placement_tables[0][2]) if placement_tables else (None, [])
+        if len(placement_tables) == 1:
+            return placement_tables[0][1], placement_tables[0][2]
+
+        def words(name):
+            return set(re.findall(r"[A-Z][a-z]+|[a-z]+", name)) - {"g", "Triggers", "Actor", "Placements", "Other", "No", "None", "After"}
+
+        mine = words(symbol)
+        scored = sorted(((len(mine & words(name)), name, rows) for _, name, rows in placement_tables
+                         if not re.search(r"(No|None)(Actor|$)|ActorPlacementsNone", name)),
+                        key=lambda s: s[0], reverse=True)
+        if scored and scored[0][0] and (len(scored) == 1 or scored[0][0] > scored[1][0]):
+            return scored[0][1], scored[0][2]
+        return None, []
 
     # ---- reading ---------------------------------------------------------------------
 
@@ -95,6 +113,8 @@ class EventEditor(DoorEditor):
         docs = script_docs(self.project.tbs, o)
         fnames = flag_names(self.names.root)
         col = self.project.load_grid(info, "collision").cells
+        numbers = actor_numbers(people)
+        by_actor = {a: p for a, p in zip(numbers, people)}
         cells = {}
         for gx, gz in self._window(info):
             cells.setdefault(col[gz][gx], []).append([gx, gz])
@@ -109,8 +129,7 @@ class EventEditor(DoorEditor):
             on_actor = kind in ("talk", "talk-stopped") or (kind in ("item", "psynergy") and c & 0x10)
             if on_actor:
                 ev["actor"] = r["trigger"]
-                row = r["trigger"] - FIRST_ACTOR
-                p = people[row] if 0 <= row < len(people) and people[row]["sprite"] >= 0 else None
+                p = by_actor.get(r["trigger"])
                 spr = self.names.sprites.get(p["sprite"]) if p else None
                 ev["who"] = (spr or {}).get("name") or (f"person {r['trigger']}" if p is None else f"sprite {p['sprite']}")
                 if p:
@@ -146,9 +165,9 @@ class EventEditor(DoorEditor):
             out.append(ev)
         return {"symbol": symbol, "people_table": people_table,
                 "tables": [n for _, n, _ in tables], "events": out,
-                "people": [{"actor": FIRST_ACTOR + i, "sprite": p["sprite"], "x": p["x"] >> 16, "z": p["z"] >> 16,
+                "people": [{"actor": a, "sprite": p["sprite"], "x": p["x"] >> 16, "z": p["z"] >> 16,
                             "name": (self.names.sprites.get(p["sprite"]) or {}).get("name")}
-                           for i, p in enumerate(people) if p["sprite"] >= 0]}
+                           for a, p in zip(numbers, people)]}
 
     # ---- writing ---------------------------------------------------------------------
 
@@ -162,6 +181,7 @@ class EventEditor(DoorEditor):
 
     def _message(self, text, current=None, raw=False):
         msgs = Messages(self.project.root)
+        text = tidy(text)
         game_text = text if raw else compose(text)
         if current is not None and msgs.owned(current):
             msgs.set(current, game_text)
@@ -178,7 +198,7 @@ class EventEditor(DoorEditor):
             raise ValueError("no such story flag")
         return flag | (FLAG_SET if when.get("set", True) else 0)
 
-    def set_text(self, scene_id, symbol, index, text, raw=False):
+    def set_text(self, scene_id, symbol, index, text, raw=False, when=None):
         o = self._ctx(scene_id)
         ov, rows = self._table(o, symbol)
         r = self._row(rows, index)
@@ -189,6 +209,8 @@ class EventEditor(DoorEditor):
             r["value"] = self._message(text, v, raw)
         else:
             raise ValueError("This is part of a story scene, so its words can't be changed here.")
+        if when is not None:
+            r["condition"] = self._condition(when)
         self._save_table(ov, o, symbol, "events", rows)
         return {"message": r["value"] & 0xFFFF}
 
@@ -215,6 +237,9 @@ class EventEditor(DoorEditor):
         first line for the condition, since the first match wins)."""
         o = self._ctx(scene_id)
         ov, rows = self._table(o, symbol)
+        placements = self._tables([o], ov, "placements", need=False, scene_ids={scene_id})
+        if int(actor) not in actor_numbers(self._stage_placements(symbol, placements)[1]):
+            raise ValueError("That person isn't in this place any more.")
         row = {"control": 0, "trigger": int(actor), "condition": self._condition(when), "value": self._message(text)}
         # Before the person's other talk rows, so a conditional line can take precedence.
         first = next((i for i, r in enumerate(rows) if r["control"] & 0xF == 0 and r["trigger"] == int(actor)), None)
@@ -281,7 +306,7 @@ class EventEditor(DoorEditor):
                 cells = [(gx, gz) for gx, gz in self._window(info) if col[gz][gx] == r["trigger"]]
                 if cells:
                     self.project.apply_edits(info, [{"plane": "collision", "x": gx, "y": gz,
-                                                     "value": self._neighbour_code(col, gx, gz, r["trigger"])}
+                                                     "value": self._restored_code(info, col, gx, gz, r["trigger"])}
                                                     for gx, gz in cells])
                     restored = len(cells)
         return {"restored_cells": restored}
@@ -289,12 +314,18 @@ class EventEditor(DoorEditor):
     def add_person(self, scene_id, symbol, sprite, x, z, text=None, wander=False, when=None):
         """A new person standing (or wandering) at map pixels (x, z), optionally
         with a line. Added after everyone else, so no existing actor renumbers."""
+        if int(sprite) <= LAST_PARTY_SPRITE:
+            raise ValueError("The party's own characters come and go with the story, so they can't be added here. "
+                             "Pick someone else.")
         o = self._ctx(scene_id)
         ov = Overrides(self.project.root)
         placements = self._tables([o], ov, "placements", scene_ids={scene_id})
         people_table, rows = self._stage_placements(symbol, placements)
+        if people_table is None:
+            raise ValueError("The editor can't tell which people go with this story stage, so it can't add one here. "
+                             "Try another stage.")
         end = next(i for i, r in enumerate(rows) if r["sprite"] < 0)
-        actor = FIRST_ACTOR + end
+        actor = FIRST_ACTOR + sum(1 for a in actor_numbers(rows) if a >= FIRST_ACTOR)
         if actor > MAX_ACTOR:
             raise ValueError("this scene already has as many people as the game allows")
         rows.insert(end, {"sprite": int(sprite), "condition": self._condition(when), "behavior": 2 if wander else 1,

@@ -41,7 +41,7 @@ def _source(root, rel):
 def _messages(root):
     try:
         return Messages(root)
-    except OSError:
+    except (OSError, ValueError):  # missing, or not text: preflight says which
         return None
 
 
@@ -92,7 +92,8 @@ def _read_places(root, msgs):
         if entrance != "-1":
             continue
         if kind == "area":
-            by_area.setdefault(int(who), int(index))
+            if who.lstrip("-").isdigit():
+                by_area.setdefault(int(who), int(index))
         else:
             by_scene.setdefault(ids.get(who, int(who) if who.isdigit() else -1), int(index))
     highest = max([*by_scene.values(), *by_area.values()], default=0)
@@ -121,7 +122,10 @@ def _read_sprites(root):
         if not m:
             continue
         if m.group(2):
-            n = int(m.group(2), 0)
+            try:
+                n = int(m.group(2), 0)
+            except ValueError:  # an alias of another name: it takes no new number
+                continue
         if not m.group(1).isdigit():
             names[n] = re.sub(r"\bMc([a-z])", lambda c: "Mc" + c.group(1).upper(), m.group(1).replace("_", " ").title())
         n += 1
@@ -166,10 +170,13 @@ class Names:
         # Names the mod gives its own scenes (games/tbs/src/mod/names.json).
         mod_names = os.path.join(root, layout.MOD, "names.json")
         if os.path.exists(mod_names):
-            with open(mod_names, encoding="utf-8") as f:
-                for sid, label in json.load(f).get("scenes", {}).items():
-                    p = self.places.setdefault(int(sid), {"id": int(sid)})
-                    p["label"], p["area_name"] = label, None
+            try:
+                with open(mod_names, encoding="utf-8") as f:
+                    for sid, label in json.load(f).get("scenes", {}).items():
+                        p = self.places.setdefault(int(sid), {"id": int(sid)})
+                        p["label"], p["area_name"] = label, None
+            except (OSError, ValueError, AttributeError, TypeError):
+                pass  # only names: the places still work, under their own
         self._png_cache = {}
 
     # ---- lookups ------------------------------------------------------------

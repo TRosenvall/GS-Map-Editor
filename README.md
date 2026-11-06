@@ -4,7 +4,7 @@ Make your own version of **Golden Sun: The Broken Seal** without writing code. R
 
 The editor works on [alchemy](https://github.com/PascalPixel/alchemy), a project that rebuilds the game from readable source files. It builds your game from that source on your own Mac, so you don't need a ROM to make a mod.
 
-> **Early days:** the editor covers the English edition of The Broken Seal, on macOS only. It has mostly been tested on an Intel Mac; Apple Silicon Macs haven't had a full test yet. There's no ready-made download yet, so for now you build the app yourself (see [Getting started](#getting-started)). Keep a backup of any mod you care about.
+> **Early days:** the editor covers the English edition of The Broken Seal, on macOS only. It has mostly been tested on an Intel Mac. The app is an Intel build, so Apple Silicon Macs run it through Rosetta, and they haven't had a full test yet. There's no ready-made download yet, so for now you build the app yourself (see [Getting started](#getting-started)). Keep a backup of any mod you care about.
 
 **Alchemy version:** this editor is tested with alchemy commit [`f6c08e64dd`](https://github.com/PascalPixel/alchemy/commit/f6c08e64dd947e449baf8db86ab8e12f3ed5749e) (2026-11-02). Setup downloads exactly that commit. Alchemy changes quickly, so a newer copy may not work until the editor catches up.
 
@@ -91,24 +91,27 @@ Some changes wait for you to save, and others save straight away:
 | Stamp pastes | Events and doors |
 | Dragging chests, stones and people | World map painting and town moves |
 
-The editor also saves for you before you switch places or press Play, so moving on won't lose your work.
+The editor also saves for you before you switch places, go to the world map or press Play, so moving on won't lose your work. If a save is refused, you stay where you are and the bottom line says why.
 
-There are three ways back:
+There are four ways back:
 
 - **Undo / Redo** (⌘Z / ⇧⌘Z) step through changes you haven't saved yet.
 - **Undo last save** steps back through saved actions, whichever tool made them. The last 30 are kept.
-- **Reset place…** puts a place back as the original game has it. If you change your mind, **Undo last save** brings your version back. Scene tables that other places share are left alone, and the editor tells you when that happens.
+- **Reset place…** puts a place's maps, imported pictures and its own people, doors and events back as the original game has them. If you change your mind, **Undo last save** brings your version back. If a place shares its map with others, they go back too, and the editor warns you first. People and events that other places share are left alone unless you say otherwise: the editor asks.
+- **Reset world map…**, on the world map page, does the same for the world map.
 
-Saving is all or nothing. If the editor stops part way through, it finishes undoing the half-done save the next time it starts.
+Text you've written stays in the game's text file while any event still uses some of it. It's only removed once nothing uses any of your lines. **Undo last save** throws away unsaved changes too, and asks first.
+
+Each save is all or nothing. If the editor stops part way through, it finishes undoing the half-done save the next time it starts. If a file can't be written, for example because it's locked in Finder, the save is refused and the rest of it is undone.
 
 ## Looking around
 
 Press **View** (V) to look without changing anything.
 
 - **Zoom:** 1× to 4×.
-- **Layers:** each place has up to three, called **Ground**, **Middle** and **Overhead**. You can hide each one or fade it to see underneath.
-- **Overlays:** tick **Collision** to see walkability, **Height** to see ground height, or **Grid** to see the squares.
-- **People, chests and doors** are drawn on the map as they appear in the game.
+- **Layers:** each place has up to three, called **Ground**, **Middle** and **Overhead**. You can hide each one. Tick **Advanced** for sliders that fade them.
+- **Overlays:** tick **Walkability**, **Height** to see ground height, or **Grid** to see the squares.
+- **Chests** always show on the map. Doors, people and events show when you use their tools.
 
 ## Paint: what the ground looks like
 
@@ -137,8 +140,6 @@ Press **Walkability** (C). Painting a block doesn't change where you can walk, s
 | **Cloak shadow** | Walkable. The only ground where the Cloak Psynergy keeps the party hidden. |
 | **Empty jar, barrel, box, grave, books, well** | Searching it finds nothing. Usually a wall too, through its height. |
 
-Tick **Advanced** to get the **Chain-jump spot**, which makes the leader jump again on landing, for hops across stepping stones.
-
 The Chest, Doors and Events tools set the special codes they need themselves, so you don't have to paint those.
 
 ## Height: how high the ground is
@@ -154,7 +155,7 @@ Press **Chest** (K).
 - **Add one:** click an empty spot, choose an **Item** (start typing its name) or an amount of **Coins**, then press **Add chest**.
 - **Change one:** click it, change what's inside, and confirm.
 - **Remove one:** click it and press **Remove chest**.
-- **Move one:** drag it, then save. Psynergy Stones can be dragged too.
+- **Move one:** drag it, then save. Psynergy Stones can be dragged too. A chest can't go on a square that's already a door, sign or step message.
 
 The editor handles the rest, including the flag that remembers a chest has been opened, so a chest stays empty when you come back. A place can hold at most **10 chests and stones**.
 
@@ -169,7 +170,7 @@ Press **Events** (E). The panel lists everything that happens in this place, in 
 Click a spot on the map, then choose:
 
 - **Add a sign (read with A)…** for a sign or something to examine.
-- **Add a step message…** for a message that shows when you step there. It shows once per visit, so standing still doesn't trap the player.
+- **Add a step message…** for a message that shows when you step there. It won't repeat while you stand there, so it can't trap the player, and it shows again if you step off and come back.
 - **Add a person here…** to choose who it is with a picture preview, and whether they **walk around**.
 
 ### Making people talk
@@ -186,7 +187,7 @@ Each event in the list has these buttons, where they apply:
 
 ### The writer
 
-Type normally. A blank line starts a new dialogue box, and the preview shows how the boxes will look in the game. **+ hero's name** inserts whatever name the player chose. Text the game's font can't draw is refused before it can break your build.
+Type normally. A blank line starts a new dialogue box, and the preview shows how the boxes will look in the game. **+ hero's name** inserts whatever name the player chose. The game's font has plain letters, numbers and punctuation, with no accents. Curly quotes, long dashes and "…" become their plain forms by themselves, and anything else the font can't draw is refused when you save.
 
 Your words are added as new lines, and the game's own text is never overwritten. If the same line is used somewhere else, it stays as it was.
 
@@ -229,10 +230,10 @@ Press **Stamp** (S).
 
 ## Importing your own pictures
 
-**Import image…** is in the Stamp panel. It works on places whose art isn't shared with any other place, which is 28 of the 182 in the game. Elsewhere the editor refuses, because your picture would change how other places look.
+**Import image…** is in the Stamp panel. It works on places whose art isn't shared with any other place, which is 27 of the 182 in a fresh copy of the game. Elsewhere the editor refuses, because your picture would change how other places look.
 
 1. Choose **Overlay** (drawn over the ground, with a transparent background) or **Ground**.
-2. Press **Import image…** and pick a PNG, GIF or BMP. It can cover at most 256 squares of 16×16 pixels, for example 256×256 pixels.
+2. Press **Import image…** and pick a PNG, GIF or BMP. It can cover at most 256 squares of 16×16 pixels, for example 256×256 pixels, though a detailed picture can run out of room sooner. The editor says so if it does.
 3. Check the preview. It shows the colours the game will really draw, and how much room is left.
 4. Press **Add to tile set**. The new blocks land on the Stamp clipboard, ready to click into place.
 
@@ -271,16 +272,18 @@ Press **Check** to look over every map for problems your changes would cause. Ea
 - chests that can't be opened, have nothing defined, fill up again, or share an "opened" flag;
 - more than 10 chests and stones in a place;
 - squares using a block or height the place doesn't have;
+- lines you wrote that the game's font can't draw;
+- places whose files have been damaged;
 - edits that no longer fit after the game's source was updated.
 
-The original game has quirks of its own, and those are hidden unless you tick **Also show the original game's own quirks**. Play and Export run Check for you first, and **Build** asks before building with problems.
+The original game has quirks of its own, and those are hidden unless you tick **Also show the original game's own quirks**. On a place you've edited, a quirk the original already had can be listed as yours. On a place's page, Play, Export and **Build** run Check for you first and ask before carrying on with problems. On the world map page, Play and Build don't, so press Check from a place. If Check can't finish, it says so and asks before carrying on.
 
 ## Playing your game
 
-Press **▶ Play**. It saves, checks, builds and opens your game in mGBA, starting at the place you're editing. From the world map page, you start on the world map.
+Press **▶ Play**. It saves, checks, builds and opens your game in mGBA, starting at the place you're editing. From the world map page, it builds and starts on the world map, without the check.
 
 - Each Play is a **fresh game**: Isaac alone, with no story progress, so a place can look like its early-game version.
-- You appear at the place's **first arrival point**, not the spot you're viewing.
+- You appear at the place's first arrival point that doesn't look walled in, not the spot you're viewing. That's a best guess: a few places still start you stuck or inside a story scene. If that happens, choose another arrival point in **Start at**, next to ▶ Play, and press Play again.
 - A build after a map change takes around 20 seconds.
 - The start point only exists in a throwaway copy of the game, so your exported mod still boots normally from the title screen.
 
@@ -311,10 +314,11 @@ The patched game is saved in `~/Documents/GSMapEditor/Patched/`, and you can pre
 
 | What | Where |
 |---|---|
-| Your mod | Inside the game source folder, by default `~/Documents/GSMapEditor/` |
+| Your mod | Inside the game source folder, by default `~/Documents/GSMapEditor/alchemy/` |
 | Exported patches | `~/Documents/GSMapEditor/Exports/` |
 | Patched games | `~/Documents/GSMapEditor/Patched/` |
-| Editor settings | `~/Library/Application Support/GS Map Editor/` |
+| Editor settings and your Undo last save history | `~/Library/Application Support/GS Map Editor/` |
+| Temporary builds, safe to delete | `~/Library/Caches/GSMapEditor/` |
 
 To back up your mod, copy the game source folder somewhere safe. Your changes are ordinary files in that folder.
 
@@ -353,7 +357,15 @@ To back up your mod, copy the game source folder somewhere safe. Your changes ar
 | You see | What to do |
 |---|---|
 | "Play needs mGBA" | Install it from [mgba.io](https://mgba.io) and press Play again. |
-| The editor says the game source is a version it can't read | The source has changed in a way this editor doesn't understand yet. Use a fresh download from the setup screen, or move that folder aside. |
+| The editor says the game source is a version it can't read | The source has changed in a way this editor doesn't understand yet. Move that folder aside, then use **Download** on the setup screen. Your mod stays in the folder you moved. |
+| "Your changes couldn't be turned into a game" | Your files are safe. If it names a line you wrote, change its words. Otherwise use **Undo last save** until it builds, and press **Show details** to see the build's own message. |
+| "This place's files can't be read" | One of its files is damaged. Use **Reset place…**, or **Undo last save** if a recent save caused it. |
+| "The file that holds your people, door and event edits can't be read" | Use **Undo last save**. If that doesn't help, restore that file from your backup. |
+| "This place has no room for more of these" | The place has run out of codes for signs and step messages. Remove one you've added. |
+| "The game's font has no…" | Replace that character with plain letters and punctuation. |
+| The setup screen says your folder has a space in its path | The build can't use paths with spaces. Choose a copy of the game source in a folder with no spaces in its path. |
+| The app opens on the setup screen with an error | The message says what it couldn't read. Press **Check again** after fixing it. |
+| "Something went wrong" | That action didn't finish. Try again, and if it keeps happening, restart the app. |
 | "This map uses a different block set" | Stamp only pastes between places that share a block set. |
 | "This place shares its art with other places" | Import only works on places with their own art. The message names some you can use. |
 | "That block was retired" | Its art was reused for an imported picture. Pick another block. |

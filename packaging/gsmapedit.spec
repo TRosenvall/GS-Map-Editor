@@ -14,6 +14,8 @@ a = Analysis(
     datas=[
         (os.path.join(ROOT, "static"), "static"),
         (os.path.join(ROOT, "gsmap", "data"), os.path.join("gsmap", "data")),
+        (os.path.join(ROOT, "LICENSE"), "."),
+        (os.path.join(ROOT, "THIRD_PARTY_NOTICES.md"), "."),
     ] + ([(TOOLCHAIN, "toolchain")] if os.path.isdir(TOOLCHAIN) else []),
     hiddenimports=["server", "webview.platforms.cocoa"],
     excludes=["tkinter"],
@@ -28,6 +30,7 @@ app = BUNDLE(
     bundle_identifier="io.github.gsmapedit",
     info_plist={
         "CFBundleShortVersionString": "0.1.0",
+        "NSDocumentsFolderUsageDescription": "Your mod and the game's source are kept in Documents/GSMapEditor.",
         "NSHighResolutionCapable": True,
         "LSMinimumSystemVersion": "11.0",
     },

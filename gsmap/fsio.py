@@ -24,6 +24,42 @@ HISTORY_KEPT = 30
 _current = threading.local()
 
 
+def _copy(source, target):
+    """Contents and permissions, nothing else. The copy gets today's date, so a
+    build sees a file put back as changed, and it doesn't inherit a Finder lock,
+    which would leave the journal impossible to clear."""
+    shutil.copyfile(source, target)
+    shutil.copymode(source, target)
+
+
+def _same(path, other):
+    try:
+        with open(path, "rb") as a, open(other, "rb") as b:
+            return a.read() == b.read()
+    except OSError:
+        return False
+
+
+def _remove_tree(folder):
+    """Delete a journal or history folder, clearing locks older versions copied in."""
+    shutil.rmtree(folder, ignore_errors=True)
+    if not os.path.exists(folder):
+        return
+    for base, _, files in os.walk(folder):
+        for name in files:
+            with contextlib.suppress(OSError, AttributeError):
+                os.chflags(os.path.join(base, name), 0)
+    shutil.rmtree(folder, ignore_errors=True)
+
+
+def _entries(history):
+    """History folders, oldest first. Finder's .DS_Store and the like aren't ours."""
+    try:
+        return sorted((n for n in os.listdir(history) if n.isdigit()), key=int)
+    except OSError:
+        return []
+
+
 def atomic_write(path, data):
     """Replace path with data (str or bytes), keeping its permissions."""
     txn = getattr(_current, "txn", None)
@@ -73,7 +109,7 @@ class _Transaction:
         name = None
         if os.path.exists(path):
             name = str(len(self.kept))
-            shutil.copy2(path, os.path.join(self.dir, name))
+            _copy(path, os.path.join(self.dir, name))
         self.kept[path] = name
         # The list goes down after its copy, so everything it names exists.
         tmp = os.path.join(self.dir, "list.tmp")
@@ -88,25 +124,40 @@ class _Transaction:
 
     def finish(self, history=None, label=None):
         if history and self.kept and not self.aborted:
-            os.makedirs(history, exist_ok=True)
-            with open(os.path.join(self.dir, "label.json"), "w", encoding="utf-8") as f:
-                json.dump({"label": label or "your last change", "when": time.time()}, f)
-            name = f"{time.time_ns()}"
-            shutil.move(self.dir, os.path.join(history, name))
-            for old in sorted(os.listdir(history), key=int)[:-HISTORY_KEPT]:
-                shutil.rmtree(os.path.join(history, old), ignore_errors=True)
-        else:
-            shutil.rmtree(self.dir, ignore_errors=True)
+            # The action has already happened. If its history can't be kept it
+            # just can't be undone; that mustn't look like the save failed.
+            try:
+                os.makedirs(history, exist_ok=True)
+                with open(os.path.join(self.dir, "label.json"), "w", encoding="utf-8") as f:
+                    json.dump({"label": label or "your last change", "when": time.time()}, f)
+                name = f"{time.time_ns()}"
+                shutil.move(self.dir, os.path.join(history, name))
+                for old in _entries(history)[:-HISTORY_KEPT]:
+                    _remove_tree(os.path.join(history, old))
+            except OSError:
+                pass
+        _remove_tree(self.dir)
 
 
 def _restore(folder, kept):
+    """Put files back. A file already right is left alone (it may be locked, and
+    a build needn't redo it); every other file is tried before a failure is raised."""
+    failure = None
     for path, name in kept.items():
-        if name is None:
-            with contextlib.suppress(FileNotFoundError):
-                os.remove(path)
-        else:
-            shutil.copy2(os.path.join(folder, name), path + ".restoring")
-            os.replace(path + ".restoring", path)
+        try:
+            if name is None:
+                with contextlib.suppress(FileNotFoundError):
+                    os.remove(path)
+            elif not _same(path, os.path.join(folder, name)):
+                os.makedirs(os.path.dirname(path), exist_ok=True)
+                _copy(os.path.join(folder, name), path + ".restoring")
+                os.replace(path + ".restoring", path)
+        except OSError as e:
+            failure = failure or e
+            with contextlib.suppress(OSError):
+                os.remove(path + ".restoring")
+    if failure:
+        raise failure
 
 
 @contextlib.contextmanager
@@ -133,29 +184,60 @@ def transaction(root, history=None, label=None):
 
 def last_saved(history):
     """{"label", "when"} of the newest undoable action, or None."""
-    if not os.path.isdir(history):
-        return None
-    for name in sorted(os.listdir(history), key=int, reverse=True):
-        path = os.path.join(history, name, "label.json")
-        if os.path.exists(path):
-            with open(path, encoding="utf-8") as f:
-                return json.load(f)
+    for name in reversed(_entries(history)):
+        entry = _read_entry(os.path.join(history, name))
+        if entry:
+            return entry[1]
     return None
 
 
-def undo_last(history):
-    """Put back the files as they were before the newest action. Its label, or None."""
-    if not os.path.isdir(history):
-        return None
-    for name in sorted(os.listdir(history), key=int, reverse=True):
-        folder = os.path.join(history, name)
-        with open(os.path.join(folder, "list.json"), encoding="utf-8") as f:
-            kept = json.load(f)
+def _read_kept(folder):
+    """A journal's list of files: {absolute path: copy's name, or None}. ValueError
+    if it isn't one, since acting on a damaged list could overwrite anything."""
+    with open(os.path.join(folder, "list.json"), encoding="utf-8") as f:
+        kept = json.load(f)
+    if not isinstance(kept, dict) or not all(
+            os.path.isabs(path) and (name is None or (isinstance(name, str) and name.isdigit()))
+            for path, name in kept.items()):
+        raise ValueError("not a list of kept files")
+    return kept
+
+
+def _read_entry(folder):
+    """(files kept, label) of a history entry, or None if it's incomplete."""
+    try:
+        kept = _read_kept(folder)
         with open(os.path.join(folder, "label.json"), encoding="utf-8") as f:
-            label = json.load(f)["label"]
-        _restore(folder, kept)
-        shutil.rmtree(folder, ignore_errors=True)
-        return label
+            label = json.load(f)
+    except (OSError, ValueError):
+        return None
+    if not all(name is None or os.path.exists(os.path.join(folder, name)) for name in kept.values()):
+        return None
+    return (kept, label) if isinstance(label, dict) and isinstance(label.get("label"), str) else None
+
+
+def undo_last(history, root=None):
+    """Put back the files as they were before the newest action. Its label, or None.
+    With root, a copy goes in the journal first, so a crash part way is finished by
+    recover the next time the editor starts, instead of leaving mixed files."""
+    for name in reversed(_entries(history)):
+        folder = os.path.join(history, name)
+        entry = _read_entry(folder)
+        if entry is None:  # cut short by a crash: nothing it could put back
+            _remove_tree(folder)
+            continue
+        journal = os.path.join(root, JOURNAL) if root else None
+        if journal:
+            _remove_tree(journal)
+            tmp = journal + ".tmp"
+            _remove_tree(tmp)
+            shutil.copytree(folder, tmp)
+            os.replace(tmp, journal)  # all there, or not there
+        _restore(folder, entry[0])
+        _remove_tree(folder)
+        if journal:
+            _remove_tree(journal)
+        return entry[1]["label"]
     return None
 
 
@@ -174,8 +256,14 @@ def recover(root):
         return False
     kept = {}
     if os.path.exists(listing):
-        with open(listing, encoding="utf-8") as f:
-            kept = json.load(f)
-        _restore(folder, kept)
-    shutil.rmtree(folder, ignore_errors=True)
+        try:
+            kept = _read_kept(folder)
+            _restore(folder, kept)
+        except (OSError, ValueError):
+            # Can't finish it. Starting anyway beats never starting, and the
+            # journal is moved aside rather than lost.
+            with contextlib.suppress(OSError):
+                os.replace(folder, f"{folder}-unfinished-{time.time_ns()}")
+            return False
+    _remove_tree(folder)
     return bool(kept)

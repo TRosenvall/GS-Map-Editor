@@ -18,6 +18,7 @@ import socket
 import subprocess
 import sys
 import threading
+from contextlib import suppress
 from http.cookies import SimpleCookie
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlsplit
@@ -29,7 +30,9 @@ from gsmap import setup as setupmod  # noqa: E402
 
 STATIC = os.path.join(HERE, "static")
 TOKEN = secrets.token_urlsafe(16)
-APP = {"root": None, "job": None, "editor_url": None, "window": None, "workspace": setupmod.DEFAULT_WORKSPACE}
+START = threading.Lock()  # two presses of a step's button start one job
+APP = {"root": None, "job": None, "editor_url": None, "window": None, "workspace": setupmod.DEFAULT_WORKSPACE,
+       "problem": None}
 
 
 def free_port():
@@ -52,6 +55,17 @@ def start_editor():
     return APP["editor_url"]
 
 
+def safe_checks():
+    """The setup checklist, whatever state the checkout is in. An error here must
+    reach the page: before the window opens, it's the only place to say anything."""
+    try:
+        return setupmod.checks(APP["root"])
+    except Exception as e:  # noqa: BLE001
+        APP["problem"] = f"Couldn't check the setup ({type(e).__name__}: {e})."
+        return [{"id": "source", "title": "The game's source", "ok": False,
+                 "detail": "Couldn't be read. Move its folder aside, then use a fresh download.", "action": None}]
+
+
 def server_host_ok(headers):
     """As server.host_allowed: the setup page answers only to this Mac's own names."""
     return headers.get("Host", "").rsplit(":", 1)[0] in ("127.0.0.1", "localhost", "[::1]")
@@ -63,6 +77,12 @@ class SetupHandler(SimpleHTTPRequestHandler):
 
     def log_message(self, fmt, *args):
         pass
+
+    def end_headers(self):
+        self.send_header("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'; "
+                         "script-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        super().end_headers()
 
     def send_json(self, obj, status=200):
         body = json.dumps(obj).encode()
@@ -96,10 +116,13 @@ class SetupHandler(SimpleHTTPRequestHandler):
         if path in ("/", "/setup.html"):
             self.path = "/setup.html"
             return super().do_GET()
+        if path in ("/setup.js",):
+            self.path = path
+            return super().do_GET()
         if path == "/api/setup/checks":
-            return self.send_json({"root": APP["root"], "workspace": APP["workspace"],
-                                   "checks": setupmod.checks(APP["root"]),
-                                   "pin": setupmod.ALCHEMY_PIN[:10]})
+            checks = safe_checks()
+            return self.send_json({"root": APP["root"], "workspace": APP["workspace"], "checks": checks,
+                                   "problem": APP["problem"], "pin": setupmod.ALCHEMY_PIN[:10]})
         if path == "/api/setup/job":
             since = int(parse_qs(urlsplit(self.path).query).get("since", ["0"])[0])
             return self.send_json(APP["job"].status(since) if APP["job"] else {"done": True, "ok": None, "log": [], "next": 0})
@@ -119,13 +142,14 @@ class SetupHandler(SimpleHTTPRequestHandler):
                 if step == "brew":
                     subprocess.Popen(["open", "https://brew.sh"])
                     return self.send_json({"ok": True})
-                if APP["job"] and not APP["job"].done:
-                    return self.send_json({"error": "another step is still running"}, 409)
-                job, root = setupmod.start(step, APP["root"], APP["workspace"])
+                with START:
+                    if APP["job"] and not APP["job"].done:
+                        return self.send_json({"error": "Another step is still running."}, 409)
+                    job, root = setupmod.start(step, APP["root"], APP["workspace"])
+                    APP["job"] = job
                 if root:
                     APP["root"] = root
-                    s = setupmod.load_settings(); s["alchemy_root"] = root; setupmod.save_settings(s)
-                APP["job"] = job
+                    remember_root(root)
                 return self.send_json({"ok": True})
             if path == "/api/setup/choose":
                 folder = choose_folder()
@@ -134,18 +158,26 @@ class SetupHandler(SimpleHTTPRequestHandler):
                 if setupmod.path_problem(folder):
                     return self.send_json({"error": setupmod.path_problem(folder)}, 409)
                 if not setupmod.is_alchemy(folder):
-                    return self.send_json({"error": f"{folder} doesn't look like an alchemy checkout "
-                                                    "(no Makefile and games/tbs)."}, 409)
+                    return self.send_json({"error": f"{folder} doesn't look like a copy of the game source this "
+                                                    "editor can read."}, 409)
                 APP["root"] = folder
-                s = setupmod.load_settings(); s["alchemy_root"] = folder; setupmod.save_settings(s)
+                remember_root(folder)
                 return self.send_json({"ok": True, "root": folder})
             if path == "/api/setup/launch":
-                if not all(c["ok"] for c in setupmod.checks(APP["root"])):
-                    return self.send_json({"error": "some steps aren't done yet"}, 409)
+                if not all(c["ok"] for c in safe_checks()):
+                    return self.send_json({"error": "Some steps aren't done yet."}, 409)
                 return self.send_json({"url": start_editor()})
         except ValueError as e:
             return self.send_json({"error": str(e)}, 409)
+        except Exception as e:  # noqa: BLE001  the page can show this; a dropped connection shows nothing
+            return self.send_json({"error": f"That didn't work ({type(e).__name__}: {e})."}, 500)
         return self.send_json({"error": "not found"}, 404)
+
+
+def remember_root(root):
+    """For next time. If settings can't be written, this run still carries on."""
+    with suppress(OSError):
+        s = setupmod.load_settings(); s["alchemy_root"] = root; setupmod.save_settings(s)
 
 
 def choose_folder():
@@ -163,12 +195,17 @@ def main():
     ap.add_argument("--no-window", action="store_true", help="serve only and print the URL")
     ap.add_argument("--port", type=int, default=0, help="setup server port (default: any free)")
     args = ap.parse_args()
-    APP["root"] = args.root or setupmod.load_settings().get("alchemy_root")
+    saved = setupmod.load_settings().get("alchemy_root")
+    APP["root"] = args.root or (saved if isinstance(saved, str) else None)
     port = args.port or free_port()
     httpd = ThreadingHTTPServer(("127.0.0.1", port), SetupHandler)
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
-    ready = all(c["ok"] for c in setupmod.checks(APP["root"]))
-    url = start_editor() if ready else f"http://127.0.0.1:{port}/?token={TOKEN}"
+    url = f"http://127.0.0.1:{port}/?token={TOKEN}"
+    if all(c["ok"] for c in safe_checks()):
+        try:
+            url = start_editor()
+        except Exception as e:  # noqa: BLE001  say why in the window, rather than never open one
+            APP["problem"] = f"The editor couldn't start ({type(e).__name__}: {e})."
     if args.no_window:
         print("setup:", f"http://127.0.0.1:{port}/?token={TOKEN}", flush=True)
         print("open:", url, flush=True)

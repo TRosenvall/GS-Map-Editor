@@ -14,6 +14,7 @@ import subprocess
 from . import layout
 from .chests import CHEST_CONTROL, ChestEditor, MARKER_MAX
 from .doors import DoorEditor
+from .messages import Messages
 from .modgen import Overrides, reconcile
 from .sceneedit import EVENTS_END
 from .tileset import retired_blocks
@@ -88,65 +89,75 @@ class Checker:
             if not info.resources:
                 continue
             try:
-                col = p.load_grid(info, "collision").cells
-            except FileNotFoundError:
-                continue
-            # Doors
-            try:
-                by_scene = doors.list(info)
-            except (ValueError, FileNotFoundError):
-                by_scene = {}
-            for sid, ds in by_scene.items():
-                sname = self.names.scene_label(sid)
-                for d in ds:
-                    cell = d["cells"][0]
-                    if d["scene"] is None:
-                        add("warning", "door-nowhere", info,
-                            f"A door in {sname} leads nowhere: stepping on it does nothing.",
-                            "Link it to a place with the Doors tool, or remove it.",
-                            f"{sid}:{d['code']}", cell, "doors", sid)
-                    elif d.get("fallback"):
-                        add("info", "door-fallback", info,
-                            f"A door in {sname} has no exit of its own, so the game sends it to {d['label']}, "
-                            "arrival point 0, the scene's first exit.",
-                            "Give it a destination with the Doors tool if that isn't what you want.",
-                            f"{sid}:{d['code']}", cell, "doors", sid)
-                    elif d["entrance"] not in arrival_numbers(d["scene"]) and arrival_numbers(d["scene"]):
-                        add("warning", "door-no-arrival", info,
-                            f"A door in {sname} leads to {d['label']}, arrival point {d['entrance']}, which "
-                            "doesn't exist there: the party appears at that place's first arrival point instead.",
-                            "Pick an arrival point that exists with the Doors tool.",
-                            f"{sid}:{d['code']}", cell, "doors", sid)
-            # Chests and Psynergy stones
-            markers = p.markers(info)
-            if len(markers) > MARKER_MAX:
-                add("error", "too-many-chests", info,
-                    f"{len(markers)} chests and stones: the game shows only the first {MARKER_MAX}.",
-                    "Remove some with the Chest tool.", "count", None, "chest")
-            listed = {(c["x"], c["z"]): c for c in chests.list(info)}
-            for x, z, code in markers:
-                if not (0 <= z < len(col) and 0 <= x < len(col[0])) or col[z][x] != code:
-                    add("error", "chest-locked", info,
-                        "A chest can't be opened: the ground under it doesn't carry its code.",
-                        "Remove the chest and add it again with the Chest tool.", f"{x},{z}", [x, z], "chest")
-                c = listed.get((x, z))
-                if c is not None and c["value"] is None and self._scene_count(info):
-                    add("warning", "chest-empty", info,
-                        "A chest spot has nothing defined, so no chest appears there.",
-                        "Remove it, or add a chest there with the Chest tool.", f"{x},{z}", [x, z], "chest")
-                elif c and c["chest"] and c["flag"] in TEMP_FLAGS:
-                    add("warning", "chest-refills", info,
-                        f"The chest with {c['contents']} uses a temporary flag, so it fills up again "
-                        "every time you come back.",
-                        "Remove it and add it again: the Chest tool picks a permanent flag.",
-                        f"{x},{z}", [x, z], "chest")
-            # Blocks
-            out += self._block_issues(info, add)
+                self._check_map(p, info, doors, chests, add, arrival_numbers, out)
+            except Exception as e:  # noqa: BLE001  one damaged place mustn't hide the rest
+                if not stock:
+                    add("error", "map-unreadable", info,
+                        f"This place's files can't be read, so it can't be checked and the game may not build "
+                        f"({os.path.relpath(info.folder, p.root)}: {type(e).__name__}).",
+                        "Open it and use Reset place, or Undo last save.", "read")
 
         out += self._flag_issues(chests, add, stock)
         if not stock:
             out += self._override_issues(add)
         return out
+
+    def _check_map(self, p, info, doors, chests, add, arrival_numbers, out):
+        try:
+            col = p.load_grid(info, "collision").cells
+        except FileNotFoundError:
+            return
+        # Doors
+        try:
+            by_scene = doors.list(info)
+        except (ValueError, FileNotFoundError):
+            by_scene = {}
+        for sid, ds in by_scene.items():
+            sname = self.names.scene_label(sid)
+            for d in ds:
+                cell = d["cells"][0]
+                if d["scene"] is None:
+                    add("warning", "door-nowhere", info,
+                        f"A door in {sname} leads nowhere: stepping on it does nothing.",
+                        "Link it to a place with the Doors tool, or remove it.",
+                        f"{sid}:{d['code']}", cell, "doors", sid)
+                elif d.get("fallback"):
+                    add("info", "door-fallback", info,
+                        f"A door in {sname} has no exit of its own, so the game sends it to {d['label']}, "
+                        "arrival point 0, the scene's first exit.",
+                        "Give it a destination with the Doors tool if that isn't what you want.",
+                        f"{sid}:{d['code']}", cell, "doors", sid)
+                elif d["entrance"] not in arrival_numbers(d["scene"]) and arrival_numbers(d["scene"]):
+                    add("warning", "door-no-arrival", info,
+                        f"A door in {sname} leads to {d['label']}, arrival point {d['entrance']}, which "
+                        "doesn't exist there: the party appears at that place's first arrival point instead.",
+                        "Pick an arrival point that exists with the Doors tool.",
+                        f"{sid}:{d['code']}", cell, "doors", sid)
+        # Chests and Psynergy stones
+        markers = p.markers(info)
+        if len(markers) > MARKER_MAX:
+            add("error", "too-many-chests", info,
+                f"{len(markers)} chests and stones: the game shows only the first {MARKER_MAX}.",
+                "Remove some with the Chest tool.", "count", None, "chest")
+        listed = {(c["x"], c["z"]): c for c in chests.list(info)}
+        for x, z, code in markers:
+            if not (0 <= z < len(col) and 0 <= x < len(col[0])) or col[z][x] != code:
+                add("error", "chest-locked", info,
+                    "A chest can't be opened: the ground under it doesn't carry its code.",
+                    "Remove the chest and add it again with the Chest tool.", f"{x},{z}", [x, z], "chest")
+            c = listed.get((x, z))
+            if c is not None and c["value"] is None and self._scene_count(info):
+                add("warning", "chest-empty", info,
+                    "A chest spot has nothing defined, so no chest appears there.",
+                    "Remove it, or add a chest there with the Chest tool.", f"{x},{z}", [x, z], "chest")
+            elif c and c["chest"] and c["flag"] in TEMP_FLAGS:
+                add("warning", "chest-refills", info,
+                    f"The chest with {c['contents']} uses a temporary flag, so it fills up again "
+                    "every time you come back.",
+                    "Remove it and add it again: the Chest tool picks a permanent flag.",
+                    f"{x},{z}", [x, z], "chest")
+        # Blocks
+        out += self._block_issues(info, add)
 
     def _block_issues(self, info, add):
         p = self.project
@@ -232,6 +243,11 @@ class Checker:
                 f"An edit of yours ({t['symbol']}) was made for an older version of the game source "
                 "and no longer fits, so it's left out of your game for now.",
                 "Redo that edit, or remove it with Forget stale edits.", t["symbol"])
+        for n, text, why in Messages(self.project.root).bad_lines():
+            shown = " ".join(text.replace("{page_break}", " ").replace("{end_wait}", "").split())
+            add("error", "text-unbuildable", None,
+                f"A line you wrote, “{shown}”, can't be built. {why}",
+                "Change its words in the Events panel, or use Undo last save.", n)
         return []
 
     # ---- helpers ---------------------------------------------------------------------

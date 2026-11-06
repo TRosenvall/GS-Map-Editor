@@ -293,7 +293,11 @@ class Project:
 
     def map_rows(self):
         """gMaps, as lists of six directory positions."""
-        text = open(self.maps_path(), encoding="utf-8").read()
+        with open(self.maps_path(), encoding="utf-8") as f:
+            return self.parse_map_rows(f.read())
+
+    @staticmethod
+    def parse_map_rows(text):
         return [[int(v, 0) for v in row.split(",")] for row in re.findall(r"\{\{([^{}]+)\}\}", text)]
 
     def _read_directory(self):
@@ -496,6 +500,8 @@ class Project:
                 g = planes[e["plane"]]
                 if not 0 <= v <= g.max_value:
                     raise ValueError(f"{e['plane']} value {v:#x} out of range")
+                if e["plane"] == "shape" and v >= len(self.shape_rows(info)):
+                    raise ValueError("This place has no such height. Pick one from the Height panel.")
                 g.cells[y][x] = v
                 touched.add(e["plane"])
             else:
@@ -521,6 +527,9 @@ class Project:
                 continue
             if any(j != i and tuple(r[:2]) == (x, z) for j, r in enumerate(marker_rows)):
                 raise ValueError(f"cell {x},{z} already holds a marker")
+            if 1 <= planes["collision"].cells[z][x] <= 239:
+                raise ValueError("That square already does something, like a door or a sign. "
+                                 "Pick another square for the chest.")
             restore = int(op.get("restore", 0))
             if restore == mid or not 0 <= restore <= 0xFF:
                 raise ValueError(f"old cell needs a collision code other than the marker's {mid:#x}")
@@ -536,8 +545,8 @@ class Project:
         for mx, mz, mid in [tuple(r[:3]) for r in marker_rows if tuple(r[:3]) != (0xFF, 0xFF, 0xFF)]:
             if col[mz][mx] != mid:
                 raise ValueError(
-                    f"chest/stone marker {mid:#x} at {mx},{mz} needs collision code "
-                    f"{mid:#x} there (would be {col[mz][mx]:#x}); move the marker first"
+                    f"The square at {mx},{mz} holds a chest or Psynergy Stone, so its walkability can't "
+                    "be painted. Move or remove the chest first."
                 )
         warnings = []
         if "metatile" in touched:

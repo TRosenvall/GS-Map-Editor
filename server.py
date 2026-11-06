@@ -24,9 +24,10 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlsplit
 
 from gsmap import fsio, layout, playtest, preflight
-from gsmap.reset import reset_map
+from gsmap.reset import reset_map, reset_world
 from gsmap.doors import script_exit_kinds as script_kinds
-from gsmap.modgen import Overrides, generate, validate_rows
+from gsmap.messages import Messages
+from gsmap.modgen import DamagedFile, Overrides, generate, validate_rows
 from gsmap.names import Names
 from gsmap.project import Project
 from gsmap.scenes import Scenes
@@ -89,10 +90,10 @@ class Cache:
 
 MAX_REQUEST = 256 * 1024 * 1024  # room for a ROM and a patch, base64-encoded
 LOCAL_HOSTS = ("127.0.0.1", "localhost", "[::1]")
-# Pages talk only to this server: a script slipped in by a patch file or a name
-# has nowhere to send anything.
+# Pages run only the scripts shipped beside them, and talk only to this server. Text
+# from files and patches also goes through esc(); this is the second line of defence.
 CSP = ("default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; "
-       "script-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'")
+       "script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'")
 
 
 def host_allowed(headers, local_only=True):
@@ -208,7 +209,8 @@ def make_handler(project, token=None, local_only=True):
 
     def make(target):
         p = subprocess.Popen(["make", f"-j{os.cpu_count() or 4}", target], cwd=project.root, env=build_env,
-                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, start_new_session=True)
+                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, errors="replace",
+                             start_new_session=True)
         setupmod.RUNNING.add(p)
         try:
             out, _ = p.communicate(timeout=1800)
@@ -238,7 +240,14 @@ def make_handler(project, token=None, local_only=True):
         code, out = make(target)
         if code == 0 and refresh_mod():
             code, out = make(target)
-        return {"target": target, "exit": code, "tail": out[-40:]}
+        result = {"target": target, "exit": code, "tail": out[-40:]}
+        if code != 0 and any("ags-text" in line or "message" in line.lower() or "edition" in line for line in out):
+            bad = Messages(project.root).bad_lines()
+            if bad:
+                said = " ".join(bad[0][1].replace("{page_break}", " ").replace("{end_wait}", "").split())[:120]
+                result["why"] = (f"A line you wrote can't be built: “{said}”. {bad[0][2]} "
+                                 "Change its words in the Events panel, or use Undo last save. Your files are safe.")
+        return result
 
     def map_json(n):
         info = project.maps[n]
@@ -378,7 +387,15 @@ def make_handler(project, token=None, local_only=True):
                     return self.send_json(out)
                 m = re.fullmatch(r"/api/map/(\w+)", path)
                 if m and m.group(1) in project.maps:
-                    return self.send_json(map_json(m.group(1)))
+                    try:
+                        return self.send_json(map_json(m.group(1)))
+                    except Exception as e:  # noqa: BLE001  a damaged file: say which, and the way back
+                        traceback.print_exc()
+                        folder = os.path.relpath(project.maps[m.group(1)].folder, project.root)
+                        return self.send_json({"damaged": True, "error": f"This place's files can't be read ({folder}). "
+                                               "Reset place puts them back as the original game has them, or use "
+                                               "Undo last save if a recent save caused this.",
+                                               "detail": f"{type(e).__name__}: {e}"}, 409)
                 if path == "/api/names":
                     return self.send_json(names.client_tables())
                 m = re.fullmatch(r"/api/asset/item/(\d+)\.png", path)
@@ -459,7 +476,7 @@ def make_handler(project, token=None, local_only=True):
                                            "result": job["result"], "log": job["log"][since:], "next": len(job["log"])})
                 if path == "/api/check":
                     with write_lock:  # a consistent view, not half a save
-                        return self.send_json(Checker(project, scenes(), names).run())
+                        return self.send_json({"issues": Checker(project, scenes(), names).run()})
                 m = re.fullmatch(r"/api/map/(\w+)/doors", path)
                 if m and m.group(1) in project.maps:
                     doors = DoorEditor(project, scenes(), names).list(project.maps[m.group(1)])
@@ -506,6 +523,8 @@ def make_handler(project, token=None, local_only=True):
                     return self.send_bytes(body, "image/png")
                 if path.startswith("/api/"):
                     return self.send_json({"error": "not found"}, 404)
+            except DamagedFile as e:
+                return self.send_json({"error": str(e)}, 409)
             except Exception as e:  # report, don't kill the server
                 traceback.print_exc()
                 return self.send_json({"error": "Something went wrong in the editor. Your files are unchanged.",
@@ -534,7 +553,7 @@ def make_handler(project, token=None, local_only=True):
                 m = re.fullmatch(r"/api/map/(\w+)/edits", path)
                 if m and m.group(1) in project.maps:
                     n = m.group(1)
-                    with writing("your painting"):
+                    with writing("moving a chest" if body.get("markers") and not body.get("edits") else "your painting"):
                         try:
                             result = project.apply_edits(
                                 project.maps[n], body.get("edits", []), body.get("markers", [])
@@ -590,14 +609,24 @@ def make_handler(project, token=None, local_only=True):
                     return self.send_json({"ok": True, **r})
                 if path == "/api/history/undo":
                     with write_lock:
-                        label = fsio.undo_last(history)
+                        label = fsio.undo_last(history, project.root)
                         forget_loaded()
                     return self.send_json({"ok": True, "label": label, "next": fsio.last_saved(history)})
                 m = re.fullmatch(r"/api/map/(\w+)/reset", path)
                 if m and m.group(1) in project.maps:
                     with writing("resetting a place"):
                         try:
-                            r = reset_map(project, scenes(), names, project.maps[m.group(1)], setupmod.load_settings())
+                            r = reset_map(project, scenes(), names, project.maps[m.group(1)], setupmod.load_settings(),
+                                          bool(body.get("shared")))
+                        except ValueError as e:
+                            fsio.abort()
+                            return self.send_json({"error": str(e)}, 409)
+                        forget_loaded()
+                    return self.send_json({"ok": True, **r})
+                if path == "/api/world/reset":
+                    with writing("resetting the world map"):
+                        try:
+                            r = reset_world(project, scenes(), names, setupmod.load_settings())
                         except ValueError as e:
                             fsio.abort()
                             return self.send_json({"error": str(e)}, 409)
@@ -636,10 +665,12 @@ def make_handler(project, token=None, local_only=True):
                     n = m.group(1)
                     ee = EventEditor(project, scenes(), names)
                     a, sid, tbl = body.get("action"), int(body["scene"]), body.get("table")
+                    if not tbl and a != "region":  # the Events panel hadn't loaded a story stage yet
+                        tbl = ee.describe(project.maps[n], sid)["symbol"]
                     with writing("an event change"):
                         try:
                             if a == "text":
-                                r = ee.set_text(sid, tbl, int(body["index"]), body["text"], bool(body.get("raw")))
+                                r = ee.set_text(sid, tbl, int(body["index"]), body["text"], bool(body.get("raw")), body.get("when"))
                             elif a == "when":
                                 r = ee.set_when(sid, tbl, int(body["index"]), body.get("when"))
                             elif a == "talk":
@@ -779,19 +810,35 @@ def make_handler(project, token=None, local_only=True):
                     note = "Your game is open in mGBA."
                     if body.get("scene") is not None:
                         sid = int(body["scene"])
+                        sc = next((s for s in scenes().scenes if s["id"] == sid), None)
+                        if sc is None:
+                            return self.send_json({"error": "That place isn't in the game."}, 400)
                         de = DoorEditor(project, scenes(), names)
                         arrivals = de.entrances(sid)
                         # Scene 0 is the title screen, where a game starts anyway.
                         if sid != 0 and arrivals:
+                            info = project.maps.get(row_to_map().get(sc["layered_row"]))
+                            arrival, sure = playtest.landing(project, info, arrivals)
+                            chosen = body.get("entrance")
+                            if chosen is not None:
+                                arrival = next((a for a in arrivals if a["entrance"] == int(chosen)), None)
+                                if arrival is None:
+                                    return self.send_json({"error": "That arrival point isn't in this place."}, 400)
+                                sure = True
                             rom = playtest.make_copy(project.root, os.path.join(setupmod.CACHE, "playing"),
-                                                     sid, arrivals[0]["entrance"])
-                            note = f"Your game is open in mGBA, at {names.scene_label(sid)}."
+                                                     sid, arrival["entrance"])
+                            note = f"Your game is open in mGBA, at {names.scene_label(sid)}, arrival point {arrival['entrance']}."
+                            if not sure:
+                                note += " Every arrival point here looks walled in."
+                            note += " If you can't walk, or a story scene gets in the way, pick another with Start at."
                     subprocess.Popen(["open", "-a", "mGBA", rom])
                     return self.send_json({"ok": True, "note": note})
                 return self.send_json({"error": "not found"}, 404)
+            except DamagedFile as e:
+                return self.send_json({"error": str(e)}, 409)
             except Exception as e:
                 traceback.print_exc()
-                return self.send_json({"error": "Something went wrong in the editor. Your files are unchanged.",
+                return self.send_json({"error": "Something went wrong in the editor, and that action didn't finish.",
                                        "detail": f"{type(e).__name__}: {e}"}, 500)
 
     return Handler

@@ -15,7 +15,17 @@ from . import layout
 
 
 def check(root):
-    """[plain-language problem], empty when the checkout can be read."""
+    """[plain-language problem], empty when the checkout can be read. Whatever is
+    wrong with the checkout, this answers in words: it runs before anything can
+    show a message, so a crash here would look like an app that won't open."""
+    try:
+        return _check(root)
+    except Exception as e:  # noqa: BLE001
+        return [f"The game source has been damaged, so it couldn't be read ({type(e).__name__}). Move this folder "
+                "aside, then use a fresh download."]
+
+
+def _check(root):
     problems = []
 
     def need(rel, what):
@@ -43,6 +53,17 @@ def check(root):
     if problems:
         return problems
 
+    # Text the editor rewrites has to be real text: a stray byte can't be saved back.
+    for rel in (layout.TEXT_EN, layout.SCENE_TABLE):
+        try:
+            with open(os.path.join(root, rel), encoding="utf-8") as f:
+                f.read()
+        except UnicodeDecodeError:
+            problems.append(f"{rel} has been damaged: it isn't plain text any more. Restore it, or move this "
+                            "folder aside and download a fresh copy.")
+    if problems:
+        return problems
+
     # The layouts the editor reads table bytes with.
     for rel, sizes in layout.SCENE_HEADERS.items():
         if need(rel, "the scene table formats"):
@@ -57,7 +78,8 @@ def check(root):
                               (layout.AREA_RULES, "gArea_NameRules", "area names"),
                               (layout.TEXT_EN, 'msgctxt "MsgItemName"', "item names"),
                               (layout.TEXT_EN, 'msgctxt "MsgDebugAreaName"', "area names"),
-                              (layout.TEXT_EN, 'msgctxt "MsgCharacterName"', "character names")):
+                              (layout.TEXT_EN, 'msgctxt "MsgCharacterName"', "character names"),
+                              (layout.TEXT_EN, "X-Alchemy-Symbol-Count:", "text alphabet")):
         if anchor not in read(rel):
             problems.append(f"Can't find the {what} in {rel}, so things would show numbers instead of names.")
 

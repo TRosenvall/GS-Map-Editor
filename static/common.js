@@ -5,6 +5,18 @@ function esc(text) {
   return String(text ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+// Pages forbid inline script, so a picture that may not exist asks for this instead.
+document.addEventListener('error', e => { if (e.target.matches?.('img[data-hide-broken]')) e.target.remove(); }, true);
+
+// Ticking a box or moving a slider leaves it focused, which isn't typing.
+function isTyping(el) {
+  if (el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') return true;
+  return el.tagName === 'INPUT' && !['checkbox', 'radio', 'range', 'button'].includes(el.type);
+}
+
+// A menu keeps the keyboard after you pick from it, which would swallow the tool keys.
+document.addEventListener('change', e => { if (e.target.tagName === 'SELECT') e.target.blur(); });
+
 function failDialog(title, why, details) {
   let d = document.getElementById('failDialog');
   if (!d) {
@@ -31,7 +43,7 @@ function failDialog(title, why, details) {
 
 // Build, then open the game, starting at `scene` if given. `button` is disabled
 // meanwhile. True when it played.
-async function buildAndPlay(button, scene) {
+async function buildAndPlay(button, scene, entrance) {
   if (button) button.disabled = true;
   try {
     status('Getting your game ready… (usually under a minute)');
@@ -39,12 +51,12 @@ async function buildAndPlay(button, scene) {
     if (b.error) { failDialog("Your game couldn't be built", b.error, b.error); status(''); return false; }
     if (b.exit !== 0) {
       failDialog("Your changes couldn't be turned into a game",
-        'Your files are safe. Use “Undo last save” to step back, or reset the place you were editing, then try again.',
+        b.why || 'Your files are safe. Use “Undo last save” to step back, then try again.',
         (b.tail || []).join('\n'));
       status('<span class="err">The game didn’t build.</span>');
       return false;
     }
-    const r = await api('/api/play', { scene });
+    const r = await api('/api/play', { scene, entrance });
     if (r.error) { failDialog("Your game is ready, but couldn't be opened", r.error, r.error); status(''); return false; }
     status(`<span class="ok">${esc(r.note)}</span>`);
     return true;
