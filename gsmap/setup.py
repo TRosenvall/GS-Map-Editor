@@ -38,8 +38,8 @@ if " " in CACHE:  # builds run from here too; macOS's per-user temporary folder 
 ALCHEMY_URL = "https://github.com/PascalPixel/alchemy"
 # The alchemy commit this editor was last tested against (round trip,
 # render-all, build). Newer commits usually work; this one is known to.
-ALCHEMY_PIN = "f6c08e64dd947e449baf8db86ab8e12f3ed5749e"
-BREW_PACKAGES = ["arm-none-eabi-binutils", "pkg-config", "libpng", "utf8proc"]
+ALCHEMY_PIN = "04b422868df1d7d3c1e97c000d17841fed4b3aa3"
+BREW_PACKAGES = ["arm-none-eabi-binutils", "libpng"]
 BREW_DIRS = ["/opt/homebrew/bin", "/usr/local/bin"]
 # Give up on a stalled download rather than wait forever.
 GIT_LIMITS = ["git", "-c", "http.lowSpeedLimit=1000", "-c", "http.lowSpeedTime=120"]
@@ -98,19 +98,15 @@ def _brew_dirs():
 
 
 def build_env():
-    """The bundled toolchain first, then Homebrew: a devkitPro or system
-    pkg-config earlier on PATH can't see the libpng and utf8proc alchemy's
-    tools need. GSMAP_NO_BREW=1 leaves Homebrew out (to test the bundle)."""
+    """The bundled toolchain first, then Homebrew: a libpng-config earlier on
+    PATH (devkitPro's, say) may answer for a libpng the tools can't link.
+    GSMAP_NO_BREW=1 leaves Homebrew out (to test the bundle)."""
     env = dict(os.environ)
     tc = bundled_toolchain()
     dirs = ([os.path.join(tc, "bin")] if tc else []) + _brew_dirs()
     rest = env.get("PATH", "") if not os.environ.get("GSMAP_NO_BREW") else ""
     env["PATH"] = ":".join(dirs + ["/usr/bin", "/bin", "/usr/sbin", "/sbin"] + ([rest] if rest else []))
-    env.pop("PKG_CONFIG", None)
-    for d in dirs:
-        if os.path.exists(os.path.join(d, "pkg-config")):
-            env["PKG_CONFIG"] = os.path.join(d, "pkg-config")
-            break
+    env.pop("LIBPNG_CONFIG", None)
     return env
 
 
@@ -206,19 +202,15 @@ def _source_steps(root):
 
 def missing_packages():
     """Homebrew packages whose job isn't done: checked by what the build uses
-    (commands, and pkg-config finding the libraries), not by formula names,
-    which Homebrew renames (pkg-config is now pkgconf)."""
+    (the GBA assembler, and libpng-config answering for libpng), not by
+    formula names, which Homebrew renames."""
     env = build_env()
     missing = []
     if not shutil.which("arm-none-eabi-as", path=env["PATH"]):
         missing.append("arm-none-eabi-binutils")
-    pc = env.get("PKG_CONFIG")
-    if not pc:
-        missing.append("pkg-config")
-    else:
-        for lib, pkg in (("libpng", "libpng"), ("libutf8proc", "utf8proc")):
-            if _run([pc, "--exists", lib])[0] != 0:
-                missing.append(pkg)
+    lc = shutil.which("libpng-config", path=env["PATH"])
+    if not lc or _run([lc, "--cflags"])[0] != 0:
+        missing.append("libpng")
     return missing
 
 

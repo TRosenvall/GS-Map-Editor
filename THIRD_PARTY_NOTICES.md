@@ -8,7 +8,6 @@ MIT licence (see `LICENSE`), and neither game art nor a ROM is included in it.**
 |---|---|---|---|
 | GNU Binutils 2.43.1 | assembling and linking the game | GPL v3 or later | https://ftp.gnu.org/gnu/binutils/binutils-2.43.1.tar.xz |
 | libpng 1.6.44 | build tool for the game's pictures | libpng licence | https://download.sourceforge.net/libpng/libpng-1.6.44.tar.xz |
-| utf8proc 2.9.0 | build tool for the game's text | MIT-style | https://github.com/JuliaStrings/utf8proc |
 | CPython | runs the editor | PSF licence | https://www.python.org/ |
 | Pillow | reading and drawing pictures | MIT-CMU (HPND) | https://python-pillow.org/ |
 | pywebview | the app window | BSD 3-Clause | https://pywebview.flowrl.com/ |

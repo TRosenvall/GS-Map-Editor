@@ -43,7 +43,7 @@ The engine layer that exists today stays the foundation. That covers the file fo
 - **Backend:** today's Python server, in the same process.
 - **Game source:** the app downloads alchemy at a pinned commit that we have verified. Players never see git. Updates are explicit: "New alchemy version available; tested ✓".
 - **Toolchain:** the hardest part.
-  - alchemy needs its pinned compilers (built from source), binutils, and its own C tools (libpng, utf8proc).
+  - alchemy needs its pinned compilers (built from source), binutils, and its own C tools (libpng).
   - Plan: build these per platform in CI and ship them as prebuilt binaries. The compilers are GPL; we publish their sources.
   - Platforms: macOS first (Intel + Apple Silicon), then Windows (alchemy officially supports Windows only through WSL, so a native port of the tools is the risk), then Linux.
 - **Patches:**

@@ -2,8 +2,8 @@
 one folder the app carries, so players never need Homebrew:
 
   bin/arm-none-eabi-{as,ld,objcopy,readelf,...}   GNU binutils for the GBA
-  bin/pkg-config                                  a shim answering for the two libraries
-  lib/libpng16.a, lib/libutf8proc.a + headers     static, so tools link no dylibs
+  bin/libpng-config                               a shim answering as tools/Makefile asks
+  lib/libpng16.a + headers                        static, so tools link no dylibs
 
     python3 packaging/build_toolchain.py [--out packaging/toolchain] [--jobs 8]
 
@@ -29,37 +29,24 @@ SOURCES = {
                  "13f74202a3c4c51118b797a39ea4200d3f6cfbe224da6d1d95bb938480132dfd"),
     "libpng": ("https://download.sourceforge.net/libpng/libpng-1.6.44.tar.xz",
                "60c4da1d5b7f0aa8d158da48e8f8afa9773c1c8baa5d21974df61f1886b8ce8e"),
-    "utf8proc": ("https://github.com/JuliaStrings/utf8proc/archive/refs/tags/v2.9.0.tar.gz",
-                 "18c1626e9fc5a2e192311e36b3010bfc698078f692888940f1fa150547abb0c1"),
 }
 MIN_MACOS = "11.0"
 
-PKG_CONFIG_SHIM = r"""#!/bin/sh
-# pkg-config for the two libraries alchemy's tools use (libpng, libutf8proc),
-# both static in ../lib. Answers --exists, --cflags and --libs, as tools/Makefile asks.
+LIBPNG_CONFIG_SHIM = r"""#!/bin/sh
+# libpng-config for the static libpng in ../lib. alchemy's tools/Makefile asks
+# for --cflags and --ldflags; libpng's own script names the machine it was
+# built on, so the app carries this one instead.
 here=$(cd "$(dirname "$0")/.." && pwd)
-mode=; libs=
+out=
 for a in "$@"; do
   case "$a" in
-    --exists|--cflags|--libs|--modversion) mode=$a ;;
-    --*) ;;
-    *) libs="$libs $a" ;;
+    --cflags|--I_opts) out="$out -I$here/include/libpng16" ;;
+    --ldflags|--libs|--static) out="$out $here/lib/libpng16.a -lz" ;;
+    --version) out="$out 1.6.44" ;;
+    --prefix) out="$out $here" ;;
+    *) ;;
   esac
 done
-out=
-for l in $libs; do
-  case "$l" in
-    libpng|libpng16) c="-I$here/include/libpng16"; L="$here/lib/libpng16.a -lz"; v=1.6.44 ;;
-    libutf8proc) c="-I$here/include"; L="$here/lib/libutf8proc.a"; v=2.9.0 ;;
-    *) exit 1 ;;
-  esac
-  case "$mode" in
-    --cflags) out="$out $c" ;;
-    --libs) out="$out $L" ;;
-    --modversion) out="$out $v" ;;
-  esac
-done
-[ "$mode" = --exists ] && exit 0
 echo $out
 """
 
@@ -118,29 +105,23 @@ def main():
     run(["make", j], src, env)
     run(["make", "install"], src, env)
 
-    src = unpack(fetch("utf8proc", args.cache), work)
-    run(["make", j, "libutf8proc.a"], src, env)
-    os.makedirs(os.path.join(out, "lib"), exist_ok=True)
-    os.makedirs(os.path.join(out, "include"), exist_ok=True)
-    shutil.copy(os.path.join(src, "libutf8proc.a"), os.path.join(out, "lib"))
-    shutil.copy(os.path.join(src, "utf8proc.h"), os.path.join(out, "include"))
-
-    shim = os.path.join(out, "bin", "pkg-config")
-    with open(shim, "w") as f:
-        f.write(PKG_CONFIG_SHIM)
-    os.chmod(shim, 0o755)
     # Only what the build uses; documentation and dylibs stay out of the app.
     # The licences stay: binutils is GPL, so its terms and a source pointer ship with it.
     licences = os.path.join(out, "licenses")
     os.makedirs(licences, exist_ok=True)
-    for name, files in (("binutils", ["COPYING3", "COPYING3.LIB"]), ("libpng", ["LICENSE"]), ("utf8proc", ["LICENSE.md"])):
+    for name, files in (("binutils", ["COPYING3", "COPYING3.LIB"]), ("libpng", ["LICENSE"])):
         folder = next(os.path.join(work, d) for d in os.listdir(work) if d.startswith(name))
         for f in files:
             shutil.copy(os.path.join(folder, f), os.path.join(licences, f"{name}-{f}"))
-    # A build-time script that names the machine it was built on.
+    # libpng's own scripts name the machine they were built on: the shim
+    # above takes their place.
     for f in ("libpng-config", "libpng16-config"):
         with contextlib.suppress(FileNotFoundError):
             os.remove(os.path.join(out, "bin", f))
+    shim = os.path.join(out, "bin", "libpng-config")
+    with open(shim, "w") as f:
+        f.write(LIBPNG_CONFIG_SHIM)
+    os.chmod(shim, 0o755)
     for d in ("share", "lib/pkgconfig", "arm-none-eabi/lib"):
         shutil.rmtree(os.path.join(out, d), ignore_errors=True)
     for f in os.listdir(os.path.join(out, "lib")):

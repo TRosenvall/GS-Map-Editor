@@ -6,7 +6,7 @@ The editor works on [alchemy](https://github.com/PascalPixel/alchemy), a project
 
 > **Early days:** the editor covers the English edition of The Broken Seal, on macOS only. It has mostly been tested on an Intel Mac. The app is an Intel build, so Apple Silicon Macs run it through Rosetta, and they haven't had a full test yet. There's no ready-made download yet, so for now you build the app yourself (see [Getting started](#getting-started)). Keep a backup of any mod you care about.
 
-**Alchemy version:** this editor is tested with alchemy commit [`f6c08e64dd`](https://github.com/PascalPixel/alchemy/commit/f6c08e64dd947e449baf8db86ab8e12f3ed5749e) (2026-11-02). Setup downloads exactly that commit. Alchemy changes quickly, so a newer copy may not work until the editor catches up.
+**Alchemy version:** this editor is tested with alchemy commit [`04b422868d`](https://github.com/PascalPixel/alchemy/commit/04b422868df1d7d3c1e97c000d17841fed4b3aa3) (2026-11-08). Setup downloads exactly that commit. Alchemy changes quickly, so a newer copy may not work until the editor catches up.
 
 ## Contents
 

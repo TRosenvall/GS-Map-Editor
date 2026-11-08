@@ -18,7 +18,7 @@ python3 server.py --root /path/to/alchemy --port 8765
 
 ```sh
 python3 -m venv .venv && .venv/bin/pip install pywebview pyinstaller pillow
-python3 packaging/build_toolchain.py                          # GBA binutils + libpng + utf8proc, ~10 min, once
+python3 packaging/build_toolchain.py                          # GBA binutils + libpng, ~10 min, once
 .venv/bin/python packaging/make_icon.py                       # packaging/icon.icns
 .venv/bin/pyinstaller --noconfirm packaging/gsmapedit.spec    # -> dist/GS Map Editor.app
 python3 packaging/make_dmg.py                                 # -> dist/GS-Map-Editor-<version>.dmg
@@ -26,13 +26,13 @@ python3 packaging/sign_and_notarize.py --identity "Developer ID Application: …
 .venv/bin/python desktop.py                                   # or run it without packaging
 ```
 
-The app carries its own build tools (`packaging/toolchain`, 16 MB): GNU binutils for the GBA, static libpng and utf8proc, and a small `pkg-config` stand-in. They're built from pinned, checksummed sources and need nothing but macOS. With them, players need only Apple's free developer tools; Homebrew is used only by a build without the toolchain. `GSMAP_NO_BREW=1` hides Homebrew, to prove a build doesn't need it.
+The app carries its own build tools (`packaging/toolchain`, 15 MB): GNU binutils for the GBA, a static libpng, and a small `libpng-config` stand-in that answers alchemy's `tools/Makefile`. They're built from pinned, checksummed sources and need nothing but macOS. With them, players need only Apple's free developer tools; Homebrew is used only by a build without the toolchain. `GSMAP_NO_BREW=1` hides Homebrew, to prove a build doesn't need it.
 
 On first run it shows a setup checklist (`static/setup.html`, `gsmap/setup.py`). Each step is checked, never assumed, and long steps show their log live:
 1. Apple's developer tools (opens Apple's installer).
 2. The build tools: included with the app. A build without them falls back to Homebrew and the packages from alchemy's INSTALL.md, checked by what the build uses rather than by formula names.
 3. The game source: download alchemy (pinned to the commit this editor was tested with) into `~/Documents/GSMapEditor/` (no spaces: the build can't handle them), or choose an existing checkout.
-4. `make bootstrap` (with GAS 2.10 built at `-O0`, because Apple clang miscompiles it at `-O2` on Intel Macs) (the game's compilers, once), then a first `make tbs-en`.
+4. `make bootstrap` (the game's compilers, built once from the sources in alchemy's `alchemy-gcc` submodule, with no download), then a first `make tbs-en`.
 
 After that, the app opens straight into the editor. Settings live in `~/Library/Application Support/GS Map Editor/`. The app holds no game data: the game is built from alchemy's source on the player's Mac. Both of its servers listen on this machine only, behind a random token. `desktop.py --no-window` prints their addresses, for testing.
 
@@ -122,13 +122,15 @@ Everything the editor knows about alchemy's layout is in `gsmap/layout.py`. The 
 2. Build it, then `python3 tools/snapshot.py path/to/alchemy new.json` and `python3 tools/snapshot.py --compare old.json new.json` show every difference in what the editor reads. The two versions build the same game, so results should only change where you expect.
 3. Run the tests below.
 
+Moving an existing checkout to a new alchemy by hand is ordinary git: merge or check out the new commit, then `git submodule update --init --recursive alchemy-gcc`. Since `alchemy-gcc` 3a12774 (alchemy 2026-11-08), agbcc is plain files instead of a nested submodule, and in a checkout from before that the update stops with "untracked working tree files would be overwritten". Inside `alchemy-gcc`, run `git submodule deinit -f agbcc`, delete the `agbcc` folder and `.git/modules/agbcc` under alchemy-gcc's git folder, then update again. Delete `out/*/deps.mk` and `out/*/objects.mk` before the first build. Setup's **Download** always makes a fresh clone, so players don't meet this.
+
 Saved scene edits carry a fingerprint of the table they were made for. A table renamed upstream follows it. An edit to a table whose original contents changed is kept but left out of the game, and Check reports it.
 
 ### Tests
 
 - `python3 tests/safety.py`: what must never go wrong: failures and crashes leave no half-saved files, chests stay in their own rooms, bad values and hostile patches are refused, renamed or changed tables are handled, an unknown layout is reported rather than guessed at.
 - `python3 tests/edits.py`: saves block, walkability and height edits on a copy of real maps and checks they read back, with nothing else changed.
-- `python3 tests/roundtrip.py`: loads and re-saves every map grid, cell-picture and shape table, and chest list (727 files). All must come out byte-identical. This guarantees that saving a map only changes what you edited.
+- `python3 tests/roundtrip.py`: loads and re-saves every map grid, cell-picture and shape table, and chest list (727 files with the debug-room mod, 721 on a plain checkout). All must come out byte-identical. This guarantees that saving a map only changes what you edited.
 
 ## Docs
 
