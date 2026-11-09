@@ -21,7 +21,6 @@ import platform
 import shutil
 import subprocess
 import tarfile
-import urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SOURCES = {
@@ -57,7 +56,10 @@ def fetch(name, cache):
     if not os.path.exists(path):
         os.makedirs(cache, exist_ok=True)
         print("download", url, flush=True)
-        urllib.request.urlretrieve(url, path + ".part")
+        # curl, not urllib: it uses the system's certificates, follows
+        # SourceForge's mirror redirects, and retries a dropped connection.
+        subprocess.run(["curl", "--fail", "--location", "--silent", "--show-error", "--retry", "3",
+                        "-o", path + ".part", url], check=True)
         os.replace(path + ".part", path)
     got = hashlib.sha256(open(path, "rb").read()).hexdigest()
     if got != sha:

@@ -39,11 +39,20 @@ jobs:
           path: packaging/.cache
           key: toolchain-sources-${{ hashFiles('packaging/build_toolchain.py') }}
 
+      # On failure the log's last lines become the run's error message, which
+      # anyone can read on the run page without signing in.
       - name: Build tools the app carries (about 10 minutes)
-        run: python packaging/build_toolchain.py --jobs 4
+        run: |
+          python packaging/build_toolchain.py --jobs 4 > toolchain.log 2>&1 || {
+            msg=$(tail -n 40 toolchain.log); msg=${msg//'%'/'%25'}; msg=${msg//$'\n'/'%0A'}
+            echo "::error title=Toolchain build failed::$msg"; exit 1; }
+          tail -n 3 toolchain.log
 
       - name: App
-        run: python -m PyInstaller --noconfirm packaging/gsmapedit.spec
+        run: |
+          python -m PyInstaller --noconfirm packaging/gsmapedit.spec > app.log 2>&1 || {
+            msg=$(tail -n 40 app.log); msg=${msg//'%'/'%25'}; msg=${msg//$'\n'/'%0A'}
+            echo "::error title=App build failed::$msg"; exit 1; }
 
       - name: The app is built for this chip
         run: |
