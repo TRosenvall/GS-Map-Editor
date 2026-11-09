@@ -44,14 +44,14 @@ jobs:
       - name: Build tools the app carries (about 10 minutes)
         run: |
           python packaging/build_toolchain.py --jobs 4 > toolchain.log 2>&1 || {
-            msg=$(tail -n 40 toolchain.log); msg=${msg//'%'/'%25'}; msg=${msg//$'\n'/'%0A'}
+            msg=$( { grep -n -E 'error:|Error [0-9]|No such file' toolchain.log | head -n 25; echo ...; tail -n 12 toolchain.log; } ); msg=${msg//'%'/'%25'}; msg=${msg//$'\n'/'%0A'}
             echo "::error title=Toolchain build failed::$msg"; exit 1; }
           tail -n 3 toolchain.log
 
       - name: App
         run: |
           python -m PyInstaller --noconfirm packaging/gsmapedit.spec > app.log 2>&1 || {
-            msg=$(tail -n 40 app.log); msg=${msg//'%'/'%25'}; msg=${msg//$'\n'/'%0A'}
+            msg=$( { grep -n -E -i 'error' app.log | head -n 25; echo ...; tail -n 12 app.log; } ); msg=${msg//'%'/'%25'}; msg=${msg//$'\n'/'%0A'}
             echo "::error title=App build failed::$msg"; exit 1; }
 
       - name: The app is built for this chip

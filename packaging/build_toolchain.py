@@ -98,7 +98,10 @@ def main():
     src = unpack(fetch("binutils", args.cache), work)
     run(["./configure", f"--prefix={out}", "--target=arm-none-eabi", "--disable-nls", "--disable-werror",
          "--disable-gdb", "--disable-gdbserver", "--disable-sim", "--disable-gprofng", "--disable-libctf",
-         "--without-zstd", "--disable-plugins", "--enable-deterministic-archives"], src, env)
+         "--without-zstd", "--disable-plugins", "--enable-deterministic-archives",
+         # macOS's own zlib: the copy inside binutils doesn't compile against
+         # the macOS 15 SDK (Xcode 16), where stdio.h already defines fdopen.
+         "--with-system-zlib"], src, env)
     run(["make", j], src, env)
     run(["make", "install-strip"], src, env)
 
