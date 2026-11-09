@@ -2,9 +2,9 @@
 
 Make your own version of **Golden Sun: The Broken Seal** without writing code. Repaint towns, hide chests, write new dialogue, add people and doors, reshape the world map, then press **▶ Play** and walk around in your change. When you're happy with it, export a small patch to share.
 
-The editor works on [alchemy](https://github.com/PascalPixel/alchemy), a project that rebuilds the game from readable source files. It builds your game from that source on your own Mac, so you don't need a ROM to make a mod.
+The editor works on [alchemy](https://github.com/PascalPixel/alchemy), a project that rebuilds the game from readable source files. It builds your game from that source on your own computer, so you don't need a ROM to make a mod.
 
-> **Preview: testers wanted.** The editor covers the English edition of The Broken Seal, on macOS. A Windows version is in progress. It has mostly been tested on one Intel Mac, so every report helps, including "it worked": [download it](https://github.com/TRosenvall/GS-Map-Editor/releases), try it, and [tell us how it went](https://github.com/TRosenvall/GS-Map-Editor/issues/new?template=bug_report.md). Keep a backup of any mod you care about.
+> **Preview: testers wanted.** The editor covers the English edition of The Broken Seal, on macOS and, as an early test, Windows. It has mostly been tested on one Intel Mac, and the Windows version has never run on a real Windows PC, so every report helps, including "it worked": [download it](https://github.com/TRosenvall/GS-Map-Editor/releases), try it, and [tell us how it went](https://github.com/TRosenvall/GS-Map-Editor/issues/new?template=bug_report.md). Keep a backup of any mod you care about.
 
 **Alchemy version:** this editor is tested with alchemy commit [`04b422868d`](https://github.com/PascalPixel/alchemy/commit/04b422868df1d7d3c1e97c000d17841fed4b3aa3) (2026-11-08). Setup downloads exactly that commit. Alchemy changes quickly, so a newer copy may not work until the editor catches up.
 
@@ -42,22 +42,23 @@ The editor works on [alchemy](https://github.com/PascalPixel/alchemy), a project
 
 ### What you need
 
-- A Mac with macOS 11 or later, and about 3 GB of free space for the game's source and its build.
-- [mGBA](https://mgba.io), a free Game Boy Advance emulator, to play your game.
+- A Mac with macOS 11 or later, or a PC with Windows 10 or 11.
+- About 3 GB of free space for the game's source and its build.
+- [mGBA](https://mgba.io/downloads.html), a free Game Boy Advance emulator, to play your game (on Windows, its Windows installer).
 - An internet connection for the first setup.
 
-### Get the app
+### Get the app (Mac)
 
 Download the newest `.dmg` from [Releases](https://github.com/TRosenvall/GS-Map-Editor/releases):
 
 - **AppleSilicon** for Macs with an M1, M2, M3, M4 or later chip;
-- **Intel** for Intel Macs.
+- **Mac-Intel** for Intel Macs.
 
 Not sure which you have? Apple menu → **About This Mac**: "Chip: Apple M…" is Apple Silicon.
 
 Open the `.dmg` and drag **GS Map Editor** into **Applications**.
 
-### Opening it the first time
+### Opening it the first time (Mac)
 
 The app isn't signed with an Apple developer certificate yet, so macOS warns about it the first time:
 
@@ -68,13 +69,27 @@ On macOS 14 and earlier you can instead right-click the app, choose **Open**, th
 
 If you'd rather build the app yourself, follow [Desktop app](docs/DEVELOPING.md#desktop-app-macos) in the developer notes. If you're comfortable with a terminal and already have a built alchemy checkout, you can skip the app and run `python3 server.py --root /path/to/alchemy`, then open http://127.0.0.1:8765/.
 
+### Get the editor (Windows, early test)
+
+The editor runs inside WSL, the Linux built into Windows, because that's the only way the game's source builds on Windows. It opens in your web browser.
+
+1. Download `Install-GS-Map-Editor.cmd` from [Releases](https://github.com/TRosenvall/GS-Map-Editor/releases). If your browser says it isn't commonly downloaded, choose **Keep**.
+2. Double-click it. Windows says it protected your PC because the installer isn't signed yet: press **More info**, then **Run anyway**.
+3. The first time, it turns on WSL and installs Ubuntu. Windows asks for administrator permission and may ask you to restart; if it does, restart and double-click the installer again.
+4. When Ubuntu asks, choose a username and a password. Typing the password shows nothing; that's normal. The next step asks for it.
+5. The installer sets up the editor inside Ubuntu and adds **GS Map Editor** to your Start menu and desktop.
+
+Open **GS Map Editor**. A small window appears; keep it open while you use the editor, since closing it stops the editor. The editor opens in your browser. Running the installer again updates the editor to the version it came with.
+
+On Windows, keyboard shortcuts use Ctrl where this guide says ⌘, and Alt where it says ⌥. Your work lives inside Ubuntu, in `GSMapEditor` in your Ubuntu home folder; File Explorer shows it under **Linux → Ubuntu → home**.
+
 ### First-run setup
 
-The app opens on a checklist the first time. It takes around 15 minutes, mostly waiting. Press the button on each step and the editor does the rest:
+The editor opens on a checklist the first time. It takes around 15 minutes, mostly waiting. Press the button on each step and the editor does the rest:
 
-1. **Apple's developer tools:** opens Apple's installer.
-2. **The tools for building the game:** already included with the app.
-3. **The game's source:** downloads alchemy into `~/Documents/GSMapEditor/`. If you already have a copy, choose **I already have a copy…**.
+1. **Apple's developer tools** (Mac only): opens Apple's installer.
+2. **The tools for building the game:** already included with the app on a Mac, and put in place by the installer on Windows.
+3. **The game's source:** downloads alchemy into `~/Documents/GSMapEditor/` (on Windows, `GSMapEditor` in your Ubuntu home folder). If you already have a copy, choose **I already have a copy…** (on Windows, type its path).
 4. **Preparing the build:** sets up the game's compilers, once.
 5. **A first build of the game:** builds the game once.
 
@@ -339,9 +354,13 @@ The patched game is saved in `~/Documents/GSMapEditor/Patched/`, and you can pre
 | Editor settings and your Undo last save history | `~/Library/Application Support/GS Map Editor/` |
 | Temporary builds, safe to delete | `~/Library/Caches/GSMapEditor/` |
 
+On Windows and Linux the first three are in `~/GSMapEditor/` in your Linux home folder, settings in `~/.config/gs-map-editor/` and temporary builds in `~/.cache/gs-map-editor/`.
+
 To back up your mod, copy the game source folder somewhere safe. Your changes are ordinary files in that folder.
 
 ## Keyboard shortcuts
+
+On Windows and Linux, use Ctrl for ⌘ and Alt for ⌥.
 
 | Key | Places | World map |
 |---|---|---|
@@ -393,6 +412,8 @@ To back up your mod, copy the game source folder somewhere safe. Your changes ar
 | Check says an edit "no longer fits" | The game's source changed under that edit. It's kept but left out of your game. |
 | A place looks different from what you edited | You may be on another **Story stage**, and Play starts a fresh game, which shows the early version. |
 | Setup failed part way | Press **Check again**, then the step's button. The log under the checklist shows what happened. |
+| Windows: the editor didn't open in your browser | The small GS Map Editor window shows its address: copy it into your browser. |
+| Windows: the installer says Ubuntu isn't ready | Restart Windows if it asked you to, open **Ubuntu** from the Start menu once to choose a username and password, then run the installer again. |
 
 ## Reporting problems
 
