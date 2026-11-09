@@ -36,6 +36,16 @@ On first run it shows a setup checklist (`static/setup.html`, `gsmap/setup.py`).
 
 After that, the app opens straight into the editor. Settings live in `~/Library/Application Support/GS Map Editor/`. The app holds no game data: the game is built from alchemy's source on the player's Mac. Both of its servers listen on this machine only, behind a random token. `desktop.py --no-window` prints their addresses, for testing.
 
+### Releasing
+
+Releases are built by GitHub, on its Macs, by `.github/workflows/release.yml`: one disk image for Apple Silicon (`macos-15`) and one for Intel (`macos-15-intel`). Each job builds the toolchain and the app, checks both are for its chip, runs `packaging/smoke_test.py` (the app starts, finds its tools and names the pin) and makes the `.dmg`.
+
+1. Set the version in `packaging/gsmapedit.spec` (`CFBundleShortVersionString`).
+2. Write the notes players read in `docs/releases/v<version>.md`.
+3. Commit, then `git tag v<version> && git push origin v<version>`. The workflow publishes a pre-release with both images, even if one chip's job fails.
+
+**Run workflow** on the Actions page builds the images without releasing. The images aren't signed: the README's "Opening it the first time" says how players get past Gatekeeper, and `packaging/sign_and_notarize.py` takes over once there's a Developer ID.
+
 ## How each feature works
 
 Local maps, The Broken Seal, English edition. For how to use these, see the [README](../README.md).

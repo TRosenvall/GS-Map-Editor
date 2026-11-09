@@ -1,0 +1,89 @@
+# Builds the Mac app for Apple Silicon and Intel on GitHub's Macs. A pushed
+# tag like v0.1.0 also publishes a pre-release with both disk images and the
+# notes in docs/releases/<tag>.md. Run it by hand (Actions, Run workflow) to
+# build without releasing; the images are then under the run's artifacts.
+name: Mac app
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            chip: AppleSilicon
+          - runner: macos-15-intel
+            chip: Intel
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Python packages
+        run: python -m pip install -r packaging/requirements.txt
+
+      # binutils and libpng sources, checked by SHA-256 in build_toolchain.py.
+      - uses: actions/cache@v4
+        with:
+          path: packaging/.cache
+          key: toolchain-sources-${{ hashFiles('packaging/build_toolchain.py') }}
+
+      - name: Build tools the app carries (about 10 minutes)
+        run: python packaging/build_toolchain.py --jobs 4
+
+      - name: App
+        run: python -m PyInstaller --noconfirm packaging/gsmapedit.spec
+
+      - name: The app is built for this chip
+        run: |
+          lipo -archs "dist/GS Map Editor.app/Contents/MacOS/GS Map Editor"
+          lipo -archs "dist/GS Map Editor.app/Contents/Frameworks/toolchain/bin/arm-none-eabi-as"
+
+      - name: Smoke test
+        run: python packaging/smoke_test.py
+
+      - name: Disk image
+        run: python packaging/make_dmg.py
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dmg-${{ matrix.chip }}
+          path: dist/*.dmg
+          if-no-files-found: error
+
+  release:
+    needs: build
+    # Publishes whichever images built, so one runner's trouble doesn't hold
+    # back the other's download.
+    if: ${{ !cancelled() && startsWith(github.ref, 'refs/tags/') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: dmgs
+          merge-multiple: true
+
+      - name: Publish the pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          ls -la dmgs
+          test -n "$(ls dmgs/*.dmg 2>/dev/null)"
+          gh release create "$TAG" dmgs/*.dmg \
+            --title "GS Map Editor ${TAG#v} (preview)" \
+            --notes-file "docs/releases/$TAG.md" \
+            --prerelease --verify-tag

@@ -4,7 +4,7 @@ Make your own version of **Golden Sun: The Broken Seal** without writing code. R
 
 The editor works on [alchemy](https://github.com/PascalPixel/alchemy), a project that rebuilds the game from readable source files. It builds your game from that source on your own Mac, so you don't need a ROM to make a mod.
 
-> **Early days:** the editor covers the English edition of The Broken Seal, on macOS only. It has mostly been tested on an Intel Mac. The app is an Intel build, so Apple Silicon Macs run it through Rosetta, and they haven't had a full test yet. There's no ready-made download yet, so for now you build the app yourself (see [Getting started](#getting-started)). Keep a backup of any mod you care about.
+> **Preview: testers wanted.** The editor covers the English edition of The Broken Seal, on macOS only. It has mostly been tested on one Intel Mac, so every report helps, including "it worked": [download it](https://github.com/TRosenvall/GS-Map-Editor/releases), try it, and [tell us how it went](https://github.com/TRosenvall/GS-Map-Editor/issues/new?template=bug_report.md). Keep a backup of any mod you care about.
 
 **Alchemy version:** this editor is tested with alchemy commit [`04b422868d`](https://github.com/PascalPixel/alchemy/commit/04b422868df1d7d3c1e97c000d17841fed4b3aa3) (2026-11-08). Setup downloads exactly that commit. Alchemy changes quickly, so a newer copy may not work until the editor catches up.
 
@@ -35,19 +35,38 @@ The editor works on [alchemy](https://github.com/PascalPixel/alchemy), a project
 - [Keyboard shortcuts](#keyboard-shortcuts)
 - [What it can't do yet](#what-it-cant-do-yet)
 - [Troubleshooting](#troubleshooting)
+- [Reporting problems](#reporting-problems)
 - [Legal](#legal)
 
 ## Getting started
 
 ### What you need
 
-- A Mac, with about 1 GB of free space for the game's source, plus room for the build.
+- A Mac with macOS 11 or later, and about 3 GB of free space for the game's source and its build.
 - [mGBA](https://mgba.io), a free Game Boy Advance emulator, to play your game.
 - An internet connection for the first setup.
 
 ### Get the app
 
-Build it by following [Desktop app](docs/DEVELOPING.md#desktop-app-macos) in the developer notes. If you're comfortable with a terminal and already have a built alchemy checkout, you can skip the app and run `python3 server.py --root /path/to/alchemy`, then open http://127.0.0.1:8765/.
+Download the newest `.dmg` from [Releases](https://github.com/TRosenvall/GS-Map-Editor/releases):
+
+- **AppleSilicon** for Macs with an M1, M2, M3, M4 or later chip;
+- **Intel** for Intel Macs.
+
+Not sure which you have? Apple menu → **About This Mac**: "Chip: Apple M…" is Apple Silicon.
+
+Open the `.dmg` and drag **GS Map Editor** into **Applications**.
+
+### Opening it the first time
+
+The app isn't signed with an Apple developer certificate yet, so macOS warns about it the first time:
+
+1. Open it from Applications. macOS says it can't check the app: press **Done** (or **Cancel**).
+2. Open **System Settings → Privacy & Security**, scroll down, and press **Open Anyway** next to GS Map Editor. Confirm with your password.
+
+On macOS 14 and earlier you can instead right-click the app, choose **Open**, then **Open** again. After the first time it opens normally.
+
+If you'd rather build the app yourself, follow [Desktop app](docs/DEVELOPING.md#desktop-app-macos) in the developer notes. If you're comfortable with a terminal and already have a built alchemy checkout, you can skip the app and run `python3 server.py --root /path/to/alchemy`, then open http://127.0.0.1:8765/.
 
 ### First-run setup
 
@@ -374,6 +393,10 @@ To back up your mod, copy the game source folder somewhere safe. Your changes ar
 | Check says an edit "no longer fits" | The game's source changed under that edit. It's kept but left out of your game. |
 | A place looks different from what you edited | You may be on another **Story stage**, and Play starts a fresh game, which shows the early version. |
 | Setup failed part way | Press **Check again**, then the step's button. The log under the checklist shows what happened. |
+
+## Reporting problems
+
+Please [open an issue](https://github.com/TRosenvall/GS-Map-Editor/issues/new?template=bug_report.md) with what you were doing, what happened, and your Mac's chip and macOS version. When the editor offers **Show details** or a setup log, press **Copy** and paste it in. Please don't attach ROMs or game files.
 
 ## Legal
 
