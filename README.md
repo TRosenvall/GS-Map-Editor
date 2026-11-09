@@ -4,7 +4,7 @@ Make your own version of **Golden Sun: The Broken Seal** without writing code. R
 
 The editor works on [alchemy](https://github.com/PascalPixel/alchemy), a project that rebuilds the game from readable source files. It builds your game from that source on your own Mac, so you don't need a ROM to make a mod.
 
-> **Preview: testers wanted.** The editor covers the English edition of The Broken Seal, on macOS only. It has mostly been tested on one Intel Mac, so every report helps, including "it worked": [download it](https://github.com/TRosenvall/GS-Map-Editor/releases), try it, and [tell us how it went](https://github.com/TRosenvall/GS-Map-Editor/issues/new?template=bug_report.md). Keep a backup of any mod you care about.
+> **Preview: testers wanted.** The editor covers the English edition of The Broken Seal, on macOS. A Windows version is in progress. It has mostly been tested on one Intel Mac, so every report helps, including "it worked": [download it](https://github.com/TRosenvall/GS-Map-Editor/releases), try it, and [tell us how it went](https://github.com/TRosenvall/GS-Map-Editor/issues/new?template=bug_report.md). Keep a backup of any mod you care about.
 
 **Alchemy version:** this editor is tested with alchemy commit [`04b422868d`](https://github.com/PascalPixel/alchemy/commit/04b422868df1d7d3c1e97c000d17841fed4b3aa3) (2026-11-08). Setup downloads exactly that commit. Alchemy changes quickly, so a newer copy may not work until the editor catches up.
 

@@ -175,7 +175,7 @@ function buildHeightPanel() {
   const rows = [...used.keys()].sort((a, b) => cellHeightPx(m.shapes?.[b]) - cellHeightPx(m.shapes?.[a]));
   let current = parseInt($('#value').value, 16);
   if (current >= (m.shapes?.length ?? Infinity)) { $('#value').value = ''; current = NaN; }  // another place's height
-  box.innerHTML = `<div class="note" style="padding:0 10px 6px;color:var(--muted);font-size:12px">Pick a height, then paint. Things stand at the height of the ground they’re on, and you can only step up a little at a time. Or ⌥-click the map to copy a height from it.</div>`;
+  box.innerHTML = localWords(`<div class="note" style="padding:0 10px 6px;color:var(--muted);font-size:12px">Pick a height, then paint. Things stand at the height of the ground they’re on, and you can only step up a little at a time. Or ⌥-click the map to copy a height from it.</div>`);
   const list = document.createElement('div'); list.style.cssText = 'display:flex;flex-direction:column;gap:3px;padding:0 10px 8px;max-height:240px;overflow:auto';
   for (const v of rows) {
     const b = document.createElement('button');
@@ -382,7 +382,7 @@ function drawPalette() {
 function drawPick() {
   const img = S.atlas[layer().char_base], ctx = $('#pickCv').getContext('2d');
   ctx.imageSmoothingEnabled = false; ctx.clearRect(0, 0, 16, 16);
-  if (S.block == null || !img) { $('#pickText').textContent = 'Pick a block below, or ⌥-click the map'; return; }
+  if (S.block == null || !img) { $('#pickText').textContent = localWords('Pick a block below, or ⌥-click the map'); return; }
   ctx.drawImage(img, (S.block % 32) * 16, Math.floor(S.block / 32) * 16, 16, 16, 0, 0, 16, 16);
   $('#pickText').innerHTML = `block <b>${hex(S.block)}</b> on L${layer().index}`;
 }
@@ -992,7 +992,7 @@ function pasteStamp(x, y) {
   }
   finishStroke();
   redrawCells(cells); drawStampOverlay();
-  status(`Pasted ${c.w}×${c.h}${objOnly ? ' (objects only)' : ''}. Save to keep it; ⌘Z to undo.`);
+  status(localWords(`Pasted ${c.w}×${c.h}${objOnly ? ' (objects only)' : ''}. Save to keep it; ⌘Z to undo.`));
 }
 
 // ---- chests: add, change what's inside, remove (one server action each) ----------

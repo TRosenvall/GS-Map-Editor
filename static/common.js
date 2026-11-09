@@ -5,6 +5,22 @@ function esc(text) {
   return String(text ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+// The pages are written with a Mac's keys and words. Elsewhere (Windows,
+// through WSL, and Linux) the same shortcuts use Ctrl and Alt.
+const ON_MAC = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+function localWords(text) {
+  if (ON_MAC) return text;
+  return String(text).replace(/⇧⌘/g, 'Ctrl+Shift+').replace(/⌘/g, 'Ctrl+').replace(/⌥-click/g, 'Alt-click')
+    .replace(/⌥/g, 'Alt+').replace(/Show in Finder/g, 'Show the file').replace(/this Mac\b/g, 'this computer');
+}
+function localizePage(root) {
+  if (ON_MAC) return;
+  const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  for (let n = walk.nextNode(); n; n = walk.nextNode()) n.nodeValue = localWords(n.nodeValue);
+  root.querySelectorAll('[title]').forEach(el => { el.title = localWords(el.title); });
+}
+document.addEventListener('DOMContentLoaded', () => localizePage(document.body));
+
 // Pages forbid inline script, so a picture that may not exist asks for this instead.
 document.addEventListener('error', e => { if (e.target.matches?.('img[data-hide-broken]')) e.target.remove(); }, true);
 

@@ -1,0 +1,38 @@
+# The editor on Ubuntu, as it runs on Linux and inside Windows (WSL): first
+# setup from nothing, the game built and checked against the retail hash, then
+# the editor's tests against that checkout. About 20 minutes.
+name: Linux
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ["**.md", "packaging/**", ".github/workflows/release.yml"]
+  workflow_dispatch:
+
+jobs:
+  setup-and-tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      # As Install-GS-Map-Editor.cmd does inside WSL: packages, the editor at
+      # this commit, and the gs-map-editor command.
+      - name: Install as the Windows installer does inside Ubuntu
+        run: |
+          bash windows/setup-in-wsl.sh "$GITHUB_SHA"
+          test -x ~/.local/bin/gs-map-editor
+
+      - name: First-run setup through that command, from nothing to the editor
+        run: python3 tests/setup_flow.py "$RUNNER_TEMP/home" ~/.local/bin/gs-map-editor
+
+      - name: The build matches the retail game
+        run: |
+          game="$RUNNER_TEMP/home/GSMapEditor/alchemy"
+          sha1sum "$game/out/tbs-en/tbs-en.gba"
+          grep -F "$(sha1sum "$game/out/tbs-en/tbs-en.gba" | cut -d' ' -f1)" "$game/rom.sha1"
+
+      - name: Every map reads and saves back byte for byte
+        run: python3 tests/roundtrip.py "$RUNNER_TEMP/home/GSMapEditor/alchemy"
+
+      - name: Edits save what was edited and nothing else
+        run: python3 tests/edits.py "$RUNNER_TEMP/home/GSMapEditor/alchemy"

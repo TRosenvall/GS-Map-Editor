@@ -23,7 +23,7 @@ from http.cookies import SimpleCookie
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlsplit
 
-from gsmap import fsio, layout, playtest, preflight
+from gsmap import fsio, host, layout, playtest, preflight
 from gsmap.reset import reset_map, reset_world
 from gsmap.doors import script_exit_kinds as script_kinds
 from gsmap.messages import Messages
@@ -541,8 +541,8 @@ def make_handler(project, token=None, local_only=True):
             # (cross-site pages cannot send one without CORS, which we never
             # allow) and, when the browser sends it, a same-host Origin.
             origin = self.headers.get("Origin")
-            host = self.headers.get("Host", "")
-            if self.headers.get("X-GSMap") != "1" or (origin and urlsplit(origin).netloc != host):
+            host_header = self.headers.get("Host", "")
+            if self.headers.get("X-GSMap") != "1" or (origin and urlsplit(origin).netloc != host_header):
                 return self.send_json({"error": "cross-site write refused"}, 403)
             state["conn"] = None  # links may change
             try:
@@ -783,16 +783,15 @@ def make_handler(project, token=None, local_only=True):
                     target = os.path.realpath(body.get("path", ""))
                     if not target.startswith(os.path.realpath(PATCHED) + os.sep) or not os.path.exists(target):
                         return self.send_json({"error": "not a patched game"}, 400)
-                    if subprocess.run(["open", "-Ra", "mGBA"], capture_output=True).returncode != 0:
-                        return self.send_json({"error": "Play needs mGBA, a free GBA emulator: install it from mgba.io."}, 404)
-                    subprocess.Popen(["open", "-a", "mGBA", target])
+                    if not host.play(target):
+                        return self.send_json({"error": f"Play needs mGBA, a free GBA emulator: {host.MGBA_HINT}."}, 404)
                     return self.send_json({"ok": True})
                 if path == "/api/reveal":
                     target = os.path.realpath(body.get("path", ""))
                     if not any(target.startswith(os.path.realpath(d) + os.sep) for d in (EXPORTS, PATCHED)) \
                             or not os.path.exists(target):
                         return self.send_json({"error": "not an exported file"}, 400)
-                    subprocess.Popen(["open", "-R", target])
+                    host.reveal(target)
                     return self.send_json({"ok": True})
                 if path == "/api/build":
                     target = body.get("target", "tbs-en")
@@ -804,9 +803,9 @@ def make_handler(project, token=None, local_only=True):
                     rom = os.path.join(project.root, layout.ROM)
                     if not os.path.exists(rom):
                         return self.send_json({"error": "Your game hasn't been built yet."}, 404)
-                    if subprocess.run(["open", "-Ra", "mGBA"], capture_output=True).returncode != 0:
-                        return self.send_json({"error": "Play needs mGBA, a free GBA emulator: install it from "
-                                                        "mgba.io, then press Play again."}, 404)
+                    if not host.mgba_available():
+                        return self.send_json({"error": f"Play needs mGBA, a free GBA emulator: {host.MGBA_HINT}, "
+                                                        "then press Play again."}, 404)
                     note = "Your game is open in mGBA."
                     if body.get("scene") is not None:
                         sid = int(body["scene"])
@@ -831,7 +830,8 @@ def make_handler(project, token=None, local_only=True):
                             if not sure:
                                 note += " Every arrival point here looks walled in."
                             note += " If you can't walk, or a story scene gets in the way, pick another with Start at."
-                    subprocess.Popen(["open", "-a", "mGBA", rom])
+                    if not host.play(rom):
+                        return self.send_json({"error": f"mGBA didn't start: {host.MGBA_HINT}."}, 500)
                     return self.send_json({"ok": True, "note": note})
                 return self.send_json({"error": "not found"}, 404)
             except DamagedFile as e:

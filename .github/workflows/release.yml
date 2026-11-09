@@ -1,6 +1,6 @@
 # Builds the Mac app for Apple Silicon and Intel on GitHub's Macs. A pushed
-# tag like v0.1.0 also publishes a pre-release with both disk images and the
-# notes in docs/releases/<tag>.md. Run it by hand (Actions, Run workflow) to
+# tag like v0.1.0 also publishes a pre-release with both disk images, the
+# Windows installer, and the notes in docs/releases/<tag>.md. Run it by hand (Actions, Run workflow) to
 # build without releasing; the images are then under the run's artifacts.
 name: Mac app
 
@@ -92,7 +92,22 @@ jobs:
         run: |
           ls -la dmgs
           test -n "$(ls dmgs/*.dmg 2>/dev/null)"
-          gh release create "$TAG" dmgs/*.dmg \
-            --title "GS Map Editor ${TAG#v} (preview)" \
-            --notes-file "docs/releases/$TAG.md" \
-            --prerelease --verify-tag
+          # The Windows installer fetches the editor at this same tag. It ships
+          # only with a release whose notes offer it.
+          if grep -q 'Install-GS-Map-Editor.cmd' "docs/releases/$TAG.md"; then
+            sed "s/@TAG@/$TAG/" windows/Install-GS-Map-Editor.cmd > dmgs/Install-GS-Map-Editor.cmd
+          fi
+          files=$(ls dmgs/*.dmg dmgs/*.cmd 2>/dev/null)
+          title="GS Map Editor ${TAG#v} (preview)"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            # A tag moved to a fix: the release keeps its page and gets this
+            # build's files, with any old file names removed.
+            for old in $(gh release view "$TAG" --json assets --jq '.assets[].name'); do
+              gh release delete-asset "$TAG" "$old" --yes
+            done
+            gh release upload "$TAG" $files
+            gh release edit "$TAG" --title "$title" --notes-file "docs/releases/$TAG.md" --prerelease
+          else
+            gh release create "$TAG" $files \
+              --title "$title" --notes-file "docs/releases/$TAG.md" --prerelease --verify-tag
+          fi

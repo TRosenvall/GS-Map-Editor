@@ -2,7 +2,7 @@
 
     python3 packaging/make_dmg.py   ->  dist/GS-Map-Editor-<version>-<chip>.dmg
 
-<chip> is AppleSilicon or Intel, from the app's own binary, so players can
+<chip> is AppleSilicon or Mac-Intel, from the app's own binary, so players can
 tell the two downloads apart.
 """
 
@@ -25,7 +25,7 @@ def main():
     binary = os.path.join(APP, "Contents", "MacOS", "GS Map Editor")
     archs = subprocess.run(["lipo", "-archs", binary], capture_output=True, text=True).stdout.split() \
         or [platform.machine()]
-    chip = "Universal" if len(archs) > 1 else ("AppleSilicon" if archs[0] == "arm64" else "Intel")
+    chip = "Universal" if len(archs) > 1 else ("AppleSilicon" if archs[0] == "arm64" else "Mac-Intel")
     out = os.path.join(ROOT, "dist", f"GS-Map-Editor-{version}-{chip}.dmg")
     if os.path.exists(out):
         os.remove(out)

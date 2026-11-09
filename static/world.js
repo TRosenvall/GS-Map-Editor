@@ -4,7 +4,7 @@ const KIND_COLOURS = { 0: 'transparent', 1: 'rgb(255,214,10)', 2: 'rgb(255,120,4
   5: 'rgb(60,230,120)', 6: 'rgb(255,80,160)', 21: 'rgb(240,240,255)', 31: 'rgb(255,50,50)' };
 const HELP = {
   view: ['Look around', 'Hover to see a spot\'s region and what it does. Click a town, dungeon or blue step spot to see where it leads.'],
-  ground: ['Paint ground', 'Pick a block, then click or drag on the map. ⌥-click the map to pick up the block under the cursor. Changes save as you paint; Undo takes the last stroke back. The pause-screen map is a separate picture: it won\'t follow coastline changes.'],
+  ground: ['Paint ground', localWords('Pick a block, then click or drag on the map. ⌥-click the map to pick up the block under the cursor. Changes save as you paint; Undo takes the last stroke back. The pause-screen map is a separate picture: it won\'t follow coastline changes.')],
   overlay: ['Paint overlay', 'Mountains, trees and coastline sit on the overlay, drawn over the ground. Walking is decided by both layers\' tiles.'],
   region: ['Encounter regions', 'Each region has its own random battles. Pick one and paint; the region overlay turns on so you can see them.'],
   icons: ['Towns and dungeons', 'Drag a town to move it. Click one to change where it leads.'],
@@ -232,7 +232,7 @@ function blockCanvas(b, l, cv) {
 }
 function drawPick() {
   const l = layerOf(), b = W.block[l];
-  $('#pickText').textContent = b == null ? 'Pick a block, or ⌥-click the map' : (W.adv ? `block ${b}` : 'Selected block');
+  $('#pickText').textContent = b == null ? localWords('Pick a block, or ⌥-click the map') : (W.adv ? `block ${b}` : 'Selected block');
   if (b != null) blockCanvas(b, l, $('#pickCv')); else $('#pickCv').getContext('2d').clearRect(0, 0, 16, 16);
 }
 function drawRecent() {

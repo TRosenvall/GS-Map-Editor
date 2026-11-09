@@ -15,7 +15,6 @@ import json
 import os
 import secrets
 import socket
-import subprocess
 import sys
 import threading
 from contextlib import suppress
@@ -26,6 +25,7 @@ from urllib.parse import parse_qs, urlsplit
 HERE = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, HERE)
 
+from gsmap import host  # noqa: E402
 from gsmap import setup as setupmod  # noqa: E402
 
 STATIC = os.path.join(HERE, "static")
@@ -140,7 +140,7 @@ class SetupHandler(SimpleHTTPRequestHandler):
             if path == "/api/setup/run":
                 step = body.get("step")
                 if step == "brew":
-                    subprocess.Popen(["open", "https://brew.sh"])
+                    host.open_url("https://brew.sh")
                     return self.send_json({"ok": True})
                 with START:
                     if APP["job"] and not APP["job"].done:
@@ -152,7 +152,10 @@ class SetupHandler(SimpleHTTPRequestHandler):
                     remember_root(root)
                 return self.send_json({"ok": True})
             if path == "/api/setup/choose":
-                folder = choose_folder()
+                folder = body.get("folder") if isinstance(body.get("folder"), str) else choose_folder()
+                if folder is None and APP["window"] is None:
+                    return self.send_json({"ask": True})
+                folder = os.path.abspath(os.path.expanduser(folder.strip())) if folder else None
                 if not folder:
                     return self.send_json({"ok": False})
                 if setupmod.path_problem(folder):
@@ -210,6 +213,18 @@ def main():
         print("setup:", f"http://127.0.0.1:{port}/?token={TOKEN}", flush=True)
         print("open:", url, flush=True)
         threading.Event().wait()
+        return
+    if host.KIND != "mac":
+        # Linux and WSL: the editor opens in the browser, and this terminal
+        # (or the Windows shortcut's window) keeps it running.
+        print(f"{setupmod.APP_NAME} is open in your browser. If it isn't, open:\n  {url}\n"
+              "Keep this window open while you use the editor; close it (or press Ctrl+C) to stop.", flush=True)
+        host.open_url(url)
+        try:
+            threading.Event().wait()
+        except KeyboardInterrupt:
+            pass
+        setupmod.stop_running()
         return
     import webview
     APP["window"] = webview.create_window(setupmod.APP_NAME, url, width=1440, height=900, min_size=(1000, 640))

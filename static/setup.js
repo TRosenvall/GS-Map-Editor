@@ -48,7 +48,13 @@ async function follow() {
 }
 $('#recheck').onclick = () => { $('#msg').textContent = ''; refresh(); };
 $('#choose').onclick = async () => {
-  const r = await api('/api/setup/choose', {});
+  let r = await api('/api/setup/choose', {});
+  if (r.ask) {
+    // No folder picker outside the Mac app: the path is typed instead.
+    const folder = prompt('The full path of your copy of the game source (alchemy), for example /home/you/alchemy:');
+    if (!folder) return;
+    r = await api('/api/setup/choose', { folder });
+  }
   if (r.error) $('#msg').innerHTML = `<span class="err">${esc(r.error)}</span>`;
   else if (r.root) $('#msg').innerHTML = `<span class="ok">Using ${esc(r.root)}.</span>`;
   refresh();

@@ -2,8 +2,10 @@
 plain words, and jobs that put each piece in place.
 
 Steps, in order (each is checked, never assumed):
-  1. Apple's command line tools: clang, make, git.
-  2. Homebrew and the packages alchemy's INSTALL.md lists for macOS.
+  1. Apple's command line tools: clang, make, git (macOS only).
+  2. Homebrew and the packages alchemy's INSTALL.md lists for macOS, or on
+     Linux and WSL the apt packages it lists (which need sudo, so the page
+     gives the command rather than running it).
   3. The game source: an existing alchemy checkout, or a fresh download at
      the commit this editor was tested with.
   4. alchemy's compilers (`make bootstrap`, once, a few minutes).
@@ -22,17 +24,17 @@ import subprocess
 import tempfile
 import threading
 
-from . import layout, preflight
+from . import host, layout, preflight
 from .fsio import atomic_write
 
-APP_NAME = "GS Map Editor"
-SUPPORT = os.path.expanduser(f"~/Library/Application Support/{APP_NAME}")
+APP_NAME = host.APP_NAME
+SUPPORT = host.SUPPORT
 SETTINGS = os.path.join(SUPPORT, "settings.json")
 # Build folders have no spaces: alchemy's compiler Makefile (like most
 # Makefiles) breaks on paths with spaces.
-DEFAULT_WORKSPACE = os.path.expanduser("~/Documents/GSMapEditor")
+DEFAULT_WORKSPACE = host.WORKSPACE
 EXPORTS = os.path.join(DEFAULT_WORKSPACE, "Exports")
-CACHE = os.path.expanduser("~/Library/Caches/GSMapEditor")
+CACHE = host.CACHE
 if " " in CACHE:  # builds run from here too; macOS's per-user temporary folder has no spaces
     CACHE = os.path.join(tempfile.gettempdir(), "GSMapEditorCache")
 ALCHEMY_URL = "https://github.com/PascalPixel/alchemy"
@@ -41,6 +43,9 @@ ALCHEMY_URL = "https://github.com/PascalPixel/alchemy"
 ALCHEMY_PIN = "04b422868df1d7d3c1e97c000d17841fed4b3aa3"
 BREW_PACKAGES = ["arm-none-eabi-binutils", "libpng"]
 BREW_DIRS = ["/opt/homebrew/bin", "/usr/local/bin"]
+# alchemy's INSTALL.md for Debian and Ubuntu (WSL included).
+APT_PACKAGES = ["build-essential", "binutils-arm-none-eabi", "git", "libpng-dev"]
+APT_COMMAND = "sudo apt install " + " ".join(APT_PACKAGES)
 # Give up on a stalled download rather than wait forever.
 GIT_LIMITS = ["git", "-c", "http.lowSpeedLimit=1000", "-c", "http.lowSpeedTime=120"]
 
@@ -94,7 +99,7 @@ def _no_spaces(path):
 
 
 def _brew_dirs():
-    return [] if os.environ.get("GSMAP_NO_BREW") else BREW_DIRS
+    return [] if os.environ.get("GSMAP_NO_BREW") or host.KIND != "mac" else BREW_DIRS
 
 
 def build_env():
@@ -141,8 +146,30 @@ def has_compiler_source(root):
     return os.path.exists(os.path.join(root, "alchemy-gcc", "Makefile"))
 
 
+def linux_missing():
+    """The apt packages whose job isn't done, judged by the commands and
+    library the build uses."""
+    env = build_env()
+    missing = []
+    for cmd, pkg in (("cc", "build-essential"), ("make", "build-essential"),
+                     ("arm-none-eabi-as", "binutils-arm-none-eabi"), ("git", "git")):
+        if not shutil.which(cmd, path=env["PATH"]) and pkg not in missing:
+            missing.append(pkg)
+    lc = shutil.which("libpng-config", path=env["PATH"])
+    if not lc or _run([lc, "--cflags"])[0] != 0:
+        missing.append("libpng-dev")
+    return missing
+
+
 def checks(root):
     """[{id, title, ok, detail, action}] in setup order."""
+    if host.KIND != "mac":
+        missing = linux_missing()
+        return [{"id": "packages", "title": "The tools for building the game", "ok": not missing,
+                 "detail": "Installed." if not missing else
+                 f"Missing: {', '.join(missing)}. Open a terminal (on Windows, the Ubuntu app), run "
+                 f"`{APT_COMMAND}`, then press Check again.",
+                 "action": None}] + _source_steps(root)
     out = []
     clt = _run(["xcode-select", "-p"])[0] == 0 and _run(["/usr/bin/clang", "--version"])[0] == 0
     out.append({"id": "clt", "title": "Apple's developer tools", "ok": clt,
@@ -271,6 +298,8 @@ def start(action, root, workspace=None):
     if action == "clt":
         # Apple's own installer dialog; the page asks to press Check when it's done.
         return Job("Apple developer tools", [["xcode-select", "--install"]]), None
+    if action == "packages" and host.KIND != "mac":
+        raise ValueError(f"Installing these needs your password: in a terminal, run {APT_COMMAND}")
     if action == "packages":
         if not b:
             raise ValueError("Install Homebrew first")

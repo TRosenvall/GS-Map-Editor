@@ -36,6 +36,17 @@ On first run it shows a setup checklist (`static/setup.html`, `gsmap/setup.py`).
 
 After that, the app opens straight into the editor. Settings live in `~/Library/Application Support/GS Map Editor/`. The app holds no game data: the game is built from alchemy's source on the player's Mac. Both of its servers listen on this machine only, behind a random token. `desktop.py --no-window` prints their addresses, for testing.
 
+### Linux and Windows (WSL)
+
+On Linux the editor runs from source and opens in the browser: `python3 desktop.py` (needs `python3-pil`) shows the same setup checklist, with the apt packages from alchemy's INSTALL.md in place of Homebrew. Installing them needs `sudo`, so the checklist shows the command rather than running it. Settings go in `~/.config/gs-map-editor`, the build cache in `~/.cache/gs-map-editor`, and the game source and exports in `~/GSMapEditor`. What differs by system (folders, opening a link, mGBA, showing a file) is in `gsmap/host.py`.
+
+Windows runs the same Linux editor inside WSL, which is also the only way alchemy builds on Windows:
+- `windows/Install-GS-Map-Editor.cmd`, which a release carries with its tag filled in, turns on WSL and installs Ubuntu if needed (administrator rights, perhaps a restart), runs `windows/setup-in-wsl.sh` inside Ubuntu at that tag, and adds Start menu and desktop shortcuts to `wsl.exe … gs-map-editor`.
+- The editor opens in the Windows browser through WSL's localhost forwarding. Play starts the Windows mGBA from `Program Files\mGBA`, given the game's `\\wsl.localhost\…` path. The game builds in Ubuntu's own disk, since a build on `/mnt/c` is many times slower.
+- The pages show Ctrl and Alt in place of ⌘ and ⌥ on any system but a Mac (`localWords` in `static/common.js`).
+
+`.github/workflows/linux.yml` checks this on GitHub's Ubuntu machines at every push: `setup-in-wsl.sh` installs the editor, `tests/setup_flow.py` goes through first-run setup through the installed command, the build must match `rom.sha1`, and the round-trip and edit tests run on that checkout. The Windows half (the `.cmd`, WSL's install, the shortcut, Windows mGBA) has no automatic test: it needs a Windows PC.
+
 ### Releasing
 
 Releases are built by GitHub, on its Macs, by `.github/workflows/release.yml`: one disk image for Apple Silicon (`macos-15`) and one for Intel (`macos-15-intel`). Each job builds the toolchain and the app, checks both are for its chip, runs `packaging/smoke_test.py` (the app starts, finds its tools and names the pin) and makes the `.dmg`.
