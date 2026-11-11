@@ -4,7 +4,7 @@ Four issues found while building a map editor on top of alchemy, each ready to p
 
 Checked against alchemy `main` at `e123af37b4` (alchemy-gcc `19919a0`), on macOS 14.2 (Intel, x86_64) with Apple clang 15.0.0 (clang-1500.1.0.2.5) and GNU Make 3.81.
 
-**Status at alchemy `04b422868d` (2026-11-08):** none needs filing now. Issue 1 is fixed: the Makefile masks the rotate count, and GAS 2.10 is vendored in alchemy-gcc. Issue 2 is fixed: the Makefile stops early on a path with a space. Issue 3 no longer applies, since a map's three grid planes became one `map.txt`. Issue 4 is fixed: INSTALL.md asks only for binutils and libpng. The text below is kept as a record.
+**Status at alchemy `0c937e7df0` (2026-11-11):** none needs filing now. Issue 1 is fixed: the Makefile masks the rotate count, and GAS 2.10 is vendored in alchemy-gcc. Issue 2 is fixed: the Makefile stops early on a path with a space. Issue 3 no longer applies, since a map's three grid planes became one `map.txt`. Issue 4 is fixed: INSTALL.md asks only for binutils and libpng. The text below is kept as a record.
 
 ---
 
