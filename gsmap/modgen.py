@@ -101,19 +101,20 @@ def validate_rows(kind, rows):
     try:
         encode_rows(kind, rows)
     except (struct.error, KeyError, TypeError, ValueError) as e:
-        raise ValueError(f"a {kind} row holds a value the game can't store ({e})") from None
+        raise ValueError(tr("a {kind} row holds a value the game can't store ({error})", kind=kind, error=e)) from None
     if kind == "exits":
         if not any(seg.get("scene") == 0x1FF for seg in rows if "raw" not in seg):
-            raise ValueError("exit table must end with the 0x1ff end marker")
+            raise ValueError(tr("exit table must end with the 0x1ff end marker"))
         for seg in rows:
             for ex in seg.get("exits", []):
                 if not (1 <= ex["kind"] <= 0xFF and 0 <= ex["entrance"] <= 0xFF and 0 <= ex["scene"] <= 0x1FE):
-                    raise ValueError(f"bad exit {ex}")
+                    raise ValueError(tr("bad exit {exit}", exit=ex))
         return
     end = {"entrances": ("entrance", -1), "placements": ("sprite", -1),
            "events": ("control", 0xFFFFFFFF), "regions": ("minX", -1)}.get(kind)
     if end and not any(int(r[end[0]]) == end[1] for r in rows):
-        raise ValueError(f"{kind} table must keep its end row ({end[0]} = {end[1]})")
+        raise ValueError(tr("{kind} table must keep its end row ({field} = {value})",
+                            kind=kind, field=end[0], value=end[1]))
 
 
 # The hook, as ensure_hook adds it to a plain alchemy checkout. Off (no GSMOD)

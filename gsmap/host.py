@@ -13,6 +13,8 @@ import shutil
 import subprocess
 import sys
 
+from .i18n import N_
+
 
 def _kind():
     if sys.platform == "darwin":
@@ -111,8 +113,9 @@ def reveal(path):
     return _quiet(["xdg-open", os.path.dirname(path)])
 
 
+# Kept in English; tr() translates it where it's shown.
 MGBA_HINT = {
-    "mac": "install it from mgba.io",
-    "wsl": "install the Windows version from mgba.io (the installer puts it in Program Files)",
-    "linux": "install it from mgba.io or your system's packages (it provides mgba-qt)",
+    "mac": N_("install it from mgba.io"),
+    "wsl": N_("install the Windows version from mgba.io (the installer puts it in Program Files)"),
+    "linux": N_("install it from mgba.io or your system's packages (it provides mgba-qt)"),
 }[KIND]

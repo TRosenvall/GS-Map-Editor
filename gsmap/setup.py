@@ -206,7 +206,7 @@ def _source_steps(root):
         spaced = path_problem(root or DEFAULT_WORKSPACE)
         problems = [spaced] if spaced else []
     if problems:
-        damaged = isinstance(problems[0], preflight.Damage) or "damaged" in problems[0]
+        damaged = isinstance(problems[0], preflight.Damage)
         out.append({"id": "source", "title": tr("The game's source"), "ok": False,
                     "detail": problems[0] if " " in (root or DEFAULT_WORKSPACE) or damaged else
                     tr("{folder} is a version this editor can't read yet: {problem} "

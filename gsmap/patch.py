@@ -19,7 +19,7 @@ import shutil
 import subprocess
 import zlib
 
-from .i18n import tr
+from .i18n import N_, tr, translate
 
 SOURCE_READ, TARGET_READ, SOURCE_COPY, TARGET_COPY = range(4)
 BLOCK = 16       # source index granularity
@@ -464,7 +464,9 @@ def apply_any(source, patch):
 
 
 EDITIONS = {"tbs": "Golden Sun", "tla": "Golden Sun: The Lost Age"}
-LANGS = {"en": "English", "ja": "Japanese", "de": "German", "es": "Spanish", "fr": "French", "it": "Italian"}
+# The game titles stay as the games have them; the languages are the editor's words.
+LANGS = {"en": N_("English"), "ja": N_("Japanese"), "de": N_("German"), "es": N_("Spanish"), "fr": N_("French"),
+         "it": N_("Italian")}
 
 
 def identify(root, rom):
@@ -478,7 +480,7 @@ def identify(root, rom):
         parts = line.split()
         if len(parts) == 2 and parts[0] == sha:
             game, lang = os.path.basename(parts[1])[:-4].split("-")
-            return f"{EDITIONS.get(game, game)} ({LANGS.get(lang, lang)})"
+            return f"{EDITIONS.get(game, game)} ({translate(LANGS[lang]) if lang in LANGS else lang})"
     return None
 
 

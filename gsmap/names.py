@@ -105,7 +105,8 @@ def _read_places(root, msgs):
         area_name = areas[index] if index < len(areas) else None
         places[sid] = {
             "id": sid, "symbol": name or None,
-            "label": re.sub(r"(?<=[a-z0-9])(?=[A-Z])(?<!Mc)", " ", name) if name else f"Scene {sid}",
+            # An unnamed scene's label is "Scene 12", in the editor's language (Names._label).
+            "label": re.sub(r"(?<=[a-z0-9])(?=[A-Z])(?<!Mc)", " ", name) if name else None,
             # Bracketed names are the game's notes on empty slots, not places.
             "area_name": None if not area_name or area_name.startswith("(") else area_name,
         }
@@ -133,7 +134,7 @@ def _read_sprites(root):
     sprites = {}
     for s in _load("sprites.json"):
         sid = s["id"]
-        sprites[sid] = {**s, "name": names.get(sid, f"Sprite {sid}"),
+        sprites[sid] = {**s, "name": names.get(sid),  # None: sprite_name() says "Sprite 12"
                         "png": layout.SPRITE_PICTURE.format(id=sid) if s.get("has_image") else None}
     return sprites
 
@@ -192,18 +193,31 @@ class Names:
         it = self.items.get(item_id)
         return it["name"] if it else tr("item {n}", n=item_id)
 
+    def sprite_name(self, sprite_id):
+        """A sprite's name from enum SpriteId, "Sprite 12" if it has none, or
+        None if there's no such sprite."""
+        s = self.sprites.get(sprite_id)
+        if s is None:
+            return None
+        return s.get("name") or tr("Sprite {n}", n=sprite_id)
+
+    @staticmethod
+    def _label(scene_id, p):
+        """A place's label; a scene the scene list leaves unnamed is "Scene 12"."""
+        return p.get("label") or (tr("Scene {n}", n=scene_id) if "symbol" in p else None)
+
     def place(self, scene_id):
         p = self.places.get(scene_id)
         if not p:
             return tr("scene {n}", n=scene_id)
-        return p.get("area_name") or p.get("label") or tr("scene {n}", n=scene_id)
+        return p.get("area_name") or self._label(scene_id, p) or tr("scene {n}", n=scene_id)
 
     def scene_label(self, scene_id):
         """Area name plus the scene's own label, e.g. "Vale · Vale Home"."""
         p = self.places.get(scene_id)
         if not p:
             return tr("scene {n}", n=scene_id)
-        area, label = p.get("area_name"), p.get("label")
+        area, label = p.get("area_name"), self._label(scene_id, p)
         if area and label and area != label:
             return f"{area} · {label}"
         return area or label or tr("scene {n}", n=scene_id)
@@ -216,11 +230,11 @@ class Names:
         if kind == 0x00200000:
             return tr("{n} coins", n=arg)
         if kind == 0x00300000:
-            return "Psynergy Stone"
+            return tr("Psynergy Stone")
         if kind == 0x00400000:
             return tr("message {n}", n=arg)
         if kind == 0x00500000:
-            return "Mimic"
+            return tr("Mimic")
         return f"{value:#x}"
 
     def client_tables(self):
@@ -234,7 +248,7 @@ class Names:
                 for i, it in sorted(self.items.items())
             ],
             "sprites": [
-                {"id": i, "name": s.get("name"), "has_image": s.get("has_image", False)}
+                {"id": i, "name": self.sprite_name(i), "has_image": s.get("has_image", False)}
                 for i, s in sorted(self.sprites.items())
             ],
             "scenes": [

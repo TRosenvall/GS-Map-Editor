@@ -140,9 +140,8 @@ class EventEditor(DoorEditor):
             if on_actor:
                 ev["actor"] = r["trigger"]
                 p = by_actor.get(r["trigger"])
-                spr = self.names.sprites.get(p["sprite"]) if p else None
-                ev["who"] = (spr or {}).get("name") or (tr("person {n}", n=r["trigger"]) if p is None
-                                                         else tr("sprite {n}", n=p["sprite"]))
+                ev["who"] = (self.names.sprite_name(p["sprite"]) if p else None) or (
+                    tr("person {n}", n=r["trigger"]) if p is None else tr("sprite {n}", n=p["sprite"]))
                 if p:
                     ev["at"] = [p["x"] >> 16, p["z"] >> 16]
             else:
@@ -179,7 +178,7 @@ class EventEditor(DoorEditor):
         return {"symbol": symbol, "people_table": people_table,
                 "tables": [n for _, n, _ in tables], "events": out,
                 "people": [{"actor": a, "sprite": p["sprite"], "x": p["x"] >> 16, "z": p["z"] >> 16,
-                            "name": (self.names.sprites.get(p["sprite"]) or {}).get("name")}
+                            "name": self.names.sprite_name(p["sprite"])}
                            for a, p in zip(numbers, people)]}
 
     # ---- writing ---------------------------------------------------------------------

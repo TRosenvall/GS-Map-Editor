@@ -14,6 +14,7 @@ the browser's (on a Mac, the system's) preferred languages decide.
 import json
 import os
 import re
+import sys
 import threading
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -91,9 +92,26 @@ def N_(text):
     return text
 
 
+# Off a Mac a few words differ ("Show the file" for "Show in Finder"); the
+# catalogs hold both forms (tools/extract_strings.py), and static/i18n.js swaps
+# them in English text as it's shown. A translation looks for this computer's
+# form first, as the pages do.
+MAC_WORDS = ((r"Show in Finder", "Show the file"), (r"this Mac\b", "this computer"))
+
+
+def _lookup(table, text):
+    if sys.platform != "darwin":
+        other = text
+        for mac, word in MAC_WORDS:
+            other = re.sub(mac, word, other)
+        if other != text and other in table:
+            return table[other]
+    return table.get(text, text)
+
+
 def tr(text, **values):
     """`text` in the current language, with its placeholders filled in."""
-    return fill(strings(current()).get(text, text), values)
+    return fill(_lookup(strings(current()), text), values)
 
 
 def translate(text):

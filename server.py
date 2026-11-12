@@ -848,7 +848,7 @@ def make_handler(project, token=None, local_only=True):
                     if not target.startswith(os.path.realpath(PATCHED) + os.sep) or not os.path.exists(target):
                         return self.send_json({"error": "not a patched game"}, 400)
                     if not host.play(target):
-                        return self.send_json({"error": tr("Play needs mGBA, a free GBA emulator: {hint}.", hint=host.MGBA_HINT)}, 404)
+                        return self.send_json({"error": tr("Play needs mGBA, a free GBA emulator: {hint}.", hint=i18n.translate(host.MGBA_HINT))}, 404)
                     return self.send_json({"ok": True})
                 if path == "/api/reveal":
                     target = os.path.realpath(body.get("path", ""))
@@ -869,7 +869,7 @@ def make_handler(project, token=None, local_only=True):
                         return self.send_json({"error": tr("Your game hasn't been built yet.")}, 404)
                     if not host.mgba_available():
                         return self.send_json({"error": tr("Play needs mGBA, a free GBA emulator: {hint}, "
-                                                           "then press Play again.", hint=host.MGBA_HINT)}, 404)
+                                                           "then press Play again.", hint=i18n.translate(host.MGBA_HINT))}, 404)
                     note = tr("Your game is open in mGBA.")
                     if body.get("scene") is not None:
                         sid = int(body["scene"])
@@ -896,7 +896,7 @@ def make_handler(project, token=None, local_only=True):
                                 note += " " + tr("Every arrival point here looks walled in.")
                             note += " " + tr("If you can't walk, or a story scene gets in the way, pick another with Start at.")
                     if not host.play(rom):
-                        return self.send_json({"error": tr("mGBA didn't start: {hint}.", hint=host.MGBA_HINT)}, 500)
+                        return self.send_json({"error": tr("mGBA didn't start: {hint}.", hint=i18n.translate(host.MGBA_HINT))}, 500)
                     return self.send_json({"ok": True, "note": note})
                 return self.send_json({"error": "not found"}, 404)
             except DamagedFile as e:

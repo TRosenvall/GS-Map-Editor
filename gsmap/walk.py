@@ -28,7 +28,7 @@ import os
 import re
 
 from . import layout
-from .i18n import tr
+from .i18n import N_, tr, translate
 
 WALL, LEDGE, CLIMB, GAP = 255, 252, 253, 254
 FIXED = 1 << 16
@@ -589,6 +589,40 @@ def _way_to(does):
     return does
 
 
+# Things a blocked way can lead to, and how several of them are counted. Each
+# language says its plurals whole; the singulars are the targets the editor
+# names (events.search_targets and the ways out above).
+_PLURALS = [
+    (N_("a door"), N_("{n} doors")),
+    (N_("a way out"), N_("{n} ways out")),
+    (N_("a chest"), N_("{n} chests")),
+    (N_("a jar"), N_("{n} jars")),
+    (N_("a barrel"), N_("{n} barrels")),
+    (N_("a grave"), N_("{n} graves")),
+    (N_("a wooden box"), N_("{n} wooden boxes")),
+    (N_("a well"), N_("{n} wells")),
+    (N_("a spot where something happens"), N_("{n} spots where something happens")),
+    (N_("a wall"), N_("{n} walls")),
+    (N_("a rock"), N_("{n} rocks")),
+    (N_("a hole"), N_("{n} holes")),
+    (N_("a tree"), N_("{n} trees")),
+    (N_("a chimney"), N_("{n} chimneys")),
+    (N_("a bed"), N_("{n} beds")),
+    (N_("a bookcase"), N_("{n} bookcases")),
+    (N_("a stone coffin"), N_("{n} stone coffins")),
+    (N_("a fireplace"), N_("{n} fireplaces")),
+    (N_("a stone pillar"), N_("{n} stone pillars")),
+    (N_("a stalactite"), N_("{n} stalactites")),
+    (N_("a fountain"), N_("{n} fountains")),
+    (N_("an oven"), N_("{n} ovens")),
+    (N_("a table"), N_("{n} tables")),
+    (N_("a stone statue"), N_("{n} stone statues")),
+    (N_("a stone tablet"), N_("{n} stone tablets")),
+    (N_("a shelf"), N_("{n} shelves")),
+    (N_("a wardrobe"), N_("{n} wardrobes")),
+]
+
+
 def _summary(lost):
     """What a blocked way leads to, most important first, counted where there
     are several: "the way to World Map, 2 doors, a chest and 3 people"."""
@@ -597,10 +631,7 @@ def _summary(lost):
     rest = collections.Counter(x for x in lost if isinstance(x, str) and x not in ways)
     words = list(dict.fromkeys(ways))
     part = tr("part of this place")
-    plural = {tr("a door"): tr("{n} doors"), tr("a way out"): tr("{n} ways out"), tr("a chest"): tr("{n} chests"),
-              tr("a jar"): tr("{n} jars"), tr("a barrel"): tr("{n} barrels"), tr("a grave"): tr("{n} graves"),
-              tr("a wooden box"): tr("{n} wooden boxes"), tr("a well"): tr("{n} wells"),
-              tr("a spot where something happens"): tr("{n} spots where something happens")}
+    plural = {translate(one): translate(many) for one, many in _PLURALS}
     for label, count in rest.items():
         if label == part:
             continue
@@ -609,8 +640,8 @@ def _summary(lost):
         elif label in plural:
             words.append(plural[label].replace("{n}", str(count)))
         else:
-            # Not a word with a known plural: English's rule, or the count beside it.
-            words.append(tr("{n} {what}", n=count, what=label[2:] + "s" if label.startswith("a ") else label))
+            # No plural form for it ("the ground"): the count beside it.
+            words.append(tr("{what} (×{n})", n=count, what=label))
     if people:
         words.append(people[0][1] if len(people) == 1 else tr("{n} people", n=len(people)))
     if not words:

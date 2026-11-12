@@ -29,7 +29,7 @@ sys.path.insert(0, ROOT)
 from gsmap.i18n import FOLDER, LANGS  # noqa: E402
 
 ATTRS = ("title", "placeholder", "aria-label")
-# Off a Mac the pages say these instead (static/i18n.js, MAC_WORDS).
+# Off a Mac the pages say these instead (MAC_WORDS in static/i18n.js and gsmap/i18n.py).
 MAC_WORDS = (("Show in Finder", "Show the file"), ("this Mac", "this computer"))
 
 

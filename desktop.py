@@ -233,8 +233,9 @@ def main():
     if host.KIND != "mac":
         # Linux and WSL: the editor opens in the browser, and this terminal
         # (or the Windows shortcut's window) keeps it running.
-        print(f"{setupmod.APP_NAME} is open in your browser. If it isn't, open:\n  {url}\n"
-              "Keep this window open while you use the editor; close it (or press Ctrl+C) to stop.", flush=True)
+        print(tr("{app} is open in your browser. If it isn't, open:\n  {url}\n"
+                 "Keep this window open while you use the editor; close it (or press Ctrl+C) to stop.",
+                 app=setupmod.APP_NAME, url=url), flush=True)
         host.open_url(url)
         try:
             threading.Event().wait()

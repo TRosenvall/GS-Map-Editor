@@ -51,7 +51,7 @@ async function init() {
 
 function renderList() {
   const q = $('#filter').value.trim().toLowerCase();
-  $('#maps').innerHTML = q && !'world map overworld'.includes(q) ? '' : '<a class="map" href="/world.html" style="text-decoration:none;color:inherit"><span class="t">🌍 ' + T('World map') + '</span><span class="d" style="grid-column:1/3">' + T('the overworld: towns, regions, ground') + '</span></a>';
+  $('#maps').innerHTML = q && !('world map overworld ' + T('World map').toLowerCase()).includes(q) ? '' : '<a class="map" href="/world.html" style="text-decoration:none;color:inherit"><span class="t">🌍 ' + T('World map') + '</span><span class="d" style="grid-column:1/3">' + T('the overworld: towns, regions, ground') + '</span></a>';
   for (const m of S.maps) {
     const text = `${m.number} ${m.folder} ${m.tileset || ''} ${m.label || ''}`.toLowerCase();
     if (q && !text.includes(q)) continue;
@@ -611,6 +611,8 @@ $('#cv').addEventListener('mousemove', e => {
 function clone(v) { return JSON.parse(JSON.stringify(v)); }
 const KIND_ORDER = ['entrances', 'placements', 'exits', 'events', 'regions'];
 const KIND_LABEL = { entrances: T('Arrival points'), placements: T('People'), exits: T('Exits'), events: T('Events'), regions: T('Areas') };
+// A table's kind as its note above the rows names it.
+const KIND_WORD = { entrances: T('entrances'), placements: T('placements'), exits: T('exits'), events: T('events'), regions: T('regions') };
 // gValeHome_ActorPlacementsAfterKalay -> "After Kalay"; plain table -> "normal"
 function variantName(sym) {
   const kinds = /_?(Entrances|Exits|ActorPlacements|Placements|Triggers|Regions)(.*)$/, m = sym.match(kinds);
@@ -766,7 +768,7 @@ function renderTable() {
   const view = $('#tableView'), t = S.map && table();
   if (!t) { view.innerHTML = ''; return; }
   const rows = rowsOf(t), edited = S.tableEdits.has(t.symbol);
-  let html = `<div class="note">${t.kind} · ${rows.length === 1 ? T('1 row') : T('{n} rows', { n: rows.length })}${t.overridden ? ` · <b>${T('overridden in mod')}</b>` : ''}${edited ? ' · ' + T('unsaved') : ''}
+  let html = `<div class="note">${KIND_WORD[t.kind] || t.kind} · ${rows.length === 1 ? T('1 row') : T('{n} rows', { n: rows.length })}${t.overridden ? ` · <b>${T('overridden in mod')}</b>` : ''}${edited ? ' · ' + T('unsaved') : ''}
     ${t.overridden ? ` <button id="revertTable">${T('Revert to original')}</button>` : ''}</div>`;
   if (!t.editable) html += `<div class="note">${T('This can’t be edited yet: its bytes are not a plain table of this kind.')}</div>`;
   if (t.kind === 'exits') {
@@ -1821,7 +1823,9 @@ $('#ptGo').onclick = async () => {
       $('#ptGo').disabled = false;
       if (s.ok) {
         PT.result = s.result;
-        const about = (s.result.about || '').split('\n').filter(Boolean).map(l => esc(l).replace(/^(\w+): /, (m, k) => `<b>${k[0].toUpperCase() + k.slice(1)}:</b> `)).join('<br>');
+        // The patch's own notes (name: …, author: …), with the editor's words for the ones it writes.
+        const aboutLabel = { name: T('Name'), author: T('Author'), description: T('Description'), for: T('For') };
+        const about = (s.result.about || '').split('\n').filter(Boolean).map(l => esc(l).replace(/^(\w+): /, (m, k) => `<b>${({}).hasOwnProperty.call(aboutLabel, k) ? aboutLabel[k] : k[0].toUpperCase() + k.slice(1)}:</b> `)).join('<br>');
         const pv = { base: esc(s.result.base), format: esc(s.result.format.toUpperCase()), file: esc(s.result.game.split('/').pop()) };
         $('#ptMsg').innerHTML = `<span class="ok">${s.result.format === 'ips' ? T('Patched {base} with an {format} patch: saved {file}.', pv) : T('Patched {base} with a {format} patch: saved {file}.', pv)}</span>` +
           (about ? `<div class="note" style="margin-top:6px">${about}</div>` : '') +
