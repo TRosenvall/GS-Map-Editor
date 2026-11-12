@@ -17,6 +17,7 @@ mod.c); scene .c files are never touched.
 """
 
 from .modgen import Overrides, generate
+from .i18n import tr
 from .sceneedit import EVENTS_END, SceneEditor
 
 CHEST_CONTROL = 0x13  # SEARCH(SEARCH_CHEST)
@@ -30,17 +31,17 @@ def find_value(contents):
     if "item" in contents:
         item = int(contents["item"])
         if not 1 <= item <= 0xFFFF:
-            raise ValueError("pick an item")
+            raise ValueError(tr("pick an item"))
         return FIND_ITEM | item
     if "coins" in contents:
         coins = contents["coins"]
         if isinstance(coins, float) and coins != int(coins):
-            raise ValueError("coins must be a whole number")
+            raise ValueError(tr("coins must be a whole number"))
         n = int(coins)
         if not 1 <= n <= 0xFFFF:
-            raise ValueError("coins must be between 1 and 65535")
+            raise ValueError(tr("coins must be between 1 and 65535"))
         return FIND_COINS | n
-    raise ValueError("say what the chest holds: an item or coins")
+    raise ValueError(tr("say what the chest holds: an item or coins"))
 
 
 class ChestEditor(SceneEditor):
@@ -83,34 +84,34 @@ class ChestEditor(SceneEditor):
         p = self.project
         value = find_value(contents)
         if "item" in contents and int(contents["item"]) not in self.names.items:
-            raise ValueError("pick an item")
+            raise ValueError(tr("pick an item"))
         overlays = self._overlays(info)
         ov = Overrides(p.root)
         tables = self._event_tables(info, ov)
         path, mt = p.load_markers(info)
         rows = [r for r in mt.rows if tuple(r[:3]) != (0xFF, 0xFF, 0xFF)]
         if len(rows) >= MARKER_MAX:
-            raise ValueError(f"A place can hold at most {MARKER_MAX} chests and Psynergy Stones.")
+            raise ValueError(tr("A place can hold at most {n} chests and Psynergy Stones.", n=MARKER_MAX))
         if any(tuple(r[:2]) == (x, z) for r in rows):
-            raise ValueError("that cell already holds a chest")
+            raise ValueError(tr("that cell already holds a chest"))
         if not (0 <= x < 128 and 0 <= z < 128):
-            raise ValueError("that cell is outside the map")
+            raise ValueError(tr("that cell is outside the map"))
         col = p.load_grid(info, "collision").cells
         here = col[z][x]
         if 1 <= here <= 239:
-            raise ValueError("Something already happens on that square (a door or an event). Pick another.")
+            raise ValueError(tr("Something already happens on that square (a door or an event). Pick another."))
 
         # Free across whole overlays: a code in another room's table would still
         # mean something if that room ever shares this map.
         taken = self._taken_codes(overlays, self._tables(overlays, ov, "events")) | {r[2] for r in rows}
         code = next((c for c in range(CODE_LO, CODE_HI + 1) if c not in taken), None)
         if code is None:
-            raise ValueError("This place has no room for more chests.")
+            raise ValueError(tr("This place has no room for more chests."))
         free = self.names.free_chest_flags
         used = self._used_flags(ov)
         flag = next((f for f in free if f not in used), None)
         if flag is None:
-            raise ValueError("The game has no room for more chests.")
+            raise ValueError(tr("The game has no room for more chests."))
 
         row = {"control": CHEST_CONTROL, "trigger": code, "condition": flag, "value": value}
         for o, name, rs in tables:
@@ -130,12 +131,12 @@ class ChestEditor(SceneEditor):
         for i, r in enumerate(mt.rows):
             if tuple(r[:2]) == (x, z) and tuple(r[:3]) != (0xFF, 0xFF, 0xFF):
                 return path, mt, i, r[2]
-        raise ValueError("no chest there")
+        raise ValueError(tr("no chest there"))
 
     def set_contents(self, info, x, z, contents):
         value = find_value(contents)
         if "item" in contents and int(contents["item"]) not in self.names.items:
-            raise ValueError("pick an item")
+            raise ValueError(tr("pick an item"))
         _, _, _, code = self._find(info, x, z)
         ov = Overrides(self.project.root)
         hit = False
@@ -148,7 +149,7 @@ class ChestEditor(SceneEditor):
                 ov.set(o.id, name, "events", rs)
                 hit = True
         if not hit:
-            raise ValueError("This one is controlled by the story, so it can't be changed here.")
+            raise ValueError(tr("This one is controlled by the story, so it can't be changed here."))
         ov.save()
         generate(self.project.root, self.scenes, ov)
         return {"code": code, "contents": self.names.find_value(value)}

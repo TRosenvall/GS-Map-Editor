@@ -23,6 +23,7 @@ import os
 import re
 
 from . import layout
+from .i18n import tr
 from .modgen import Overrides, generate
 from .sceneedit import EVENTS_END, EXITS_END, SceneEditor
 
@@ -262,10 +263,11 @@ class DoorEditor(SceneEditor):
 
     def _check_target(self, target_scene, target_entrance):
         if not any(s["id"] == target_scene for s in self.scenes.scenes):
-            raise ValueError(f"no scene {target_scene}")
+            raise ValueError(tr("no scene {n}", n=target_scene))
         nums = [e["entrance"] for e in self.entrances(target_scene)]
         if nums and target_entrance not in nums:
-            raise ValueError(f"{self.names.scene_label(target_scene)} has no arrival point {target_entrance}")
+            raise ValueError(tr("{place} has no arrival point {n}", place=self.names.scene_label(target_scene),
+                                n=target_entrance))
 
     def _set_exit(self, exit_tables, scene_id, kind, target_scene, target_entrance):
         """Point (scene_id, kind) at the target in every exit table, adding the
@@ -309,7 +311,7 @@ class DoorEditor(SceneEditor):
         events = self._tables(overlays, ov, "events", scene_ids={scene_id})
         kind = code if by_kind else self._exit_kind(events, code)[0]
         if kind is None:
-            raise ValueError("that isn't a door in this scene")
+            raise ValueError(tr("that isn't a door in this scene"))
         exits = self._tables(overlays, ov, "exits", scene_ids={scene_id})
         self._set_exit(exits, scene_id, kind, target_scene, target_entrance)
         self._save(ov, exits)
@@ -321,10 +323,10 @@ class DoorEditor(SceneEditor):
         p = self.project
         col = p.load_grid(info, "collision").cells
         if not (0 <= x < 128 and 0 <= z < 128):
-            raise ValueError("that cell is outside the map")
+            raise ValueError(tr("that cell is outside the map"))
         here = col[z][x]
         if 1 <= here <= 239:
-            raise ValueError("Something already happens on that square (a door, chest or event). Pick another.")
+            raise ValueError(tr("Something already happens on that square (a door, chest or event). Pick another."))
         overlays = self._overlays(info, scene_id)
         ov = Overrides(p.root)
         events = self._tables(overlays, ov, "events", scene_ids={scene_id})
@@ -336,7 +338,7 @@ class DoorEditor(SceneEditor):
         taken = self._taken_codes(every, self._tables(every, ov, "events"))
         code = next((c for c in list(range(1, 100)) + list(range(239, 99, -1)) if c not in taken), None)
         if code is None:
-            raise ValueError("This place has no room for more doors.")
+            raise ValueError(tr("This place has no room for more doors."))
         # A kind no exit, exit event or region of the overlay uses; high kinds,
         # since scene scripts ask for low ones by number.
         all_exits = self._tables(overlays, ov, "exits")
@@ -347,7 +349,7 @@ class DoorEditor(SceneEditor):
             used |= {r["value"] for r in rs if r["minX"] != -1}
         kind = next((k for k in range(0xFE, 0, -1) if k not in used), None)
         if kind is None:
-            raise ValueError("This place has no room for more doors.")
+            raise ValueError(tr("This place has no room for more doors."))
         for _, _, rows in events:
             end = next(i for i, r in enumerate(rows) if r["control"] == EVENTS_END)
             rows.insert(end, {"control": EVENT_EXIT, "trigger": code, "condition": -1, "value": kind})
@@ -367,9 +369,9 @@ class DoorEditor(SceneEditor):
         events = self._tables(overlays, ov, "events", scene_ids={scene_id})
         kind, scripted = self._exit_kind(events, code)
         if kind is None:
-            raise ValueError("that isn't a door in this scene")
+            raise ValueError(tr("that isn't a door in this scene"))
         if scripted:
-            raise ValueError("This door is part of a story scene: you can change where it leads, but not remove it.")
+            raise ValueError(tr("This door is part of a story scene: you can change where it leads, but not remove it."))
         cells = [(gx, gz) for gx, gz in self._window(info) if col[gz][gx] == code]
         others = [m for m in self._sharing_maps(overlays) if m is not info and any(
             code in line for line in p.load_grid(m, "collision").cells)]

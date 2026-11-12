@@ -193,6 +193,7 @@
     <button id="exportBtn" title="Save your mod as a patch file to share">Export mod…</button>
     <button id="patcherBtn" title="Apply a .bps, .ips or .ups patch, and play it">Patcher…</button>
     <label title="Show raw numbers and codes"><input type="checkbox" id="advanced"> Advanced</label>
+    <label title="The editor's language. The game stays in English.">🌐 <select id="lang" style="width:auto"></select></label>
   </div>
 </header>
 <aside>
@@ -280,7 +281,7 @@
   <div id="eeTextBox">
     <label class="l">What it says <span style="float:right"><button id="eeName" type="button" title="The hero's name, as the player chose it">+ hero's name</button> <label style="display:inline-flex;gap:4px"><input type="checkbox" id="eeRaw" style="width:auto"> game text</label></span></label>
     <textarea id="eeText" rows="5" placeholder="Write it as you'd say it. A blank line starts a new box."></textarea>
-    <div id="evPreview"></div>
+    <div id="evPreview" data-notr></div>
   </div>
   <label class="l">When</label>
   <div style="display:flex;gap:6px"><select id="eeWhen" style="width:auto"><option value="always">Always</option><option value="set">Only once…</option><option value="clear">Only while… isn't</option></select>
@@ -333,6 +334,8 @@
       <div id="pkArrivals"></div><div id="pkMap"><img id="pkImg" alt=""><div id="pkDots"></div></div></div></div>
   <div class="pkFoot"><span id="pkSel" style="margin-right:auto;color:var(--muted)"></span><button id="pkCancel">Cancel</button><button id="pkOk" class="primary" disabled>Link</button></div>
 </div></div>
+<script src="i18n-strings.js"></script>
+<script src="i18n.js"></script>
 <script src="common.js"></script>
 <script src="editor.js"></script>
 </body>

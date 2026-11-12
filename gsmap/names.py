@@ -15,6 +15,7 @@ import re
 from PIL import Image
 
 from . import layout
+from .i18n import tr
 from .messages import Messages
 
 DATA = os.path.join(os.path.dirname(__file__), "data")
@@ -189,23 +190,23 @@ class Names:
 
     def item_name(self, item_id):
         it = self.items.get(item_id)
-        return it["name"] if it else f"item {item_id}"
+        return it["name"] if it else tr("item {n}", n=item_id)
 
     def place(self, scene_id):
         p = self.places.get(scene_id)
         if not p:
-            return f"scene {scene_id}"
-        return p.get("area_name") or p.get("label") or f"scene {scene_id}"
+            return tr("scene {n}", n=scene_id)
+        return p.get("area_name") or p.get("label") or tr("scene {n}", n=scene_id)
 
     def scene_label(self, scene_id):
         """Area name plus the scene's own label, e.g. "Vale · Vale Home"."""
         p = self.places.get(scene_id)
         if not p:
-            return f"scene {scene_id}"
+            return tr("scene {n}", n=scene_id)
         area, label = p.get("area_name"), p.get("label")
         if area and label and area != label:
             return f"{area} · {label}"
-        return area or label or f"scene {scene_id}"
+        return area or label or tr("scene {n}", n=scene_id)
 
     def find_value(self, value):
         """A chest/search value (FIND_*) in words."""
@@ -213,11 +214,11 @@ class Names:
         if kind == 0x00100000:
             return self.item_name(arg)
         if kind == 0x00200000:
-            return f"{arg} coins"
+            return tr("{n} coins", n=arg)
         if kind == 0x00300000:
             return "Psynergy Stone"
         if kind == 0x00400000:
-            return f"message {arg}"
+            return tr("message {n}", n=arg)
         if kind == 0x00500000:
             return "Mimic"
         return f"{value:#x}"
@@ -318,20 +319,20 @@ class Names:
                     kind, code = control & 0xF, r["trigger"] & 0xFF
                     if kind == EVENT_EXIT:
                         dest = self._exit_destination(sc["id"], r["value"], exit_tables)
-                        add(code, f"Exit → {dest}" if dest else f"Exit (kind {r['value']})")
+                        add(code, tr("Exit → {place}", place=dest) if dest else tr("Exit (kind {n})", n=r["value"]))
                     elif kind == EVENT_SEARCH and (control & 0x1FF) == SEARCH_CHEST_CONTROL:
-                        add(code, f"Chest: {self.find_value(r['value'])}")
+                        add(code, tr("Chest: {what}", what=self.find_value(r["value"])))
                     elif kind == EVENT_SEARCH:
                         v = r["value"]
-                        add(code, f"Search: {self.find_value(v)}" if v & 0x00F00000 else "Search: scripted")
+                        add(code, tr("Search: {what}", what=self.find_value(v)) if v & 0x00F00000 else tr("Search: scripted"))
                     elif kind == EVENT_TOUCH and r["value"] < 0x10000:
-                        add(code, "Touch: shows a message")
+                        add(code, tr("Touch: shows a message"))
                     elif kind == EVENT_TOUCH:
                         # A door script asks for one exit kind (read from the scene's C, as the Doors tool does).
                         kinds = script_kinds.setdefault(o.id, script_exit_kinds(
                             os.path.join(self.root, layout.SRC), o)).get(r["value"] & ~1, [])
                         dest = self._exit_destination(sc["id"], kinds[0], exit_tables) if len(kinds) == 1 else None
-                        add(code, f"Door to {dest}" if dest else "Scripted event")
+                        add(code, tr("Door to {place}", place=dest) if dest else tr("Scripted event"))
         return legend
 
     def _exit_destination(self, scene_id, exit_kind, exit_tables):
@@ -346,4 +347,4 @@ class Names:
                         return self.scene_label(ex["scene"])
                 if first is None and seg.get("exits"):
                     first = seg["exits"][0]["scene"]
-        return f"{self.scene_label(first)} (by default)" if first is not None else None
+        return tr("{place} (by default)", place=self.scene_label(first)) if first is not None else None

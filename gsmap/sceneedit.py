@@ -12,6 +12,7 @@ scenes has in its collision, so nothing else starts reacting to it.
 import os
 import subprocess
 
+from .i18n import tr
 from .modgen import Overrides
 
 FIRST_ACTOR, LAST_PARTY_SPRITE, MAX_ACTOR = 8, 7, 65  # field_work.h, scene_tables.h, actors.c
@@ -62,8 +63,8 @@ class SceneEditor:
         found = [s for s in self.scenes.for_rows(self._map_rows(info))
                  if scene_id is None or s["id"] == scene_id]
         if not found:
-            raise ValueError("no scene uses this map" if scene_id is None
-                             else f"scene {scene_id} doesn't use this map")
+            raise ValueError(tr("no scene uses this map") if scene_id is None
+                             else tr("scene {n} doesn't use this map", n=scene_id))
         return [self.scenes.overlay(i) for i in sorted({s["overlay"] for s in found})]
 
     def _scene_rows(self, scene_ids):
@@ -106,7 +107,7 @@ class SceneEditor:
                 rows = over["rows"] if over else o.rows(name)
                 out.append((o, name, copy_rows(rows)))
         if need and not out:
-            raise ValueError(f"this map's scene has no {kind} table")
+            raise ValueError(tr("this map's scene has no {kind} table", kind=kind))
         return out
 
     def _sharing_maps(self, overlays):

@@ -5,13 +5,14 @@ the folders it borrows its grid and blocks from, and any picture imported into
 its tile sheets. The editor's edits to the scene tables only this place loads
 are dropped; tables other places share are left alone, and reported, since
 dropping them would undo those places too. Text you wrote is removed once
-nothing uses any of it. One save, so Undo last save brings it all back.
+nothing uses any of it. One save, so Undo brings it all back.
 """
 
 import os
 import subprocess
 
 from . import fsio, layout, patch, tileset
+from .i18n import tr
 from .messages import BEGIN, END, Messages
 from .modgen import Overrides, generate
 from .sceneedit import SceneEditor
@@ -44,7 +45,7 @@ def _restore(root, base, rel):
 def _base(root, settings):
     base = patch.base_commit(root, settings)
     if not base:
-        raise ValueError("The editor's copy of the game has no record of the original, so it can't reset this.")
+        raise ValueError(tr("The editor's copy of the game has no record of the original, so it can't reset this."))
     return base
 
 
@@ -105,8 +106,8 @@ def _refuse_if_set_up_by_hand(project, base, info):
     now = project.map_rows()
     for r in [info.resources] + info.alternates:
         if r and (r["row"] >= len(rows) or rows[r["row"]] != now[r["row"]]):
-            raise ValueError("This place's art was set up outside the editor, so Reset can't put it back safely. "
-                             "Nothing has been changed.")
+            raise ValueError(tr("This place's art was set up outside the editor, so Reset can't put it back safely. "
+                                "Nothing has been changed."))
 
 
 def reset_map(project, scenes, names, info, settings=None, shared_too=False):
@@ -115,7 +116,7 @@ def reset_map(project, scenes, names, info, settings=None, shared_too=False):
     folder = os.path.relpath(info.folder, root)
     listing = _git(root, "ls-tree", "-r", "--name-only", base, folder + "/").stdout.decode().split()
     if not listing:
-        raise ValueError("The original game has no copy of this place to go back to (you made it).")
+        raise ValueError(tr("The original game has no copy of this place to go back to (you made it)."))
     # A place can draw another's grid or blocks (maps 174 to 179 draw map_001's).
     borrowed = {os.path.relpath(p, root) for p in (info.grid_path(), info.source("CELL_PICTURES", "cell_pictures.tsv"),
                                                    info.source("SHAPES", "shapes.tsv"))} - set(listing)

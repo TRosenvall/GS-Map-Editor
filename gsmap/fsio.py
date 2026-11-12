@@ -21,6 +21,8 @@ import tempfile
 import threading
 import time
 
+from .i18n import N_
+
 JOURNAL = ".gsmap-journal"
 HISTORY_KEPT = 30
 REDO = "redo"
@@ -133,7 +135,7 @@ class _Transaction:
                 os.makedirs(history, exist_ok=True)
                 _remove_tree(os.path.join(history, REDO))  # a new change: nothing to redo
                 with open(os.path.join(self.dir, "label.json"), "w", encoding="utf-8") as f:
-                    json.dump({"label": label or "your last change", "when": time.time(), "where": where}, f)
+                    json.dump({"label": label or N_("your last change"), "when": time.time(), "where": where}, f)
                 name = f"{time.time_ns()}"
                 shutil.move(self.dir, os.path.join(history, name))
                 for old in _entries(history)[:-HISTORY_KEPT]:

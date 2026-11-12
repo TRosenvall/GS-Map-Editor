@@ -7,6 +7,7 @@ other kinds are asked for by scene scripts or regions we can't place.
 """
 
 from .doors import DoorEditor
+from .i18n import tr
 
 
 class Connections:
@@ -67,7 +68,7 @@ class Connections:
             via = cells.get(e["kind"]) or (cells.get(next(iter(cells), None)) if e["kind"] == 0xFF and cells else None)
             out.append({**self._place(e["scene"], row_to_map), "entrance": e["entrance"], "kind": e["kind"],
                         "cell": via["cell"] if via else None,
-                        "how": ("door" if not via["scripted"] else "scripted door") if via else "scene event"})
+                        "how": (tr("door") if not via["scripted"] else tr("scripted door")) if via else tr("scene event")})
         incoming = []
         for src, exits in idx.items():
             for e in exits:

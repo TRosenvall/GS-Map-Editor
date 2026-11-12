@@ -24,17 +24,27 @@ while you stand there, and shows it again once you step off and come back
 import re
 
 from .doors import DoorEditor, script_docs
+from .i18n import tr
 from .messages import Messages, compose, plain, tidy
 from .modgen import Overrides, generate
 from .names import read_flag_names
 from .sceneedit import EVENTS_END, FIRST_ACTOR, LAST_PARTY_SPRITE, MAX_ACTOR, actor_numbers
 
 KINDS = {0: "talk", 1: "exit", 2: "touch", 3: "search", 4: "item", 5: "psynergy", 6: "raised", 7: "talk-stopped"}
-SEARCH_TARGETS = ["something", "a chest", "a jar", "a barrel", "a wall", "the ground", "a rock", "a hole",
-                  "a grave", "a tree", "the underbrush", "a door", "a chimney", "a wooden box", "a bed",
-                  "a bookcase", "a stone coffin", "a fireplace", "the water", "a stone pillar", "a stalactite",
-                  "some boards", "a fountain", "an oven", "a table", "a stone statue", "a stone tablet",
-                  "a shelf", "a wardrobe", "firewood", "some books", "a well"]
+
+
+def search_targets(tr=tr):
+    """What a search event is aimed at, by its target number, in the editor's words."""
+    return [tr("something"), tr("a chest"), tr("a jar"), tr("a barrel"), tr("a wall"), tr("the ground"),
+            tr("a rock"), tr("a hole"), tr("a grave"), tr("a tree"), tr("the underbrush"), tr("a door"),
+            tr("a chimney"), tr("a wooden box"), tr("a bed"), tr("a bookcase"), tr("a stone coffin"),
+            tr("a fireplace"), tr("the water"), tr("a stone pillar"), tr("a stalactite"), tr("some boards"),
+            tr("a fountain"), tr("an oven"), tr("a table"), tr("a stone statue"), tr("a stone tablet"),
+            tr("a shelf"), tr("a wardrobe"), tr("firewood"), tr("some books"), tr("a well")]
+
+
+# The same list in English (search_targets() gives it in the editor's language).
+SEARCH_TARGETS = search_targets(lambda text: text)
 FLAG_SET = 0x1000
 ABILITY_NAMES = 819  # message 819 + ability id is its name (all 34 named abilities, ability_ids.h)
 
@@ -46,17 +56,17 @@ def flag_names(root):
 def flag_label(n, names):
     name = names.get(n)
     if not name:
-        return f"story flag {n:#05x}"
+        return tr("story flag {n}", n=f"{n:#05x}")
     words = name.replace("FLAG_", "").replace("_", " ").lower()
     return words[0].upper() + words[1:]
 
 
 def condition_text(cond, names):
     if cond == -1:
-        return "Always"
+        return tr("Always")
     flag = cond & 0xFFF
-    return (f"Only once “{flag_label(flag, names)}” is set" if cond & FLAG_SET
-            else f"Only while “{flag_label(flag, names)}” isn't set")
+    return (tr("Only once “{flag}” is set", flag=flag_label(flag, names)) if cond & FLAG_SET
+            else tr("Only while “{flag}” isn't set", flag=flag_label(flag, names)))
 
 
 class EventEditor(DoorEditor):
@@ -69,7 +79,7 @@ class EventEditor(DoorEditor):
         for oo, name, rows in self._tables([o], ov, kind):
             if name == symbol:
                 return ov, rows
-        raise ValueError(f"{symbol} isn't one of this scene's {kind} tables")
+        raise ValueError(tr("{table} isn't one of this scene's {kind} tables", table=symbol, kind=kind))
 
     @staticmethod
     def _stage_placements(symbol, placement_tables):
@@ -131,7 +141,8 @@ class EventEditor(DoorEditor):
                 ev["actor"] = r["trigger"]
                 p = by_actor.get(r["trigger"])
                 spr = self.names.sprites.get(p["sprite"]) if p else None
-                ev["who"] = (spr or {}).get("name") or (f"person {r['trigger']}" if p is None else f"sprite {p['sprite']}")
+                ev["who"] = (spr or {}).get("name") or (tr("person {n}", n=r["trigger"]) if p is None
+                                                         else tr("sprite {n}", n=p["sprite"]))
                 if p:
                     ev["at"] = [p["x"] >> 16, p["z"] >> 16]
             else:
@@ -139,29 +150,31 @@ class EventEditor(DoorEditor):
             v = r["value"]
             if kind == "exit":
                 ex = self._destination(exits, scene_id, v)
-                ev["does"] = f"Leads to {self.names.scene_label(ex['scene'])}" if ex else "An exit that leads nowhere"
+                ev["does"] = (tr("Leads to {place}", place=self.names.scene_label(ex["scene"])) if ex
+                              else tr("An exit that leads nowhere"))
             elif kind == "search" and v >> 20 in (1, 2, 3, 5):
-                ev["does"] = "Finds " + self.names.find_value(v)
+                ev["does"] = tr("Finds {what}", what=self.names.find_value(v))
             elif (kind == "search" and v >> 20 == 4) or (kind != "search" and 0 < v < 0x10000):
                 m = v & 0xFFFF
                 ev["message"], ev["text"] = m, msgs.get(m)
                 ev["editable_text"] = True
-                ev["does"] = "Says"
+                ev["does"] = tr("Says")
             elif v >= 0x10000:
                 name, doc = docs.get(v & ~1, (None, ""))
                 ev["script"] = name or f"{v:#x}"
-                ev["does"] = doc or "Runs a scene script"
+                ev["does"] = doc or tr("Runs a scene script")
             else:
-                ev["does"] = "Nothing"
+                ev["does"] = tr("Nothing")
             if kind == "search":
-                ev["what"] = SEARCH_TARGETS[(c >> 4) & 0x1F] if ((c >> 4) & 0x1F) < len(SEARCH_TARGETS) else "something"
+                targets = search_targets()
+                ev["what"] = targets[(c >> 4) & 0x1F] if ((c >> 4) & 0x1F) < len(targets) else tr("something")
             elif kind == "item":
                 ev["what"] = self.names.item_name((c >> 8) & 0xFF)
             elif kind == "psynergy":
                 ability = (c >> 8) & 0xFF
-                ev["what"] = msgs.get(ABILITY_NAMES + ability) or f"Psynergy {ability}"
+                ev["what"] = msgs.get(ABILITY_NAMES + ability) or tr("Psynergy {n}", n=ability)
                 if ev["what"] == "Mind Read" and ev["message"] is not None:
-                    ev["does"] = "Thinks"
+                    ev["does"] = tr("Thinks")
             out.append(ev)
         return {"symbol": symbol, "people_table": people_table,
                 "tables": [n for _, n, _ in tables], "events": out,
@@ -195,7 +208,7 @@ class EventEditor(DoorEditor):
             return -1
         flag = int(when["flag"])
         if not 0 <= flag <= 0xFFF:
-            raise ValueError("no such story flag")
+            raise ValueError(tr("no such story flag"))
         return flag | (FLAG_SET if when.get("set", True) else 0)
 
     def set_text(self, scene_id, symbol, index, text, raw=False, when=None):
@@ -208,7 +221,7 @@ class EventEditor(DoorEditor):
         elif kind != 3 and 0 < v < 0x10000:
             r["value"] = self._message(text, v, raw)
         else:
-            raise ValueError("This is part of a story scene, so its words can't be changed here.")
+            raise ValueError(tr("This is part of a story scene, so its words can't be changed here."))
         if when is not None:
             r["condition"] = self._condition(when)
         self._save_table(ov, o, symbol, "events", rows)
@@ -224,7 +237,7 @@ class EventEditor(DoorEditor):
     @staticmethod
     def _row(rows, index):
         if not 0 <= index < len(rows) or rows[index]["control"] == EVENTS_END:
-            raise ValueError("no such event")
+            raise ValueError(tr("no such event"))
         return rows[index]
 
     def _append(self, rows, row):
@@ -239,7 +252,7 @@ class EventEditor(DoorEditor):
         ov, rows = self._table(o, symbol)
         placements = self._tables([o], ov, "placements", need=False, scene_ids={scene_id})
         if int(actor) not in actor_numbers(self._stage_placements(symbol, placements)[1]):
-            raise ValueError("That person isn't in this place any more.")
+            raise ValueError(tr("That person isn't in this place any more."))
         row = {"control": 0, "trigger": int(actor), "condition": self._condition(when), "value": self._message(text)}
         # Before the person's other talk rows, so a conditional line can take precedence.
         first = next((i for i, r in enumerate(rows) if r["control"] & 0xF == 0 and r["trigger"] == int(actor)), None)
@@ -248,7 +261,7 @@ class EventEditor(DoorEditor):
             idx = first
         else:
             if first is not None:
-                raise ValueError("this person already talks; change their line instead, or add one for a story moment")
+                raise ValueError(tr("this person already talks; change their line instead, or add one for a story moment"))
             idx = self._append(rows, row)
         self._save_table(ov, o, symbol, "events", rows)
         return {"index": idx, "message": row["value"]}
@@ -256,11 +269,11 @@ class EventEditor(DoorEditor):
     def add_spot(self, info, scene_id, symbol, x, z, how, text, target=0, when=None):
         """A message at a cell: read with A ("search", a sign) or on stepping there ("touch")."""
         if how not in ("search", "touch"):
-            raise ValueError("a spot is read with A (search) or by stepping on it (touch)")
+            raise ValueError(tr("a spot is read with A (search) or by stepping on it (touch)"))
         p = self.project
         col = p.load_grid(info, "collision").cells
         if not (0 <= x < 128 and 0 <= z < 128):
-            raise ValueError("that cell is outside the map")
+            raise ValueError(tr("that cell is outside the map"))
         here = col[z][x]
         o = self._ctx(scene_id)
         overlays = self._overlays(info)
@@ -269,12 +282,12 @@ class EventEditor(DoorEditor):
         if 1 <= here <= 239:
             code = here  # the spot already has a code: add to it (e.g. a sign beside a door's code is rare)
             if any(r["trigger"] == code and r["control"] & 0xF in (2, 3) for _, _, rs in events_all for r in rs):
-                raise ValueError("that spot already has a message or search; change it instead")
+                raise ValueError(tr("that spot already has a message or search; change it instead"))
         else:
             taken = self._taken_codes(overlays, events_all)
             code = next((c for c in list(range(1, 100)) + list(range(239, 99, -1)) if c not in taken), None)
             if code is None:
-                raise ValueError("This place has no room for more of these.")
+                raise ValueError(tr("This place has no room for more of these."))
         ov, rows = self._table(o, symbol)
         msg = self._message(text)
         if how == "search":
@@ -315,19 +328,19 @@ class EventEditor(DoorEditor):
         """A new person standing (or wandering) at map pixels (x, z), optionally
         with a line. Added after everyone else, so no existing actor renumbers."""
         if int(sprite) <= LAST_PARTY_SPRITE:
-            raise ValueError("The party's own characters come and go with the story, so they can't be added here. "
-                             "Pick someone else.")
+            raise ValueError(tr("The party's own characters come and go with the story, so they can't be added here. "
+                                "Pick someone else."))
         o = self._ctx(scene_id)
         ov = Overrides(self.project.root)
         placements = self._tables([o], ov, "placements", scene_ids={scene_id})
         people_table, rows = self._stage_placements(symbol, placements)
         if people_table is None:
-            raise ValueError("The editor can't tell which people go with this story stage, so it can't add one here. "
-                             "Try another stage.")
+            raise ValueError(tr("The editor can't tell which people go with this story stage, so it can't add one here. "
+                                "Try another stage."))
         end = next(i for i, r in enumerate(rows) if r["sprite"] < 0)
         actor = FIRST_ACTOR + sum(1 for a in actor_numbers(rows) if a >= FIRST_ACTOR)
         if actor > MAX_ACTOR:
-            raise ValueError("this scene already has as many people as the game allows")
+            raise ValueError(tr("this scene already has as many people as the game allows"))
         rows.insert(end, {"sprite": int(sprite), "condition": self._condition(when), "behavior": 2 if wander else 1,
                           "x": int(x) << 16, "y": 0, "z": int(z) << 16, "facing": 0x4000, "talkFacing": 0, "flags": 0})
         self._save_table(ov, o, people_table, "placements", rows)
@@ -357,14 +370,14 @@ class EventEditor(DoorEditor):
         o = self._ctx(scene_id)
         ov, rows = self._table(o, symbol, "regions")
         if not 0 <= index < len(rows) or rows[index]["minX"] == -1:
-            raise ValueError("no such area")
+            raise ValueError(tr("no such area"))
         r = rows[index]
         if remove:
             del rows[index]
         if box and not remove:
             x0, z0, x1, z1 = (int(v) for v in box)
             if not (0 <= x0 < x1 and 0 <= z0 < z1):
-                raise ValueError("draw the area as a box on the map")
+                raise ValueError(tr("draw the area as a box on the map"))
             r.update(minX=x0, minZ=z0, maxX=x1, maxZ=z1)
         if when is not None and not remove:
             r["condition"] = self._condition(when)

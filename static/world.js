@@ -3,11 +3,11 @@ const W = { tool: 'view', block: { 0: null, 1: null }, recent: { 0: [], 1: [] },
 const KIND_COLOURS = { 0: 'transparent', 1: 'rgb(255,214,10)', 2: 'rgb(255,120,40)', 3: 'rgb(80,200,255)', 4: 'rgb(190,90,255)',
   5: 'rgb(60,230,120)', 6: 'rgb(255,80,160)', 21: 'rgb(240,240,255)', 31: 'rgb(255,50,50)' };
 const HELP = {
-  view: ['Look around', 'Hover to see a spot\'s region and what it does. Click a town, dungeon or blue step spot to see where it leads.'],
-  ground: ['Paint ground', localWords('Pick a block, then click or drag on the map. ⌥-click the map to pick up the block under the cursor. Changes save as you paint; Undo takes the last stroke back and Redo puts it back. The pause-screen map is a separate picture: it won\'t follow coastline changes.')],
-  overlay: ['Paint overlay', 'Mountains, trees and coastline sit on the overlay, drawn over the ground. Walking is decided by both layers\' tiles.'],
-  region: ['Encounter regions', 'Each region has its own random battles. Pick one and paint; the region overlay turns on so you can see them.'],
-  icons: ['Towns and dungeons', 'Drag a town to move it. Click one to change where it leads.'],
+  view: [T('Look around'), T('Hover to see a spot\'s region and what it does. Click a town, dungeon or blue step spot to see where it leads.')],
+  ground: [T('Paint ground'), localWords(T('Pick a block, then click or drag on the map. ⌥-click the map to pick up the block under the cursor. Changes save as you paint; Undo takes the last stroke back and Redo puts it back. The pause-screen map is a separate picture: it won\'t follow coastline changes.'))],
+  overlay: [T('Paint overlay'), T('Mountains, trees and coastline sit on the overlay, drawn over the ground. Walking is decided by both layers\' tiles.')],
+  region: [T('Encounter regions'), T('Each region has its own random battles. Pick one and paint; the region overlay turns on so you can see them.')],
+  icons: [T('Towns and dungeons'), T('Drag a town to move it. Click one to change where it leads.')],
 };
 function status(h) { $('#status').innerHTML = h; }
 async function api(path, body) {
@@ -57,10 +57,10 @@ function drawMarks() {
     const el = document.createElement('div'), lead = ic.lead;
     el.className = 'icon' + (W.sel && W.sel.actor === ic.actor ? ' sel' : '') + (lead && lead.scene == null ? ' nowhere' : '');
     el.style.left = (ic.x / 2 * z) + 'px'; el.style.top = (ic.z / 2 * z) + 'px';
-    const name = lead ? (lead.scene == null ? 'leads nowhere' : short(lead.label)) : '';
+    const name = lead ? (lead.scene == null ? T('leads nowhere') : short(lead.label)) : '';
     el.innerHTML = `<img src="/api/asset/sprite/${ic.sprite}.png" data-hide-broken style="height:${Math.max(16, 24 * z)}px">` +
       (name || W.adv ? `<span>${esc(name)}${W.adv ? ` [${ic.actor}]` : ''}</span>` : '');
-    el.title = lead && lead.label ? `${lead.label}, arrival point ${lead.entrance}` : 'Runs a scene script (where it leads depends on the story)';
+    el.title = lead && lead.label ? T('{place}, arrival point {n}', { place: lead.label, n: lead.entrance }) : T('Runs a scene script (where it leads depends on the story)');
     el.onmousedown = e => iconDown(e, ic);
     box.appendChild(el);
   }
@@ -69,7 +69,7 @@ function drawMarks() {
     const el = document.createElement('div');
     el.className = 'step' + (st.lead.scene == null ? ' nowhere' : '');
     Object.assign(el.style, { left: st.gx * 16 * z + 'px', top: st.gy * 16 * z + 'px', width: 16 * z + 'px', height: 16 * z + 'px' });
-    el.title = st.lead.scene == null ? 'Leads nowhere' : `${st.lead.label}, arrival point ${st.lead.entrance}`;
+    el.title = st.lead.scene == null ? T('Leads nowhere') : T('{place}, arrival point {n}', { place: st.lead.label, n: st.lead.entrance });
     el.onmousedown = e => { e.preventDefault(); if (W.tool === 'view' || W.tool === 'icons') { e.stopPropagation(); selectStep(st); } };
     box.appendChild(el);
   }
@@ -81,16 +81,18 @@ function drawMarks() {
 function selectIcon(ic) {
   W.sel = { actor: ic.actor, trigger: 100 + ic.actor };
   const lead = ic.lead;
-  $('#iconInfo').innerHTML = !lead ? 'This one runs a scene script, so where it leads can\'t be changed here.'
-    : lead.scene == null ? '<span class="err">Leads nowhere.</span> Link it to a place.'
-    : `Leads to <b>${esc(lead.label)}</b>, arrival point ${lead.entrance}.` + (W.adv ? ` <span class="note">(trigger ${100 + ic.actor}, exit kind ${lead.kind})</span>` : '');
+  $('#iconInfo').innerHTML = !lead ? T('This one runs a scene script, so where it leads can\'t be changed here.')
+    : lead.scene == null ? `<span class="err">${T('Leads nowhere.')}</span> ${T('Link it to a place.')}`
+    : T('Leads to <b>{place}</b>, arrival point {n}.', { place: esc(lead.label), n: lead.entrance })
+      + (W.adv ? ` <span class="note">${T('(trigger {trigger}, exit kind {kind})', { trigger: 100 + ic.actor, kind: lead.kind })}</span>` : '');
   $('#iconLink').style.display = lead ? '' : 'none';
   showPane('icon'); drawMarks();
 }
 function selectStep(st) {
   W.sel = { step: st, trigger: st.code };
-  $('#iconInfo').innerHTML = st.lead.scene == null ? '<span class="err">This spot leads nowhere.</span>'
-    : `Stepping here leads to <b>${esc(st.lead.label)}</b>, arrival point ${st.lead.entrance}.` + (W.adv ? ` <span class="note">(code ${st.code})</span>` : '');
+  $('#iconInfo').innerHTML = st.lead.scene == null ? `<span class="err">${T('This spot leads nowhere.')}</span>`
+    : T('Stepping here leads to <b>{place}</b>, arrival point {n}.', { place: esc(st.lead.label), n: st.lead.entrance })
+      + (W.adv ? ` <span class="note">${T('(code {code})', { code: st.code })}</span>` : '');
   $('#iconLink').style.display = st.lead.scripted ? 'none' : '';
   showPane('icon'); drawMarks();
 }
@@ -113,11 +115,16 @@ window.addEventListener('mouseup', async e => {
   const d = drag; drag = null;
   if (!d.moved) return selectIcon(d.ic);
   const z = zoom(), x = Math.round(d.ic.x + (e.clientX - d.x0) * 2 / z), zz = Math.round(d.ic.z + (e.clientY - d.y0) * 2 / z);
-  status(`Moving ${esc(short(d.ic.lead?.label)) || 'the icon'}…`);
+  const name = esc(short(d.ic.lead?.label));
+  status(name ? T('Moving {name}…', { name }) : T('Moving the icon…'));
   const r = await api('/api/world/icon', { action: 'move', actor: d.ic.actor, x, z: zz, move_arrivals: $('#moveArrivals').checked });
   if (r.error) { status(`<span class="err">${esc(r.error)}</span>`); drawMarks(); return; }
   await loadPlaces();
-  status(`<span class="ok">Moved ${esc(short(d.ic.lead?.label)) || 'the icon'}</span>${r.arrivals_moved.length ? `, with ${r.arrivals_moved.length} arrival point(s)` : ''}. Press ▶ Play to try it.`);
+  const n = r.arrivals_moved.length;
+  const moved = name
+    ? (n ? T('<span class="ok">Moved {name}</span>, with {n} arrival point(s).', { name, n }) : T('<span class="ok">Moved {name}</span>.', { name }))
+    : (n ? T('<span class="ok">Moved the icon</span>, with {n} arrival point(s).', { n }) : T('<span class="ok">Moved the icon</span>.'));
+  status(`${moved} ${T('Press ▶ Play to try it.')}`);
 });
 async function loadPlaces() {
   W.data = await api('/api/world');
@@ -147,7 +154,7 @@ $('#world').addEventListener('mousedown', async e => {
     return;
   }
   if (W.tool === 'ground' || W.tool === 'overlay') {
-    if (W.block[layerOf()] == null) return status('<span class="warn">Pick a block first.</span>');
+    if (W.block[layerOf()] == null) return status(`<span class="warn">${T('Pick a block first.')}</span>`);
   } else if (W.tool !== 'region') return;
   e.preventDefault();
   stroke = new Map(); paintCell(gx, gy);
@@ -166,7 +173,8 @@ window.addEventListener('mouseup', async () => {
   if (r.error) { status(`<span class="err">${esc(r.error)}</span>`); $('#pend').innerHTML = ''; return; }
   reloadChunks(new Set(edits.map(e => `${e.gx >> 4},${e.gy >> 4}`)));
   setTimeout(() => { $('#pend').innerHTML = ''; }, 400);
-  status(`<span class="ok">Saved ${edits.length} cell(s).</span> Press ▶ Play to try it.`);
+  const saved = edits.length === 1 ? T('Saved 1 cell.') : T('Saved {n} cells.', { n: edits.length });
+  status(`<span class="ok">${saved}</span> ${T('Press ▶ Play to try it.')}`);
 });
 const layerOf = () => W.tool === 'overlay' ? 1 : 0;
 function paintCell(gx, gy) {
@@ -191,9 +199,10 @@ function drawPending() { $('#pend').innerHTML = ''; }
 async function hover(gx, gy) {
   const c = await cells(gx, gy), kind = (c[0] >>> 24) & 0x7f, code = (c[0] >>> 16) & 0xff;
   const st = code && W.data?.places.steps.find(s => s.gx === gx && s.gy === gy);
-  const region = W.data?.regions[kind] || `Region ${kind}`;
-  status(`${esc(region)}${st?.lead ? ` · leads to <b>${esc(st.lead.label || 'nowhere')}</b>` : ''}` +
-    (W.adv ? ` · cell ${gx},${gy} · ground ${c[0] & 0xffff} · overlay ${c[1] & 0xffff} · code ${code}${c[0] >>> 31 ? ' · bank' : ''}` : ` · ${gx},${gy}`));
+  const region = W.data?.regions[kind] || T('Region {n}', { n: kind });
+  const leads = st?.lead ? ` · ${st.lead.label ? T('leads to <b>{place}</b>', { place: esc(st.lead.label) }) : T('leads to <b>nowhere</b>')}` : '';
+  status(`${esc(region)}${leads}` +
+    (W.adv ? ` · ${T('cell {x},{y} · ground {ground} · overlay {overlay} · code {code}', { x: gx, y: gy, ground: c[0] & 0xffff, overlay: c[1] & 0xffff, code })}${c[0] >>> 31 ? ` · ${T('bank')}` : ''}` : ` · ${gx},${gy}`));
 }
 
 // ---- block and region palettes ----------------------------------------------------------
@@ -229,7 +238,7 @@ function blockCanvas(b, l, cv) {
 }
 function drawPick() {
   const l = layerOf(), b = W.block[l];
-  $('#pickText').textContent = b == null ? localWords('Pick a block, or ⌥-click the map') : (W.adv ? `block ${b}` : 'Selected block');
+  $('#pickText').textContent = b == null ? localWords(T('Pick a block, or ⌥-click the map')) : (W.adv ? T('block {n}', { n: b }) : T('Selected block'));
   if (b != null) blockCanvas(b, l, $('#pickCv')); else $('#pickCv').getContext('2d').clearRect(0, 0, 16, 16);
 }
 function drawRecent() {
@@ -262,20 +271,20 @@ function placeLabel(n) { const m = W.maps?.find(x => x.number === n); return m ?
 $('#undo').onclick = () => historyStep(false, reloadWorld);
 $('#redo').onclick = () => historyStep(true, reloadWorld);
 $('#build').onclick = async () => {
-  $('#build').disabled = true; status('Building your game…');
+  $('#build').disabled = true; status(T('Building your game…'));
   const r = await api('/api/build', { target: 'tbs-en' }); $('#build').disabled = false;
   if (r.error) return status(`<span class="err">${esc(r.error)}</span>`);
-  if (r.exit === 0) return status('<span class="ok">Your game is built.</span>');
-  failDialog("Your changes couldn't be turned into a game", 'Your files are safe. Use Undo to step back, then try again.', (r.tail || []).join('\n'));
+  if (r.exit === 0) return status(`<span class="ok">${T('Your game is built.')}</span>`);
+  failDialog(T("Your changes couldn't be turned into a game"), T('Your files are safe. Use Undo to step back, then try again.'), (r.tail || []).join('\n'));
 };
 $('#play').onclick = () => buildAndPlay($('#play'), 2);  // 2: the world map's scene
 $('#resetWorld').onclick = async () => {
-  if (!confirm('Put the world map back as the original game has it?\n\nYour painting, moved towns and changed links go. You can bring them back with Undo.')) return;
+  if (!confirm(T('Put the world map back as the original game has it?') + '\n\n' + T('Your painting, moved towns and changed links go. You can bring them back with Undo.'))) return;
   const r = await api('/api/world/reset', {});
   if (r.error) return status(`<span class="err">${esc(r.error)}</span>`);
   await reloadWorld(); refreshUndoSave();
   const nothing = !r.files && !r.tables && !r.text;
-  status(nothing ? 'The world map already matches the original.' : '<span class="ok">The world map is back to the original.</span>');
+  status(nothing ? T('The world map already matches the original.') : `<span class="ok">${T('The world map is back to the original.')}</span>`);
 };
 
 // ---- destination picker (as in the place editor) ----------------------------------------------
@@ -289,7 +298,7 @@ function openPicker() {
 function pkList() {
   const q = $('#pkFilter').value.trim().toLowerCase();
   $('#pkList').innerHTML = W.scenes.filter(sc => sc.map != null)
-    .map(sc => ({ id: sc.id, label: W.names.sceneById[sc.id]?.label || sc.name || 'scene ' + sc.id }))
+    .map(sc => ({ id: sc.id, label: W.names.sceneById[sc.id]?.label || sc.name || T('scene {n}', { n: sc.id }) }))
     .filter(sc => !q || sc.label.toLowerCase().includes(q))
     .map(sc => `<div data-id="${sc.id}" class="${sc.id === PK.scene ? 'on' : ''}">${esc(sc.label)}</div>`).join('');
 }
@@ -299,7 +308,7 @@ async function pkScene(id, entrance) {
   PK.scene = id; PK.entrance = entrance; pkList();
   const r = await api(`/api/scene/${id}/arrivals`); if (PK.scene !== id) return;
   $('#pkHint').style.display = 'none'; const dots = $('#pkDots'); dots.innerHTML = '';
-  $('#pkArrivals').innerHTML = r.arrivals.length ? '' : '<div class="note" style="padding:12px">No arrival points listed; the party arrives at the default spot (0).</div>';
+  $('#pkArrivals').innerHTML = r.arrivals.length ? '' : `<div class="note" style="padding:12px">${T('No arrival points listed; the party arrives at the default spot (0).')}</div>`;
   if (!r.arrivals.length) PK.entrance = 0;
   if (r.map) {
     $('#pkImg').src = `/api/map/${r.map}/render.png`;
@@ -313,8 +322,9 @@ async function pkScene(id, entrance) {
 }
 function pkUpdate() {
   for (const b of $('#pkDots').children) b.classList.toggle('on', +b.dataset.e === PK.entrance);
-  const label = PK.scene != null ? (W.names.sceneById[PK.scene]?.label || 'scene ' + PK.scene) : '';
-  $('#pkSel').innerHTML = label ? `<b>${esc(label)}</b>` + (PK.entrance != null ? `, arrival point ${PK.entrance}` : ' · click an arrival point') : '';
+  const label = PK.scene != null ? (W.names.sceneById[PK.scene]?.label || T('scene {n}', { n: PK.scene })) : '';
+  $('#pkSel').innerHTML = !label ? '' : PK.entrance != null ? T('<b>{place}</b>, arrival point {n}', { place: esc(label), n: PK.entrance })
+    : T('<b>{place}</b> · click an arrival point', { place: esc(label) });
   $('#pkOk').disabled = PK.scene == null || PK.entrance == null;
 }
 $('#pkCancel').onclick = () => { $('#picker').style.display = 'none'; };
@@ -324,7 +334,7 @@ $('#pkOk').onclick = async () => {
   const r = await api('/api/world/icon', { action: 'relink', trigger: W.sel.trigger, ...body });
   if (r.error) return status(`<span class="err">${esc(r.error)}</span>`);
   await loadPlaces();
-  status(`<span class="ok">Now leads to <b>${esc(r.label)}</b>.</span> Press ▶ Play to try it.`);
+  status(`<span class="ok">${T('Now leads to <b>{place}</b>.', { place: esc(r.label) })}</span> ${T('Press ▶ Play to try it.')}`);
 };
 $('#iconLink').onclick = openPicker;
 
@@ -357,5 +367,5 @@ window.addEventListener('keydown', e => {
   // start over Vale
   const vale = W.data.places.icons.find(i => i.lead?.scene === 5) || { x: 5678, z: 1200 };
   const v = $('#view'); v.scrollTo(vale.x / 2 * zoom() - v.clientWidth / 2, vale.z / 2 * zoom() - v.clientHeight / 2);
-  status('The world map. Pick a tool above; hover anywhere to see its region and what it does.');
+  status(T('The world map. Pick a tool above; hover anywhere to see its region and what it does.'));
 })();

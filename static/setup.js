@@ -3,8 +3,8 @@ const esc = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 async function api(path, body) {
   const opt = body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-GSMap': '1' }, body: JSON.stringify(body) };
   let r;
-  try { r = await fetch(path, opt); } catch (e) { return { error: "The app stopped answering. Quit it and open it again." }; }
-  try { return await r.json(); } catch (e) { return { error: `Something went wrong (HTTP ${r.status}).` }; }
+  try { r = await fetch(path, opt); } catch (e) { return { error: T("The app stopped answering. Quit it and open it again.") }; }
+  try { return await r.json(); } catch (e) { return { error: T('Something went wrong (HTTP {status}).', { status: r.status }) }; }
 }
 let running = false;
 async function refresh() {
@@ -18,14 +18,14 @@ async function refresh() {
       <div>${c.action && i === firstTodo ? `<button class="primary" data-step="${c.id}" ${running ? 'disabled' : ''}>${esc(c.action)}</button>` : ''}</div>
     </div>`).join('');
   $('#launch').disabled = firstTodo !== -1 || running;
-  if (firstTodo === -1 && !running && !r.problem) $('#msg').innerHTML = '<span class="ok">Everything is ready.</span>';
+  if (firstTodo === -1 && !running && !r.problem) $('#msg').innerHTML = `<span class="ok">${T('Everything is ready.')}</span>`;
 }
 $('#steps').onclick = async e => {
   const step = e.target.closest('[data-step]')?.dataset.step; if (!step) return;
   const r = await api('/api/setup/run', { step });
   if (r.error) { $('#msg').innerHTML = `<span class="err">${esc(r.error)}</span>`; return; }
-  if (step === 'brew') { $('#msg').textContent = 'brew.sh is open in your browser. Install Homebrew, then press Check again.'; return; }
-  if (step === 'clt') $('#msg').textContent = 'Apple\'s installer should be open. When it finishes, press Check again.';
+  if (step === 'brew') { $('#msg').textContent = T('brew.sh is open in your browser. Install Homebrew, then press Check again.'); return; }
+  if (step === 'clt') $('#msg').textContent = T('Apple\'s installer should be open. When it finishes, press Check again.');
   follow();
 };
 async function follow() {
@@ -36,10 +36,10 @@ async function follow() {
     if (s.error) { running = false; $('#msg').innerHTML = `<span class="err">${esc(s.error)}</span>`; return; }
     if (s.log?.length) { $('#log').textContent += s.log.join('\n') + '\n'; $('#log').scrollTop = $('#log').scrollHeight; }
     since = s.next ?? since;
-    $('#msg').textContent = s.done ? '' : `${s.name}: working… (you can leave this open)`;
+    $('#msg').textContent = s.done ? '' : T('{name}: working… (you can leave this open)', { name: s.name });
     if (s.done) {
       running = false;
-      $('#msg').innerHTML = s.ok ? `<span class="ok">${esc(s.name)}: done.</span>` : `<span class="err">${esc(s.name)} didn't finish. You can press the button to try again; if it keeps failing, copy the text above into a bug report.</span>`;
+      $('#msg').innerHTML = s.ok ? `<span class="ok">${T('{name}: done.', { name: esc(s.name) })}</span>` : `<span class="err">${T("{name} didn't finish. You can press the button to try again; if it keeps failing, copy the text above into a bug report.", { name: esc(s.name) })}</span>`;
       break;
     }
     await new Promise(r => setTimeout(r, 700));
@@ -51,16 +51,16 @@ $('#choose').onclick = async () => {
   let r = await api('/api/setup/choose', {});
   if (r.ask) {
     // No folder picker outside the Mac app: the path is typed instead.
-    const folder = prompt('The full path of your copy of the game source (alchemy), for example /home/you/alchemy:');
+    const folder = prompt(T('The full path of your copy of the game source (alchemy), for example {example}:', { example: '/home/you/alchemy' }));
     if (!folder) return;
     r = await api('/api/setup/choose', { folder });
   }
   if (r.error) $('#msg').innerHTML = `<span class="err">${esc(r.error)}</span>`;
-  else if (r.root) $('#msg').innerHTML = `<span class="ok">Using ${esc(r.root)}.</span>`;
+  else if (r.root) $('#msg').innerHTML = `<span class="ok">${T('Using {folder}.', { folder: esc(r.root) })}</span>`;
   refresh();
 };
 $('#launch').onclick = async () => {
-  $('#msg').textContent = 'Opening the editor… (reading every map takes a few seconds)';
+  $('#msg').textContent = T('Opening the editor… (reading every map takes a few seconds)');
   const r = await api('/api/setup/launch', {});
   if (r.error) { $('#msg').innerHTML = `<span class="err">${esc(r.error)}</span>`; return; }
   location.href = r.url;

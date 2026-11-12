@@ -22,6 +22,7 @@ import struct
 
 from . import layout
 from .fsio import atomic_write
+from .i18n import tr
 from .scenes import KINDS, encode_rows
 
 STEP_TRIGGER = 2
@@ -65,9 +66,10 @@ class Overrides:
                             for t in tables.values()):
                         raise ValueError("not an edits file")
                 except ValueError as e:
-                    raise DamagedFile(f"The file that holds your people, door and event edits can't be read "
-                                      f"({layout.MOD}/overrides.json). Use Undo last save if a recent save caused "
-                                      "this, or restore it from your backup.") from e
+                    raise DamagedFile(tr("The file that holds your people, door and event edits can't be read "
+                                         "({file}). Use Undo if a recent save caused "
+                                         "this, or restore it from your backup.",
+                                         file=f"{layout.MOD}/overrides.json")) from e
                 cached = _PARSED[self.path] = (stamp, parsed)
             self.data = {**cached[1], "tables": dict(cached[1].get("tables", {}))}
 
@@ -140,7 +142,7 @@ def ensure_hook(root):
         if layout.HOOK_CALL in text:
             return text
         if layout.HOOK_AFTER not in text:
-            raise ValueError("this version of the game source loads scenes differently; the editor needs updating for it")
+            raise ValueError(tr("this version of the game source loads scenes differently; the editor needs updating for it"))
         text = text.replace(layout.HOOK_AFTER, layout.HOOK_AFTER + layout.HOOK_CALL, 1)
         last = list(re.finditer(r"^#include .*\n", text, re.M))[-1]
         return text[:last.end()] + HOOK_INCLUDE + text[last.end():]
@@ -149,7 +151,7 @@ def ensure_hook(root):
         if layout.OBJECTS_ROWS in text:
             return text
         if layout.OBJECTS_AFTER not in text:
-            raise ValueError("this version of the game source lists its objects differently; the editor needs updating for it")
+            raise ValueError(tr("this version of the game source lists its objects differently; the editor needs updating for it"))
         return text.replace(layout.OBJECTS_AFTER, layout.OBJECTS_AFTER + layout.OBJECTS_ROWS, 1)
 
     # Both are worked out before either is written, so a source this editor

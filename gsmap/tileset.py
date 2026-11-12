@@ -29,6 +29,7 @@ from PIL import Image
 from . import layout
 from . import table as tablemod
 from .fsio import atomic_write
+from .i18n import tr
 
 ROWS = 14  # palette rows a map owns
 
@@ -114,7 +115,7 @@ def import_image(project, info, png_bytes, layer, dry_run=True):
     """Fit an image into info's tile set for drawing on `layer`.
     Returns a report; unless dry_run, writes sheets, blocks and metadata."""
     if not own_tileset(project, info):
-        raise ValueError("This place shares its tile art with other places, so a picture here would change them too. Import pictures into a place with art of its own.")
+        raise ValueError(tr("This place shares its tile art with other places, so a picture here would change them too. Import pictures into a place with art of its own."))
     base = info.char_base[layer]
     reach = [b for b in (base, base + 1) if 1 <= b <= 3]  # char blocks a layer's 1024 tiles span
     sheets = {b: Image.open(project.label_path(info.resources["blocks"][b - 1])) for b in (1, 2, 3)}
@@ -127,10 +128,10 @@ def import_image(project, info, png_bytes, layer, dry_run=True):
     try:
         img = Image.open(io.BytesIO(png_bytes), formats=["PNG", "GIF", "BMP"])
     except OSError:
-        raise ValueError("That doesn't look like a PNG, GIF or BMP picture.") from None
+        raise ValueError(tr("That doesn't look like a PNG, GIF or BMP picture.")) from None
     w16, h16 = (img.width + 15) // 16, (img.height + 15) // 16
     if w16 * h16 > 256:
-        raise ValueError("That picture is too big: at most 256 squares, for example 256×256 pixels.")
+        raise ValueError(tr("That picture is too big: at most 256 squares, for example 256×256 pixels."))
     img = img.convert("RGBA")
     canvas = Image.new("RGBA", (w16 * 16, h16 * 16), (0, 0, 0, 0))
     canvas.paste(img, (0, 0))
@@ -221,7 +222,7 @@ def import_image(project, info, png_bytes, layer, dry_run=True):
                     t_rgba = canvas.crop((cx * 16 + sx, cy * 16 + sy, cx * 16 + sx + 8, cy * 16 + sy + 8))
                     if all(p[3] < 128 for p in t_rgba.getdata()):
                         if blank_rel is None:
-                            raise ValueError("no blank tile reachable for transparent parts")
+                            raise ValueError(tr("no blank tile reachable for transparent parts"))
                         entries.append(blank_rel)
                         continue
                     opaque = True
@@ -242,11 +243,11 @@ def import_image(project, info, png_bytes, layer, dry_run=True):
                             while reclaimable and reclaimable[0] in in_use:
                                 reclaimable.pop(0)
                             if not reclaimable:
-                                raise ValueError("no room left in this tile set")
+                                raise ValueError(tr("no room left in this tile set"))
                             b, t = reclaimable.pop(0)
                             newly_retired |= users.get((b, t), set())
                         else:
-                            raise ValueError("no room left in this tile set")
+                            raise ValueError(tr("no room left in this tile set"))
                         new_tiles[k] = (b, t)
                         flip = 0
                         sheets[b].putdata(_put(sheets[b], t, idx))
@@ -273,7 +274,7 @@ def import_image(project, info, png_bytes, layer, dry_run=True):
     # write: sheets, blocks, metadata
     count = sum(1 for row in cells for entries in row if entries is not None)
     if len(mt.rows) + count > 4095:
-        raise ValueError("a map holds at most 4,095 blocks")
+        raise ValueError(tr("a map holds at most 4,095 blocks"))
     family, fsize = block_family(project, info)
     for b, im in sheets.items():
         if any(nb == b for nb, _ in new_tiles.values()):

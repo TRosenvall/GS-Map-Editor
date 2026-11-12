@@ -28,6 +28,7 @@ import os
 import re
 
 from . import layout
+from .i18n import tr
 
 WALL, LEDGE, CLIMB, GAP = 255, 252, 253, 254
 FIXED = 1 << 16
@@ -336,14 +337,15 @@ class Walk:
         for e in self.events:
             cells = [cell_px(*c) for c in e.get("cells") or []]
             if e["kind"] == "exit" and cells:
-                label = (e.get("does") or "a way out").replace("Leads to ", "the way to ")
+                label = _way_to(e.get("does") or tr("a way out"))
                 out.append((label, cells, "step"))
             elif e["kind"] == "touch" and cells and e["trigger"] not in self.slide:
                 name = (e.get("script") or "").lower()
-                label = "a door" if "door" in name else "a way out" if ("exit" in name or "leave" in name) else "a spot where something happens"
+                label = tr("a door") if "door" in name else tr("a way out") if ("exit" in name or "leave" in name) \
+                    else tr("a spot where something happens")
                 out.append((label, cells, "step"))
             elif e["kind"] == "search" and cells:
-                out.append((e.get("what") or "something to search", cells, "search"))
+                out.append((e.get("what") or tr("something to search"), cells, "search"))
         return out
 
     def target_reached(self, cells, how, reach, standing):
@@ -399,48 +401,59 @@ class Walk:
         are worth knowing but nothing goes wrong."""
         problems, notes = [], []
         if not self.inside(x, z):
-            return [{"kind": "outside", "text": "That's outside the map."}], []
+            return [{"kind": "outside", "text": tr("That's outside the map.")}], []
         b = self.behavior(x, z)
         g = self.ground_px(x, z)
         if b == WALL:
-            problems.append({"kind": "wall", "text": "This square is a wall, so they'd stand inside it."})
+            problems.append({"kind": "wall", "text": tr("This square is a wall, so they'd stand inside it.")})
         drawn = z - g
         if drawn < self.z0:
             problems.append({"kind": "offscreen",
-                             "text": f"The ground here is {g:g} pixels high, so they'd be drawn above the top of the map, off screen."})
+                             "text": tr("The ground here is {n} pixels high, so they'd be drawn above the top of the map, "
+                                        "off screen.", n=f"{g:g}")})
         standing = self.standing()
         for label, cells, how in self.targets():
             if how == "step" and any(self.grid_cell(*c) == self.grid_cell(x, z) for c in cells):
-                problems.append({"kind": "trigger", "text": f"This square is {label}. Someone standing on it would be in the way."})
+                problems.append({"kind": "trigger", "text": tr("This square is {what}. Someone standing on it would be "
+                                                               "in the way.", what=label)})
         talk = self.talk_points(x, z, standing)
         if b in self.slide:
             if [s for s in talk if self.behavior(*s) not in self.slide]:
-                text = ("This is ice the party slides across. They could be talked to from the edge, "
-                        "but they'd be in the way of anyone sliding past.")
+                text = tr("This is ice the party slides across. They could be talked to from the edge, "
+                          "but they'd be in the way of anyone sliding past.")
             else:
-                text = "This is ice the party slides across. They can't stop next to someone here, so nobody could talk to them."
+                text = tr("This is ice the party slides across. They can't stop next to someone here, so nobody could "
+                          "talk to them.")
             problems.append({"kind": "slide", "text": text})
         elif talk and (self._node(x, z) not in standing or self.behavior(*self._node(x, z)) == WALL):
-            notes.append({"kind": "talk", "text": "The party can't walk onto this square, but can talk to them from beside it."})
+            notes.append({"kind": "talk", "text": tr("The party can't walk onto this square, but can talk to them from "
+                                                     "beside it.")})
         elif not talk and b != WALL:
             near = min(standing, key=lambda s: math.hypot(s[0] - x, s[1] - z), default=None)
             if near is not None:
                 dh = g - self.ground_px(*near)
-                if abs(dh) > TALK_HEIGHT and math.hypot(near[0] - x, near[1] - z) <= TALK_REACH:
-                    why = f"the ground here is {abs(dh):g} pixels {'higher' if dh > 0 else 'lower'} than the path beside it"
+                if abs(dh) > TALK_HEIGHT and math.hypot(near[0] - x, near[1] - z) <= TALK_REACH and dh > 0:
+                    text = tr("The party can't get near enough to talk: the ground here is {n} pixels higher than "
+                              "the path beside it.", n=f"{abs(dh):g}")
+                elif abs(dh) > TALK_HEIGHT and math.hypot(near[0] - x, near[1] - z) <= TALK_REACH:
+                    text = tr("The party can't get near enough to talk: the ground here is {n} pixels lower than "
+                              "the path beside it.", n=f"{abs(dh):g}")
                 elif dh > 8:
-                    why = f"the ground here is {dh:g} pixels higher than the nearest path, too steep to step up"
+                    text = tr("The party can't get near enough to talk: the ground here is {n} pixels higher than "
+                              "the nearest path, too steep to step up.", n=f"{dh:g}")
                 elif dh < -12:
-                    why = f"the ground here is {-dh:g} pixels lower than the nearest path, too far to step down"
+                    text = tr("The party can't get near enough to talk: the ground here is {n} pixels lower than "
+                              "the nearest path, too far to step down.", n=f"{-dh:g}")
                 else:
-                    why = "walls or steep ground close it off"
+                    text = tr("The party can't get near enough to talk: walls or steep ground close it off.")
             else:
-                why = "there's nowhere to walk on this map"
-            problems.append({"kind": "cut", "text": f"The party can't get near enough to talk: {why}."})
+                text = tr("The party can't get near enough to talk: there's nowhere to walk on this map.")
+            problems.append({"kind": "cut", "text": text})
         if b != WALL:
             lost = self.blocked_by(x, z, ignore)
             if lost:
-                problems.append({"kind": "blocks", "text": "Standing here would cut the party off from " + _summary(lost) + "."})
+                problems.append({"kind": "blocks", "text": tr("Standing here would cut the party off from {what}.",
+                                                              what=_summary(lost))})
         return problems, notes
 
     def blocked_by(self, x, z, ignore=None):
@@ -465,7 +478,7 @@ class Walk:
                 if self.talk_points(px, pz, sb) and not self.talk_points(px, pz, sa):
                     lost[("person", k)] = ("person", name)
             if len(before) - len(after) > 4 * (BUMP // GRID + 1) ** 2:
-                lost.setdefault("part", "part of this place")
+                lost.setdefault("part", tr("part of this place"))
         if len(lost) > 1:
             lost.pop("part", None)
         return list(lost.values())
@@ -476,7 +489,7 @@ class Walk:
         for e in self.events:
             if e["kind"] == "talk" and e.get("at") and e.get("actor") != ignore and e.get("actor") not in seen:
                 seen.add(e.get("actor"))
-                out.append((e.get("who") or "someone", e["at"][0], e["at"][1]))
+                out.append((e.get("who") or tr("someone"), e["at"][0], e["at"][1]))
         return out
 
     def nearest_good(self, x, z, ignore=None, limit=40):
@@ -563,30 +576,50 @@ def flat_shapes(project, info):
     return out
 
 
+class _WayTo(str):
+    """An exit's label, "the way to World Map": a str that _summary lists first."""
+
+
+def _way_to(does):
+    """An exit event's "does" text ("Leads to World Map", in the editor's
+    language) as the way to that place; any other text as it is."""
+    before, mark, after = tr("Leads to {place}").partition("{place}")
+    if mark and len(does) >= len(before) + len(after) and does.startswith(before) and does.endswith(after):
+        return _WayTo(tr("the way to {place}", place=does[len(before):len(does) - len(after)]))
+    return does
+
+
 def _summary(lost):
     """What a blocked way leads to, most important first, counted where there
     are several: "the way to World Map, 2 doors, a chest and 3 people"."""
-    ways = [x for x in lost if isinstance(x, str) and x.startswith("the way to")]
+    ways = [x for x in lost if isinstance(x, _WayTo)]
     people = [x for x in lost if isinstance(x, tuple)]
     rest = collections.Counter(x for x in lost if isinstance(x, str) and x not in ways)
     words = list(dict.fromkeys(ways))
-    plural = {"a door": "doors", "a way out": "ways out", "a chest": "chests", "a jar": "jars", "a barrel": "barrels",
-              "a grave": "graves", "a wooden box": "wooden boxes", "a well": "wells", "part of this place": None,
-              "a spot where something happens": "spots where something happens"}
+    part = tr("part of this place")
+    plural = {tr("a door"): tr("{n} doors"), tr("a way out"): tr("{n} ways out"), tr("a chest"): tr("{n} chests"),
+              tr("a jar"): tr("{n} jars"), tr("a barrel"): tr("{n} barrels"), tr("a grave"): tr("{n} graves"),
+              tr("a wooden box"): tr("{n} wooden boxes"), tr("a well"): tr("{n} wells"),
+              tr("a spot where something happens"): tr("{n} spots where something happens")}
     for label, count in rest.items():
-        if label == "part of this place":
+        if label == part:
             continue
-        many = plural.get(label) or (label[2:] + "s" if label.startswith("a ") else label)
-        words.append(label if count == 1 else f"{count} {many}")
+        if count == 1:
+            words.append(label)
+        elif label in plural:
+            words.append(plural[label].replace("{n}", str(count)))
+        else:
+            # Not a word with a known plural: English's rule, or the count beside it.
+            words.append(tr("{n} {what}", n=count, what=label[2:] + "s" if label.startswith("a ") else label))
     if people:
-        words.append(people[0][1] if len(people) == 1 else f"{len(people)} people")
+        words.append(people[0][1] if len(people) == 1 else tr("{n} people", n=len(people)))
     if not words:
-        words.append("part of this place")
-    return _join(words[:5]) if len(words) <= 5 else _join(words[:4] + ["more"])
+        words.append(part)
+    return _join(words[:5]) if len(words) <= 5 else _join(words[:4] + [tr("more")])
 
 
 def _join(items):
     items = list(items)
     if len(items) <= 1:
         return "".join(items)
-    return ", ".join(items[:-1]) + " and " + items[-1]
+    return tr("{list} and {last}", list=", ".join(items[:-1]), last=items[-1])

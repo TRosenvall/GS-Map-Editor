@@ -100,6 +100,7 @@
     <button id="build" class="adv" title="Build the game without opening it">Build</button><button id="resetWorld" title="Put the world map back as the original game has it">Reset world map…</button>
     <button id="play" class="primary" title="Build and open your game on the world map">▶ Play</button>
     <label title="Show raw numbers and codes"><input type="checkbox" id="advanced"> Advanced</label>
+    <label title="The editor's language. The game stays in English.">🌐 <select id="lang" style="width:auto"></select></label>
   </div>
 </header>
 <main id="view"><div id="world"><div id="tiles"></div><div id="walkL"></div><div id="kindL"></div><div id="pend"></div><div id="marks"></div></div></main>
@@ -128,6 +129,8 @@
   <div class="pkFoot"><span id="pkSel" style="margin-right:auto;color:var(--muted)"></span><button id="pkCancel">Cancel</button><button id="pkOk" class="primary" disabled>Link</button></div>
 </div></div>
 
+<script src="i18n-strings.js"></script>
+<script src="i18n.js"></script>
 <script src="common.js"></script>
 <script src="world.js"></script>
 </body>

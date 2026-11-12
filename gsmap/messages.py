@@ -17,6 +17,7 @@ import re
 
 from . import layout
 from .fsio import atomic_write
+from .i18n import tr
 
 BEGIN = "# gsmod: editor messages BEGIN (gs-mapedit; lines added in the editor)"
 END = "# gsmod: editor messages END"
@@ -104,17 +105,17 @@ class Messages:
         """Why the game can't show this text, or None."""
         limit = self.alphabet()
         if len(text) > MAX_LINE:
-            return "That's far too long for the game. Split it into several lines."
+            return tr("That's far too long for the game. Split it into several lines.")
         for ch in COMMAND.sub("", text).replace("\n", ""):
             symbol = _symbol(ch)
             if symbol is None or symbol < 32 or symbol >= limit:
-                return (f"The game's font has no “{ch}”, so it would stop your game from building. "
-                        "Use plain letters, numbers and punctuation, with no accents.")
+                return tr("The game's font has no “{ch}”, so it would stop your game from building. "
+                          "Use plain letters, numbers and punctuation, with no accents.", ch=ch)
         for cmd in COMMAND.findall(text):
             if cmd not in self.commands:
-                return f"{cmd} isn't a text command the game knows. Remove it, or fix its spelling."
+                return tr("{command} isn't a text command the game knows. Remove it, or fix its spelling.", command=cmd)
         if not COMMAND.sub("", text).strip():
-            return "The line is empty. Write what it says."
+            return tr("The line is empty. Write what it says.")
         return None
 
     def bad_lines(self):
@@ -144,7 +145,7 @@ class Messages:
 
     def set(self, n, text):
         if not self.owned(n):
-            raise ValueError("only lines added in the editor are changed in place")
+            raise ValueError(tr("only lines added in the editor are changed in place"))
         text = tidy(text)
         problem = self.check(text)
         if problem:

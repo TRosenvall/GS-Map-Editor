@@ -153,7 +153,14 @@ Saved scene edits carry a fingerprint of the table they were made for. A table r
 - `python3 tests/safety.py`: what must never go wrong: failures and crashes leave no half-saved files, undo and redo step through saved actions in order and a new change clears redo, chests stay in their own rooms, bad values and hostile patches are refused, renamed or changed tables are handled, an unknown layout is reported rather than guessed at.
 - `python3 tests/placement.py`: the walking rules against the game: the people placed in eight towns are talkable and their ways out reachable, and in Imil the ice, an unreachable snowy spot (with its leveling fix), a narrow lane, a doorstep and a wall are each warned about.
 - `python3 tests/edits.py`: saves block, walkability and height edits on a copy of real maps and checks they read back, with nothing else changed.
+- `python3 tests/i18n.py`: every message the code shows is translated in every language, and each translation keeps its `{placeholders}`, HTML tags and keys (⌘ ⇧ ⌥ ▶).
 - `python3 tests/roundtrip.py`: loads and re-saves every map grid, cell-picture and shape table, and chest list (727 files with the debug-room mod, 721 on a plain checkout). All must come out byte-identical. This guarantees that saving a map only changes what you edited.
+
+### Languages
+
+The editor's own words are translated; the game stays English. Write each message in English, wrapped so it can be found: `tr("…")` in Python (`gsmap/i18n.py`), `T('…')` in the pages (`static/i18n.js`). The first argument is always one plain string; changing parts are `{name}` placeholders (`tr("Map {n} has {k} chests", n=n, k=k)`), and plurals are two whole templates. Text in the HTML pages, and whole texts or titles that scripts put in the page, are translated as they appear when they match a message exactly; anything inside a `data-notr` element (the game's names and dialogue) is left alone. Don't translate what's written into files (mod.c, en.po, the exported readme) or compared by code.
+
+`python3 tools/extract_strings.py` collects every message into `static/i18n/<lang>.json` (English → translation), adding new ones empty and dropping ones the code no longer has; `--check` fails if any are out of step or untranslated. The language picked in the 🌐 menu is kept in the editor's settings (`language`); until one is picked, the browser's preferred languages decide. Each request's messages use it (`i18n.begin` in both servers), and the pages get their catalog from `/i18n-strings.js`. To add a language, add it to `LANGS` in `gsmap/i18n.py`, run the extractor, and fill in the new file.
 
 ## Docs
 

@@ -31,6 +31,7 @@ from PIL import Image
 
 from . import layout
 from .fsio import atomic_write
+from .i18n import tr
 from . import grid as gridmod
 from . import table as tablemod
 
@@ -284,8 +285,8 @@ class Project:
                 break
             # Skipping a line would move every entry after it, and maps would
             # silently draw the wrong tiles.
-            raise DirectoryError(f"The resource directory has a line the editor doesn't understand: {s!r}. "
-                                 "It would misplace every map's art after that point.")
+            raise DirectoryError(tr("The resource directory has a line the editor doesn't understand: {line}. "
+                                    "It would misplace every map's art after that point.", line=repr(s)))
         return out
 
     def maps_path(self):
@@ -490,7 +491,7 @@ class Project:
             if not 0 <= v <= 0xFFFF:
                 raise ValueError(f"{v} isn't a value a cell can hold")
             if not (0 <= x < 128 and 0 <= y < 128):
-                raise ValueError(f"cell {x},{y} is outside the 128x128 grid")
+                raise ValueError(tr("cell {x},{y} is outside the 128x128 grid", x=x, y=y))
             if e["plane"] == "block":
                 if (v & 0xFFF) >= block_count:
                     raise ValueError(f"block {v & 0xFFF:#x} does not exist (map has {block_count})")
@@ -501,7 +502,7 @@ class Project:
                 if not 0 <= v <= g.max_value:
                     raise ValueError(f"{e['plane']} value {v:#x} out of range")
                 if e["plane"] == "shape" and v >= len(self.shape_rows(info)):
-                    raise ValueError("This place has no such height. Pick one from the Height panel.")
+                    raise ValueError(tr("This place has no such height. Pick one from the Height panel."))
                 g.cells[y][x] = v
                 touched.add(e["plane"])
             else:
@@ -512,24 +513,24 @@ class Project:
         marker_rows = marker_table.rows if marker_table else []
         for op in marker_ops or []:
             if marker_table is None:
-                raise ValueError("this map has no chest list to edit")
+                raise ValueError(tr("this map has no chest list to edit"))
             if len(self.marker_users(marker_path)) > 1:
-                raise ValueError(f"{os.path.basename(marker_path)} is shared by maps "
-                                 f"{', '.join(self.marker_users(marker_path))}; not editable yet")
+                raise ValueError(tr("{file} is shared by maps {maps}; not editable yet",
+                                    file=os.path.basename(marker_path), maps=", ".join(self.marker_users(marker_path))))
             i = int(op["index"])
             if not (0 <= i < len(marker_rows)) or tuple(marker_rows[i][:3]) == (0xFF, 0xFF, 0xFF):
                 raise ValueError(f"no marker #{i}")
             x, z = int(op["x"]), int(op["z"])
             if not (0 <= x < 128 and 0 <= z < 128):
-                raise ValueError(f"cell {x},{z} is outside the grid")
+                raise ValueError(tr("cell {x},{z} is outside the grid", x=x, z=z))
             ox, oz, mid = marker_rows[i][:3]
             if (x, z) == (ox, oz):
                 continue
             if any(j != i and tuple(r[:2]) == (x, z) for j, r in enumerate(marker_rows)):
-                raise ValueError(f"cell {x},{z} already holds a marker")
+                raise ValueError(tr("cell {x},{z} already holds a marker", x=x, z=z))
             if 1 <= planes["collision"].cells[z][x] <= 239:
-                raise ValueError("That square already does something, like a door or a sign. "
-                                 "Pick another square for the chest.")
+                raise ValueError(tr("That square already does something, like a door or a sign. "
+                                    "Pick another square for the chest."))
             restore = int(op.get("restore", 0))
             if restore == mid or not 0 <= restore <= 0xFF:
                 raise ValueError(f"old cell needs a collision code other than the marker's {mid:#x}")
@@ -544,10 +545,9 @@ class Project:
         col = planes["collision"].cells
         for mx, mz, mid in [tuple(r[:3]) for r in marker_rows if tuple(r[:3]) != (0xFF, 0xFF, 0xFF)]:
             if col[mz][mx] != mid:
-                raise ValueError(
-                    f"The square at {mx},{mz} holds a chest or Psynergy Stone, so its walkability can't "
-                    "be painted. Move or remove the chest first."
-                )
+                raise ValueError(tr(
+                    "The square at {x},{z} holds a chest or Psynergy Stone, so its walkability can't "
+                    "be painted. Move or remove the chest first.", x=mx, z=mz))
         warnings = []
         if "metatile" in touched:
             # Fewer placeholders than blocks is fine: a painted cell is written

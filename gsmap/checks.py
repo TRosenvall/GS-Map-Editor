@@ -12,6 +12,7 @@ import os
 import subprocess
 
 from . import layout
+from .i18n import tr
 from .chests import CHEST_CONTROL, ChestEditor, MARKER_MAX
 from .doors import DoorEditor
 from .messages import Messages
@@ -93,9 +94,9 @@ class Checker:
             except Exception as e:  # noqa: BLE001  one damaged place mustn't hide the rest
                 if not stock:
                     add("error", "map-unreadable", info,
-                        f"This place's files can't be read, so it can't be checked and the game may not build "
-                        f"({os.path.relpath(info.folder, p.root)}: {type(e).__name__}).",
-                        "Open it and use Reset place, or Undo last save.", "read")
+                        tr("This place's files can't be read, so it can't be checked and the game may not build "
+                           "({detail}).", detail=f"{os.path.relpath(info.folder, p.root)}: {type(e).__name__}"),
+                        tr("Open it and use Reset place, or Undo."), "read")
 
         out += self._flag_issues(chests, add, stock)
         if not stock:
@@ -118,43 +119,44 @@ class Checker:
                 cell = d["cells"][0]
                 if d["scene"] is None:
                     add("warning", "door-nowhere", info,
-                        f"A door in {sname} leads nowhere: stepping on it does nothing.",
-                        "Link it to a place with the Doors tool, or remove it.",
+                        tr("A door in {place} leads nowhere: stepping on it does nothing.", place=sname),
+                        tr("Link it to a place with the Doors tool, or remove it."),
                         f"{sid}:{d['code']}", cell, "doors", sid)
                 elif d.get("fallback"):
                     add("info", "door-fallback", info,
-                        f"A door in {sname} has no exit of its own, so the game sends it to {d['label']}, "
-                        "arrival point 0, the scene's first exit.",
-                        "Give it a destination with the Doors tool if that isn't what you want.",
+                        tr("A door in {place} has no exit of its own, so the game sends it to {target}, "
+                           "arrival point 0, the scene's first exit.", place=sname, target=d["label"]),
+                        tr("Give it a destination with the Doors tool if that isn't what you want."),
                         f"{sid}:{d['code']}", cell, "doors", sid)
                 elif d["entrance"] not in arrival_numbers(d["scene"]) and arrival_numbers(d["scene"]):
                     add("warning", "door-no-arrival", info,
-                        f"A door in {sname} leads to {d['label']}, arrival point {d['entrance']}, which "
-                        "doesn't exist there: the party appears at that place's first arrival point instead.",
-                        "Pick an arrival point that exists with the Doors tool.",
+                        tr("A door in {place} leads to {target}, arrival point {n}, which "
+                           "doesn't exist there: the party appears at that place's first arrival point instead.",
+                           place=sname, target=d["label"], n=d["entrance"]),
+                        tr("Pick an arrival point that exists with the Doors tool."),
                         f"{sid}:{d['code']}", cell, "doors", sid)
         # Chests and Psynergy stones
         markers = p.markers(info)
         if len(markers) > MARKER_MAX:
             add("error", "too-many-chests", info,
-                f"{len(markers)} chests and stones: the game shows only the first {MARKER_MAX}.",
-                "Remove some with the Chest tool.", "count", None, "chest")
+                tr("{n} chests and stones: the game shows only the first {max}.", n=len(markers), max=MARKER_MAX),
+                tr("Remove some with the Chest tool."), "count", None, "chest")
         listed = {(c["x"], c["z"]): c for c in chests.list(info)}
         for x, z, code in markers:
             if not (0 <= z < len(col) and 0 <= x < len(col[0])) or col[z][x] != code:
                 add("error", "chest-locked", info,
-                    "A chest can't be opened: the ground under it doesn't carry its code.",
-                    "Remove the chest and add it again with the Chest tool.", f"{x},{z}", [x, z], "chest")
+                    tr("A chest can't be opened: the ground under it doesn't carry its code."),
+                    tr("Remove the chest and add it again with the Chest tool."), f"{x},{z}", [x, z], "chest")
             c = listed.get((x, z))
             if c is not None and c["value"] is None and self._scene_count(info):
                 add("warning", "chest-empty", info,
-                    "A chest spot has nothing defined, so no chest appears there.",
-                    "Remove it, or add a chest there with the Chest tool.", f"{x},{z}", [x, z], "chest")
+                    tr("A chest spot has nothing defined, so no chest appears there."),
+                    tr("Remove it, or add a chest there with the Chest tool."), f"{x},{z}", [x, z], "chest")
             elif c and c["chest"] and c["flag"] in TEMP_FLAGS:
                 add("warning", "chest-refills", info,
-                    f"The chest with {c['contents']} uses a temporary flag, so it fills up again "
-                    "every time you come back.",
-                    "Remove it and add it again: the Chest tool picks a permanent flag.",
+                    tr("The chest with {contents} uses a temporary flag, so it fills up again "
+                       "every time you come back.", contents=c["contents"]),
+                    tr("Remove it and add it again: the Chest tool picks a permanent flag."),
                     f"{x},{z}", [x, z], "chest")
         # Blocks
         out += self._block_issues(info, add)
@@ -184,13 +186,13 @@ class Checker:
                         ghost.append([x, z])
         if missing:
             add("error", "block-missing", info,
-                f"{len(missing)} cell(s) use a block this map doesn't have; they draw garbage.",
-                "Paint over them with the Block tool.", "missing", missing[0], "block")
+                tr("{n} cell(s) use a block this map doesn't have; they draw garbage.", n=len(missing)),
+                tr("Paint over them with the Paint tool."), "missing", missing[0], "block")
         if ghost:
             add("error", "block-retired", info,
-                f"{len(ghost)} cell(s) use a block whose tiles were reused for an imported image; "
-                "they draw the image's pieces instead.",
-                "Paint over them with the Block tool.", "retired", ghost[0], "block")
+                tr("{n} cell(s) use a block whose tiles were reused for an imported image; "
+                   "they draw the image's pieces instead.", n=len(ghost)),
+                tr("Paint over them with the Paint tool."), "retired", ghost[0], "block")
         return []
 
     def _shape_issues(self, info, add):
@@ -206,9 +208,9 @@ class Checker:
                   if cells[z % 128][x % 128] >= rows)
         if bad:
             add("error", "height-missing", info,
-                f"{bad} square(s) here use a height this place doesn't have, so the game reads nonsense "
-                "for how high the ground is.",
-                "Repaint them with the Height tool.", "shape", None, "shape")
+                tr("{n} square(s) here use a height this place doesn't have, so the game reads nonsense "
+                   "for how high the ground is.", n=bad),
+                tr("Repaint them with the Height tool."), "shape", None, "shape")
 
     def _flag_issues(self, chests, add, stock):
         """Chests sharing an "opened" flag open together."""
@@ -228,11 +230,14 @@ class Checker:
             if len({(trigger, value) for _, trigger, value in who}) < 2:
                 continue
             places = sorted({self._overlay_place(o) for o, _, _ in who})
+            joined = places[0]
+            for other in places[1:]:
+                joined = tr("{list} and {last}", list=joined, last=other)
             add("warning", "chest-shared-flag", None,
-                f"{len(who)} chests share one \"opened\" flag ({' and '.join(places)}): opening one "
-                "makes the others appear opened.",
-                "Remove the newer chest and add it again: the Chest tool picks a fresh flag.",
-                f"{flag:#x}", place=" and ".join(places))
+                tr("{n} chests share one \"opened\" flag ({places}): opening one "
+                   "makes the others appear opened.", n=len(who), places=joined),
+                tr("Remove the newer chest and add it again: the Chest tool picks a fresh flag."),
+                f"{flag:#x}", place=joined)
         return []
 
     def _override_issues(self, add):
@@ -240,14 +245,14 @@ class Checker:
         ov = Overrides(self.project.root)
         for t in reconcile(ov, self.scenes):
             add("error", "override-stale", None,
-                f"An edit of yours ({t['symbol']}) was made for an older version of the game source "
-                "and no longer fits, so it's left out of your game for now.",
-                "Redo that edit, or remove it with Forget stale edits.", t["symbol"])
+                tr("An edit of yours ({table}) was made for an older version of the game source "
+                   "and no longer fits, so it's left out of your game for now.", table=t["symbol"]),
+                tr("Redo that edit, or remove it with Revert to original in the Story and scene panel."), t["symbol"])
         for n, text, why in Messages(self.project.root).bad_lines():
             shown = " ".join(text.replace("{page_break}", " ").replace("{end_wait}", "").split())
             add("error", "text-unbuildable", None,
-                f"A line you wrote, “{shown}”, can't be built. {why}",
-                "Change its words in the Events panel, or use Undo last save.", n)
+                tr("A line you wrote, “{line}”, can't be built. {why}", line=shown, why=why),
+                tr("Change its words in the Events panel, or use Undo."), n)
         return []
 
     # ---- helpers ---------------------------------------------------------------------
@@ -265,7 +270,7 @@ class Checker:
 
     def _overlay_place(self, ovl):
         sc = next((s for s in self.scenes.scenes if s["overlay"] == ovl), None)
-        return self.names.scene_label(sc["id"]) if sc else f"overlay {ovl:#x}"
+        return self.names.scene_label(sc["id"]) if sc else tr("overlay {n}", n=f"{ovl:#x}")
 
     def _scene_count(self, info):
         rows = {r["row"] for r in [info.resources] + info.alternates if r}
@@ -276,4 +281,4 @@ class Checker:
             return None
         rows = {r["row"] for r in [info.resources] + info.alternates if r}
         scs = self.scenes.for_rows(rows)
-        return self.names.scene_label(scs[0]["id"]) if scs else f"map {info.number}"
+        return self.names.scene_label(scs[0]["id"]) if scs else tr("map {n}", n=info.number)

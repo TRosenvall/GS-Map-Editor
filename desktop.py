@@ -26,6 +26,8 @@ HERE = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, HERE)
 
 from gsmap import host  # noqa: E402
+from gsmap import i18n  # noqa: E402
+from gsmap.i18n import tr  # noqa: E402
 from gsmap import setup as setupmod  # noqa: E402
 
 STATIC = os.path.join(HERE, "static")
@@ -61,9 +63,9 @@ def safe_checks():
     try:
         return setupmod.checks(APP["root"])
     except Exception as e:  # noqa: BLE001
-        APP["problem"] = f"Couldn't check the setup ({type(e).__name__}: {e})."
-        return [{"id": "source", "title": "The game's source", "ok": False,
-                 "detail": "Couldn't be read. Move its folder aside, then use a fresh download.", "action": None}]
+        APP["problem"] = tr("Couldn't check the setup ({detail}).", detail=f"{type(e).__name__}: {e}")
+        return [{"id": "source", "title": tr("The game's source"), "ok": False,
+                 "detail": tr("Couldn't be read. Move its folder aside, then use a fresh download."), "action": None}]
 
 
 def server_host_ok(headers):
@@ -103,6 +105,7 @@ class SetupHandler(SimpleHTTPRequestHandler):
     def do_GET(self):
         if not server_host_ok(self.headers):
             return self.send_json({"error": "forbidden"}, 403)
+        i18n.begin(self.headers)
         path = urlsplit(self.path).path
         auth = self.authorized()
         if not auth:
@@ -116,7 +119,16 @@ class SetupHandler(SimpleHTTPRequestHandler):
         if path in ("/", "/setup.html"):
             self.path = "/setup.html"
             return super().do_GET()
-        if path in ("/setup.js",):
+        if path == "/i18n-strings.js":
+            body = i18n.script().encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/javascript; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        if path in ("/setup.js", "/i18n.js"):
             self.path = path
             return super().do_GET()
         if path == "/api/setup/checks":
@@ -131,12 +143,16 @@ class SetupHandler(SimpleHTTPRequestHandler):
     def do_POST(self):
         if not server_host_ok(self.headers):
             return self.send_json({"error": "forbidden"}, 403)
+        i18n.begin(self.headers)
         path = urlsplit(self.path).path
         origin, host = self.headers.get("Origin"), self.headers.get("Host", "")
         if not self.authorized() or self.headers.get("X-GSMap") != "1" or (origin and urlsplit(origin).netloc != host):
             return self.send_json({"error": "forbidden"}, 403)
         body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", "0"))) or b"{}")
         try:
+            if path == "/api/language":
+                i18n.choose(body.get("lang"))
+                return self.send_json({"ok": True})
             if path == "/api/setup/run":
                 step = body.get("step")
                 if step == "brew":
@@ -144,7 +160,7 @@ class SetupHandler(SimpleHTTPRequestHandler):
                     return self.send_json({"ok": True})
                 with START:
                     if APP["job"] and not APP["job"].done:
-                        return self.send_json({"error": "Another step is still running."}, 409)
+                        return self.send_json({"error": tr("Another step is still running.")}, 409)
                     job, root = setupmod.start(step, APP["root"], APP["workspace"])
                     APP["job"] = job
                 if root:
@@ -161,19 +177,19 @@ class SetupHandler(SimpleHTTPRequestHandler):
                 if setupmod.path_problem(folder):
                     return self.send_json({"error": setupmod.path_problem(folder)}, 409)
                 if not setupmod.is_alchemy(folder):
-                    return self.send_json({"error": f"{folder} doesn't look like a copy of the game source this "
-                                                    "editor can read."}, 409)
+                    return self.send_json({"error": tr("{folder} doesn't look like a copy of the game source this "
+                                                       "editor can read.", folder=folder)}, 409)
                 APP["root"] = folder
                 remember_root(folder)
                 return self.send_json({"ok": True, "root": folder})
             if path == "/api/setup/launch":
                 if not all(c["ok"] for c in safe_checks()):
-                    return self.send_json({"error": "Some steps aren't done yet."}, 409)
+                    return self.send_json({"error": tr("Some steps aren't done yet.")}, 409)
                 return self.send_json({"url": start_editor()})
         except ValueError as e:
             return self.send_json({"error": str(e)}, 409)
         except Exception as e:  # noqa: BLE001  the page can show this; a dropped connection shows nothing
-            return self.send_json({"error": f"That didn't work ({type(e).__name__}: {e})."}, 500)
+            return self.send_json({"error": tr("That didn't work ({detail}).", detail=f"{type(e).__name__}: {e}")}, 500)
         return self.send_json({"error": "not found"}, 404)
 
 
@@ -208,7 +224,7 @@ def main():
         try:
             url = start_editor()
         except Exception as e:  # noqa: BLE001  say why in the window, rather than never open one
-            APP["problem"] = f"The editor couldn't start ({type(e).__name__}: {e})."
+            APP["problem"] = tr("The editor couldn't start ({detail}).", detail=f"{type(e).__name__}: {e}")
     if args.no_window:
         print("setup:", f"http://127.0.0.1:{port}/?token={TOKEN}", flush=True)
         print("open:", url, flush=True)

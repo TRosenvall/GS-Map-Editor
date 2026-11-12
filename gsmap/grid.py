@@ -19,6 +19,7 @@ as lists sharing its own cells.
 import re
 
 from .fsio import atomic_write
+from .i18n import tr
 
 HEADER = re.compile(r"^grid:(\d+)x(\d+)\tat:(\d+),(\d+)\tfill:([0-9a-f]+)(?::(\d+))?(?::(\d+))?$")
 PLANES = ("metatile", "collision", "shape")
@@ -36,7 +37,7 @@ class Plane:
 
     def set(self, x, y, value):
         if not 0 <= value <= self.max_value:
-            raise ValueError(f"{value:#x} does not fit this plane")
+            raise ValueError(tr("{value} does not fit this plane", value=f"{value:#x}"))
         self.cells[y][x] = value
 
 

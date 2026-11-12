@@ -17,6 +17,9 @@ jobs:
 
       # As Install-GS-Map-Editor.cmd does inside WSL: packages, the editor at
       # this commit, and the gs-map-editor command.
+      - name: Every message is translated
+        run: python3 tests/i18n.py
+
       - name: Install as the Windows installer does inside Ubuntu
         run: |
           bash windows/setup-in-wsl.sh "$GITHUB_SHA"

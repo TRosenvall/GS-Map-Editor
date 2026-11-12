@@ -51,14 +51,14 @@ async function init() {
 
 function renderList() {
   const q = $('#filter').value.trim().toLowerCase();
-  $('#maps').innerHTML = q && !'world map overworld'.includes(q) ? '' : '<a class="map" href="/world.html" style="text-decoration:none;color:inherit"><span class="t">🌍 World map</span><span class="d" style="grid-column:1/3">the overworld: towns, regions, ground</span></a>';
+  $('#maps').innerHTML = q && !'world map overworld'.includes(q) ? '' : '<a class="map" href="/world.html" style="text-decoration:none;color:inherit"><span class="t">🌍 ' + T('World map') + '</span><span class="d" style="grid-column:1/3">' + T('the overworld: towns, regions, ground') + '</span></a>';
   for (const m of S.maps) {
     const text = `${m.number} ${m.folder} ${m.tileset || ''} ${m.label || ''}`.toLowerCase();
     if (q && !text.includes(q)) continue;
     const el = document.createElement('div');
     el.className = 'map' + (S.map && S.map.number === m.number ? ' sel' : '');
     el.innerHTML = `<span class="t">${esc(m.label || m.folder)}</span>
-      <span class="d" style="grid-column:1/3">map ${m.number}${S.advanced ? ` · ${esc(m.folder)} · ${esc(m.tileset || '?')}` : ''} · ${m.size[0]}×${m.size[1]}</span>`;
+      <span class="d" style="grid-column:1/3">${T('map {n}', { n: m.number })}${S.advanced ? ` · ${esc(m.folder)} · ${esc(m.tileset || '?')}` : ''} · ${m.size[0]}×${m.size[1]}</span>`;
     el.onclick = () => openMap(m.number);
     $('#maps').appendChild(el);
   }
@@ -75,11 +75,11 @@ function loadImage(src) {
 async function openMap(n) {
   if (S.map && S.map.number !== n) EV.stage = null;  // a story stage belongs to one map's tables
   if (!await saveFirst()) return;
-  $('#status').textContent = `Loading map ${n}…`;
+  $('#status').textContent = T('Loading map {n}…', { n });
   const map = await api(`/api/map/${n}`);
   if (map.error) {
     S.failed = map.damaged ? n : null;  // Reset place can still put it back
-    if (map.damaged) failDialog("This place can't be opened", map.error, map.detail);
+    if (map.damaged) failDialog(T("This place can't be opened"), map.error, map.detail);
     status(`<span class="err">${esc(map.error)}</span>`);
     return;
   }
@@ -101,9 +101,11 @@ async function openMap(n) {
   if (S.tool === 'events') await loadEvents();
   if (S.tool === 'shape') buildHeightPanel();
   WK.key = null; loadStand();
-  status(S.advanced ? `Map <b>${n}</b> · ${esc(map.folder)} · ${esc(map.tileset)}${map.palette ? ' (palette ' + esc(map.palette) + ')' : ''} · ${map.size[0]}×${map.size[1]} · ${map.metatile_count} blocks` : `<b>${esc(S.maps.find(m => m.number === n)?.label || 'Place ' + n)}</b>`);
+  status(S.advanced ? `${T('Map {n}', { n: `<b>${n}</b>` })} · ${esc(map.folder)} · ${esc(map.tileset)}${map.palette ? ' ' + T('(palette {p})', { p: esc(map.palette) }) : ''} · ${map.size[0]}×${map.size[1]} · ${T('{n} blocks', { n: map.metatile_count })}` : `<b>${esc(S.maps.find(m => m.number === n)?.label || T('Place {n}', { n }))}</b>`);
   $('#welcome').style.display = 'none';
-  if (map.shares_grid?.length) status(`<span class="warn">This place's map is shared with ${map.shares_grid.length} other${map.shares_grid.length > 1 ? 's' : ''}: painting here changes ${map.shares_grid.length > 1 ? 'them' : 'it'} too.</span>`);
+  if (map.shares_grid?.length) status(`<span class="warn">${map.shares_grid.length > 1
+    ? T("This place's map is shared with {n} others: painting here changes them too.", { n: map.shares_grid.length })
+    : T("This place's map is shared with 1 other: painting here changes it too.")}</span>`);
 }
 
 // What was picked or half filled in belongs to the place you were on.
@@ -117,15 +119,15 @@ function forgetPlace() {
   if (S.tool === 'stamp') S.sel = null;
 }
 
-const LAYER_NAMES = ['Ground', 'Middle', 'Overhead'];
+const LAYER_NAMES = [T('Ground'), T('Middle'), T('Overhead')];
 function visibleLayers() { return S.map.layers.filter(l => l.priority).sort((a, b) => b.priority - a.priority); }
 
 function buildLayerControls() {
   const box = $('#layers'); box.innerHTML = '';
   for (const l of visibleLayers()) {
     const i = l.index, el = document.createElement('span'); el.className = 'layer';
-    el.innerHTML = `<label title="Show or hide this layer"><input type="checkbox" ${S.show[i] ? 'checked' : ''}> ${LAYER_NAMES[i] || 'L' + i}</label>
-      <input class="adv" type="range" min="0" max="100" value="${Math.round(S.alpha[i] * 100)}" title="See-through">`;
+    el.innerHTML = `<label title="${T('Show or hide this layer')}"><input type="checkbox" ${S.show[i] ? 'checked' : ''}> ${LAYER_NAMES[i] || 'L' + i}</label>
+      <input class="adv" type="range" min="0" max="100" value="${Math.round(S.alpha[i] * 100)}" title="${T('See-through')}">`;
     const [cb, rng] = el.querySelectorAll('input');
     cb.onchange = () => { S.show[i] = cb.checked; drawAll(); };
     rng.oninput = () => { S.alpha[i] = rng.value / 100; drawAll(); };
@@ -151,7 +153,7 @@ function collisionRange(v) { return S.names?.collision.find(r => r.lo <= v && v 
 function collisionName(v) {
   if (v == null) return '–';
   const legend = S.legend[String(v)], r = collisionRange(v);
-  const base = legend ? legend.join('; ') : (r ? r.name : 'unknown');
+  const base = legend ? legend.join('; ') : (r ? r.name : T('unknown'));
   return S.advanced ? `${base} [${hex(v)}]` : base;
 }
 function collisionColor(v) {
@@ -171,14 +173,14 @@ function buildHeightPanel() {
   const used = new Map();
   for (const row of m.grids.shape || []) for (const v of row) used.set(v, (used.get(v) || 0) + 1);
   const describe = v => {
-    const r = m.shapes?.[v]; if (!r) return `Height ${v}`;
+    const r = m.shapes?.[v]; if (!r) return T('Height {v}', { v });
     const px = Math.round(cellHeightPx(r));
-    return `${r[0] & 15 ? 'Slope or step' : 'Flat'}, ${px} px`;
+    return r[0] & 15 ? T('Slope or step, {px} px', { px }) : T('Flat, {px} px', { px });
   };
   const rows = [...used.keys()].sort((a, b) => cellHeightPx(m.shapes?.[b]) - cellHeightPx(m.shapes?.[a]));
   let current = parseInt($('#value').value, 16);
   if (current >= (m.shapes?.length ?? Infinity)) { $('#value').value = ''; current = NaN; }  // another place's height
-  box.innerHTML = localWords(`<div class="note" style="padding:0 10px 6px;color:var(--muted);font-size:12px">Pick a height, then paint. Things stand at the height of the ground they’re on, and you can only step up a little at a time. Or ⌥-click the map to copy a height from it.</div>`);
+  box.innerHTML = localWords(`<div class="note" style="padding:0 10px 6px;color:var(--muted);font-size:12px">${T('Pick a height, then paint. Things stand at the height of the ground they’re on, and you can only step up a little at a time. Or ⌥-click the map to copy a height from it.')}</div>`);
   const list = document.createElement('div'); list.style.cssText = 'display:flex;flex-direction:column;gap:3px;padding:0 10px 8px;max-height:240px;overflow:auto';
   for (const v of rows) {
     const b = document.createElement('button');
@@ -325,7 +327,7 @@ function mousePx(e) { const z = +$('#zoom').value, r = $('#cv').getBoundingClien
 async function saveFirst() {
   if (dirtyCount()) await doSave();
   if (!dirtyCount()) return true;
-  if (!confirm(`Your changes couldn't be saved:\n\n${S.saveError || 'The save was refused.'}\n\nThrow them away and carry on?`)) return false;
+  if (!confirm(T("Your changes couldn't be saved:\n\n{error}\n\nThrow them away and carry on?", { error: S.saveError || T('The save was refused.') }))) return false;
   S.pending.clear(); S.markerMoves.clear(); S.tableEdits.clear(); S.undo = []; S.redo = [];
   updateButtons();
   return true;
@@ -385,16 +387,16 @@ function drawPalette() {
 function drawPick() {
   const img = S.atlas[layer().char_base], ctx = $('#pickCv').getContext('2d');
   ctx.imageSmoothingEnabled = false; ctx.clearRect(0, 0, 16, 16);
-  if (S.block == null || !img) { $('#pickText').textContent = localWords('Pick a block below, or ⌥-click the map'); return; }
+  if (S.block == null || !img) { $('#pickText').textContent = localWords(T('Pick a block below, or ⌥-click the map')); return; }
   ctx.drawImage(img, (S.block % 32) * 16, Math.floor(S.block / 32) * 16, 16, 16, 0, 0, 16, 16);
-  $('#pickText').innerHTML = `block <b>${hex(S.block)}</b> on L${layer().index}`;
+  $('#pickText').innerHTML = T('block {b} on L{l}', { b: `<b>${hex(S.block)}</b>`, l: layer().index });
 }
 
 $('#palette').addEventListener('click', e => {
   const r = e.target.getBoundingClientRect(), cols = 8, s = 32;
   const i = Math.floor((e.clientY - r.top) / s) * cols + Math.floor((e.clientX - r.left) / s);
   if (i < S.map.metatile_count) {
-    if ((S.map.retired || []).includes(i)) return status('<span class="warn">That block was retired to make room for custom tiles.</span>');
+    if ((S.map.retired || []).includes(i)) return status(`<span class="warn">${T('That block was retired to make room for custom tiles.')}</span>`);
     S.block = i; setTool('block'); drawPalette();
   }
 });
@@ -423,13 +425,13 @@ function paintAt(x, y) {
   // Blocks are drawn where they are; walkability and height belong to the ground under the cursor.
   const [gx, gy] = S.tool === 'block' || !S.mouse ? gridXY(l, x, y) : (groundAt(l, S.mouse[0], S.mouse[1]) || gridXY(l, x, y));
   if (S.tool === 'block') {
-    if (S.block == null) return status('<span class="warn">Pick a block first.</span>');
+    if (S.block == null) return status(`<span class="warn">${T('Pick a block first.')}</span>`);
     setValue('block', gx, gy, (m.blocks[gy][gx] & 0xf000) | S.block);  // keep the cell's flags
   } else if (S.tool === 'collision' || S.tool === 'shape') {
     const v = parseInt($('#value').value, 16);
-    if ($('#value').value.trim() === '') return status(`<span class="warn">Pick ${S.tool === 'shape' ? 'a height' : 'a brush'} on the right first.</span>`);
-    if (isNaN(v) || v < 0 || v > 0xff) return status('<span class="err">That value should be 0 to ff.</span>');
-    if (S.tool === 'collision' && m.markers?.some(k => k.x === gx && k.z === gy)) return status('<span class="warn">That square holds a chest or stone. Move or remove it first.</span>');
+    if ($('#value').value.trim() === '') return status(`<span class="warn">${S.tool === 'shape' ? T('Pick a height on the right first.') : T('Pick a brush on the right first.')}</span>`);
+    if (isNaN(v) || v < 0 || v > 0xff) return status(`<span class="err">${T('That value should be 0 to ff.')}</span>`);
+    if (S.tool === 'collision' && m.markers?.some(k => k.x === gx && k.z === gy)) return status(`<span class="warn">${T('That square holds a chest or stone. Move or remove it first.')}</span>`);
     setValue(S.tool, gx, gy, v);
   }
   redrawCells([[x, y]]);
@@ -488,12 +490,12 @@ function finishStroke() {
 function updateButtons() {
   const serverRedo = !S.redo.length && HIST.next && !dirtyCount();
   $('#undo').disabled = !S.undo.length && !HIST.last;
-  $('#undo').title = localWords(S.undo.length ? 'Undo your last unsaved change (⌘Z)' : historyTitle(false) + (HIST.last ? ' (⌘Z)' : ''));
+  $('#undo').title = localWords(S.undo.length ? T('Undo your last unsaved change (⌘Z)') : historyTitle(false) + (HIST.last ? ' (⌘Z)' : ''));
   $('#redo').disabled = !S.redo.length && !serverRedo;
-  $('#redo').title = localWords(S.redo.length ? 'Redo (⇧⌘Z)' : !HIST.next ? 'Nothing to redo'
-    : dirtyCount() ? 'Save your changes first, or undo them' : historyTitle(true) + ' (⇧⌘Z)');
+  $('#redo').title = localWords(S.redo.length ? T('Redo (⇧⌘Z)') : !HIST.next ? T('Nothing to redo')
+    : dirtyCount() ? T('Save your changes first, or undo them') : historyTitle(true) + ' (⇧⌘Z)');
   $('#save').disabled = !dirtyCount();
-  $('#save').textContent = dirtyCount() ? `Save (${dirtyCount()})` : 'Saved';
+  $('#save').textContent = dirtyCount() ? T('Save ({n})', { n: dirtyCount() }) : T('Saved');
 }
 
 // The scene's data tables are for Advanced, and for Move people, which drags their rows.
@@ -568,16 +570,16 @@ window.addEventListener('mouseup', e => {
     if (x < 0 || y < 0 || x >= m.size[0] || y >= m.size[1]) return;
     const [mx, my] = mousePx(e), [gx, gy] = groundAt(layer(), mx, my) || gridXY(layer(), x, y);
     if (gx === mk.x && gy === mk.z) return chestSelect(gx, gy, mk);
-    if (m.markers.some(o => o !== mk && o.x === gx && o.z === gy)) return status('<span class="err">There\'s already a chest there.</span>');
+    if (m.markers.some(o => o !== mk && o.x === gx && o.z === gy)) return status(`<span class="err">${T("There's already a chest there.")}</span>`);
     const under = m.grids.collision?.[gy]?.[gx];
-    if (under >= 1 && under <= 239) return status('<span class="err">That square already does something, like a door or a sign. Pick another for the chest.</span>');
+    if (under >= 1 && under <= 239) return status(`<span class="err">${T('That square already does something, like a door or a sign. Pick another for the chest.')}</span>`);
     mk.orig = mk.orig || [mk.x, mk.z];
     const before = { x: mk.x, z: mk.z, restore: S.markerMoves.get(mk.index)?.restore ?? 0 };
     const after = { x: gx, z: gy, restore: restoreCode(mk.orig[0], mk.orig[1], mk.id) };
     setMarker(mk.index, after);
     S.undo.push([{ plane: 'marker', index: mk.index, before, after }]); S.redo = [];
     drawAll(); updateButtons();
-    status(S.advanced ? `Marker <b>${hex(mk.id)}</b> → ${gx},${gy}; old cell's collision becomes <b>${hex(after.restore)}</b>. Save to apply.` : 'Moved. Save to keep it.');
+    status(S.advanced ? T("Marker {id} → {x},{y}; old cell's collision becomes {code}. Save to apply.", { id: `<b>${hex(mk.id)}</b>`, x: gx, y: gy, code: `<b>${hex(after.restore)}</b>` }) : T('Moved. Save to keep it.'));
   }
 });
 $('#cv').addEventListener('mousemove', e => {
@@ -597,16 +599,18 @@ $('#cv').addEventListener('mousemove', e => {
   // what the ground under the cursor does (raised ground is stored further down the grid)
   const l = layer(), [gx, gy] = g0 || gridXY(l, x, y);
   const col = m.grids.collision?.[gy]?.[gx], mk = (m.markers || []).find(k => k.x === gx && k.z === gy);
-  const what = mk ? `<b>${(S.legend[String(mk.id)] || ['Chest'])[0]}</b>` : `<b>${collisionName(col)}</b>`;
+  const what = mk ? `<b>${(S.legend[String(mk.id)] || [T('Chest')])[0]}</b>` : `<b>${collisionName(col)}</b>`;
   status(S.advanced
-    ? `cell <b>${x},${y}</b> (ground ${gx},${gy}) · blocks ${parts.join(' ')} · ${what} · height <b>${hex(m.grids.shape?.[gy]?.[gx])}</b> (${heightPx(l, gx, gy)} px) on L${l.index}`
-    : `${what} · height ${heightPx(l, gx, gy)} px · cell ${x},${y}`);
+    ? T('cell {cell} (ground {ground}) · blocks {blocks} · {what} · height {height} ({px} px) on L{layer}', {
+      cell: `<b>${x},${y}</b>`, ground: `${gx},${gy}`, blocks: parts.join(' '), what,
+      height: `<b>${hex(m.grids.shape?.[gy]?.[gx])}</b>`, px: heightPx(l, gx, gy), layer: l.index })
+    : T('{what} · height {px} px · cell {cell}', { what, px: heightPx(l, gx, gy), cell: `${x},${y}` }));
 });
 
 // ---- scenes and their tables ---------------------------------------------------
 function clone(v) { return JSON.parse(JSON.stringify(v)); }
 const KIND_ORDER = ['entrances', 'placements', 'exits', 'events', 'regions'];
-const KIND_LABEL = { entrances: 'Arrival points', placements: 'People', exits: 'Exits', events: 'Events', regions: 'Areas' };
+const KIND_LABEL = { entrances: T('Arrival points'), placements: T('People'), exits: T('Exits'), events: T('Events'), regions: T('Areas') };
 // gValeHome_ActorPlacementsAfterKalay -> "After Kalay"; plain table -> "normal"
 function variantName(sym) {
   const kinds = /_?(Entrances|Exits|ActorPlacements|Placements|Triggers|Regions)(.*)$/, m = sym.match(kinds);
@@ -614,7 +618,7 @@ function variantName(sym) {
   // it, following the place's name (gValePlaza_StormTriggers).
   const before = m ? sym.slice(0, m.index).replace(/^g/, '') : '', lead = before.includes('_') ? before.split('_').pop() : '';
   const v = ((m && m[2]) || lead).replace(/^_/, '').replace(/([a-z])([A-Z])/g, '$1 $2');
-  return (v || 'normal') + (S.advanced ? ` [${sym}]` : '');
+  return (v || T('normal')) + (S.advanced ? ` [${sym}]` : '');
 }
 
 async function loadScenes(keepSelection) {
@@ -623,8 +627,8 @@ async function loadScenes(keepSelection) {
   const r = await api(`/api/map/${S.map.number}/scenes`);
   S.scenes = Array.isArray(r) ? r : [];
   const sel = $('#sceneSel'); sel.innerHTML = '';
-  if (!S.scenes.length) { $('#tableSel').innerHTML = ''; $('#tableView').innerHTML = `<div class="note">${esc(r.error || 'No scene uses this map.')}</div>`; return; }
-  for (const sc of S.scenes) sel.insertAdjacentHTML('beforeend', `<option value="${sc.id}">${esc(S.names.sceneById[sc.id]?.label || sc.name || 'scene ' + sc.id)}${S.advanced ? ' [' + sc.id + ']' : ''}</option>`);
+  if (!S.scenes.length) { $('#tableSel').innerHTML = ''; $('#tableView').innerHTML = `<div class="note">${esc(r.error || T('No scene uses this map.'))}</div>`; return; }
+  for (const sc of S.scenes) sel.insertAdjacentHTML('beforeend', `<option value="${sc.id}">${esc(S.names.sceneById[sc.id]?.label || sc.name || T('scene {n}', { n: sc.id }))}${S.advanced ? ' [' + sc.id + ']' : ''}</option>`);
   if (keepSelection && [...sel.options].some(o => o.value === prevScene)) sel.value = prevScene;
   fillTables(keepSelection ? prevTable : null);
 }
@@ -636,7 +640,7 @@ function fillTables(prefer) {
   if (!sc) return;
   const tables = [...sc.tables].sort((a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind));
   for (const t of tables)
-    sel.insertAdjacentHTML('beforeend', `<option value="${esc(t.symbol)}">${KIND_LABEL[t.kind]}: ${esc(variantName(t.symbol))}${t.overridden ? ' ✎' : ''}${t.editable ? '' : ' (read-only)'}</option>`);
+    sel.insertAdjacentHTML('beforeend', `<option value="${esc(t.symbol)}">${KIND_LABEL[t.kind]}: ${esc(variantName(t.symbol))}${t.overridden ? ' ✎' : ''}${t.editable ? '' : ' ' + T('(read-only)')}</option>`);
   const def = tables.find(t => t.kind === 'entrances') || tables[0];
   sel.value = prefer && tables.some(t => t.symbol === prefer) ? prefer : (def ? def.symbol : '');
   renderTable(); drawAll();
@@ -717,8 +721,8 @@ function revealPoints() {
 }
 
 function startPointDrag(e) {
-  const t = table(); if (!t || !['entrances', 'placements'].includes(t.kind)) return status('<span class="warn">Pick an entrances or placements table in the Scene panel.</span>');
-  if (!t.editable) return status('<span class="warn">This table is read-only.</span>');
+  const t = table(); if (!t || !['entrances', 'placements'].includes(t.kind)) return status(`<span class="warn">${T('Pick an entrances or placements table in the Scene panel.')}</span>`);
+  if (!t.editable) return status(`<span class="warn">${T('This table is read-only.')}</span>`);
   const z = +$('#zoom').value, rc = $('#cv').getBoundingClientRect();
   const mx = (e.clientX - rc.left) / z, my = (e.clientY - rc.top) / z;
   let best = null, bd = 10;
@@ -739,7 +743,9 @@ function endPointDrag(e) {
     if (t.kind === 'entrances') { rows[i].x = x; rows[i].z = y; }
     else { rows[i].x = x * 65536; rows[i].z = y * 65536; }
   });
-  status(`${t.kind === 'entrances' ? 'Entrance ' + rowsOf(t)[i].entrance : (S.advanced ? 'Actor ' + actorNumber(rowsOf(t), i) : 'Person')} moved to ${x},${y} px. Save, then press ▶ Play to try it.`);
+  const who = t.kind === 'entrances' ? T('Entrance {n}', { n: rowsOf(t)[i].entrance })
+    : (S.advanced ? T('Actor {n}', { n: actorNumber(rowsOf(t), i) }) : T('Person'));
+  status(T('{who} moved to {x},{y} px. Save, then press ▶ Play to try it.', { who, x, y }));
   if (t.kind === 'placements') checkMovedPerson(t, i, x, y);
   else staleStand();  // an arrival point moved
 }
@@ -753,48 +759,48 @@ async function entrancesOf(sceneId) {
 
 const hexIn = v => v == null ? '' : '0x' + v.toString(16);
 function sceneOptions(cur) {
-  return S.allScenes.map(s => `<option value="${s.id}" ${s.id === cur ? 'selected' : ''}>${esc(S.names.sceneById[s.id]?.label || s.name || 'scene ' + s.id)}${S.advanced ? ' [' + s.id + ']' : ''}</option>`).join('');
+  return S.allScenes.map(s => `<option value="${s.id}" ${s.id === cur ? 'selected' : ''}>${esc(S.names.sceneById[s.id]?.label || s.name || T('scene {n}', { n: s.id }))}${S.advanced ? ' [' + s.id + ']' : ''}</option>`).join('');
 }
 
 function renderTable() {
   const view = $('#tableView'), t = S.map && table();
   if (!t) { view.innerHTML = ''; return; }
   const rows = rowsOf(t), edited = S.tableEdits.has(t.symbol);
-  let html = `<div class="note">${t.kind} · ${rows.length} rows${t.overridden ? ' · <b>overridden in mod</b>' : ''}${edited ? ' · unsaved' : ''}
-    ${t.overridden ? ' <button id="revertTable">Revert to original</button>' : ''}</div>`;
-  if (!t.editable) html += '<div class="note">This can’t be edited yet: its bytes are not a plain table of this kind.</div>';
+  let html = `<div class="note">${t.kind} · ${rows.length === 1 ? T('1 row') : T('{n} rows', { n: rows.length })}${t.overridden ? ` · <b>${T('overridden in mod')}</b>` : ''}${edited ? ' · ' + T('unsaved') : ''}
+    ${t.overridden ? ` <button id="revertTable">${T('Revert to original')}</button>` : ''}</div>`;
+  if (!t.editable) html += `<div class="note">${T('This can’t be edited yet: its bytes are not a plain table of this kind.')}</div>`;
   if (t.kind === 'exits') {
     rows.forEach((seg, si) => {
       if (seg.raw !== undefined || seg.scene === 0x1ff) return;
-      const name = S.names.sceneById[seg.scene]?.label || 'scene ' + seg.scene;
-      html += `<div class="note">Exits from <b>${esc(name)}</b></div><table><tr><th title="what triggers it">kind</th><th>leads to</th><th title="arrival point">arrive at</th><th class="adv">flag</th><th></th></tr>`;
+      const name = S.names.sceneById[seg.scene]?.label || T('scene {n}', { n: seg.scene });
+      html += `<div class="note">${T('Exits from {place}', { place: `<b>${esc(name)}</b>` })}</div><table><tr><th title="${T('what triggers it')}">${T('kind')}</th><th>${T('leads to')}</th><th title="${T('arrival point')}">${T('arrive at')}</th><th class="adv">${T('flag')}</th><th></th></tr>`;
       seg.exits.forEach((ex, ei) => {
         html += `<tr data-s="${si}" data-e="${ei}"><td><input data-f="kind" value="${ex.kind}"></td>
           <td><select data-f="scene">${sceneOptions(ex.scene)}</select></td>
           <td><input data-f="entrance" value="${ex.entrance}"><span class="chk" data-scene="${ex.scene}" data-entr="${ex.entrance}"></span></td>
-          <td class="adv"><input data-f="flag" value="${hexIn(ex.flag)}" placeholder="none"></td>
-          <td><button data-del="1" title="remove exit">×</button></td></tr>`;
+          <td class="adv"><input data-f="flag" value="${hexIn(ex.flag)}" placeholder="${T('none')}"></td>
+          <td><button data-del="1" title="${T('remove exit')}">×</button></td></tr>`;
       });
-      html += `</table><button data-add="${si}">+ exit</button>`;
+      html += `</table><button data-add="${si}">${T('+ exit')}</button>`;
     });
-    html += '<div class="note">Kind is what a collision code, script or region asks for; kind 255 matches any.</div>';
+    html += `<div class="note">${T('Kind is what a collision code, script or region asks for; kind 255 matches any.')}</div>`;
   } else if (t.kind === 'entrances' || t.kind === 'placements') {
     const pl = t.kind === 'placements';
-    html += `<table><tr><th>${pl ? 'who' : 'arrival #'}</th><th class="adv">${pl ? 'actor' : 'flag'}</th><th>x</th><th>z</th><th class="adv">facing</th></tr>`;
+    html += `<table><tr><th>${pl ? T('who') : T('arrival #')}</th><th class="adv">${pl ? T('actor') : T('flag')}</th><th>x</th><th>z</th><th class="adv">${T('facing')}</th></tr>`;
     rows.forEach((r, i) => {
       if ((pl ? r.sprite : r.entrance) < 0) return;
-      const who = pl ? (S.names.spriteById[r.sprite]?.name || 'sprite ' + r.sprite) : '';
+      const who = pl ? (S.names.spriteById[r.sprite]?.name || T('sprite {n}', { n: r.sprite })) : '';
       html += `<tr><td>${pl ? `<img src="/api/asset/sprite/${r.sprite}.png" style="height:20px;vertical-align:middle" data-hide-broken> ${esc(who)}` : r.entrance}</td>
         <td class="adv">${pl ? actorNumber(rows, i) : hexIn(r.requiredFlag < 0 ? null : r.requiredFlag) || '–'}</td>
         <td>${pl ? r.x >> 16 : r.x}</td><td>${pl ? r.z >> 16 : r.z}</td><td class="adv">${hexIn(r.facing)}</td></tr>`;
     });
-    html += '</table><div class="note">Drag them with Move people (P); hold ⇧ to snap to 8 px. Grey people are placed by the story, so they can’t be dragged.</div>';
+    html += `</table><div class="note">${T('Drag them with Move people (P); hold ⇧ to snap to 8 px. Grey people are placed by the story, so they can’t be dragged.')}</div>`;
   } else {
     html += '<table>' + rows.slice(0, 200).map(r => '<tr>' + Object.values(r).map(v => `<td>${hexIn(v >>> 0)}</td>`).join('') + '</tr>').join('') + '</table>';
-    html += '<div class="note">Shown read-only for now.</div>';
+    html += `<div class="note">${T('Shown read-only for now.')}</div>`;
   }
   view.innerHTML = html;
-  $('#revertTable')?.addEventListener('click', () => { S.tableEdits.set(t.symbol, { overlay: scene().overlay, kind: t.kind, rows: t.rows, revert: true }); updateButtons(); status('Revert queued; Save to apply.'); });
+  $('#revertTable')?.addEventListener('click', () => { S.tableEdits.set(t.symbol, { overlay: scene().overlay, kind: t.kind, rows: t.rows, revert: true }); updateButtons(); status(T('Revert queued; Save to apply.')); });
   if (t.kind !== 'exits' || !t.editable) return;
   view.querySelectorAll('tr[data-s]').forEach(tr => {
     const si = +tr.dataset.s, ei = +tr.dataset.e;
@@ -811,7 +817,7 @@ function renderTable() {
   // mark exits whose entrance doesn't exist in the target scene's overlay
   view.querySelectorAll('.chk').forEach(async el => {
     const list = await entrancesOf(+el.dataset.scene);
-    if (list.length && !list.includes(+el.dataset.entr)) { el.className = 'chk bad'; el.textContent = ' ✗'; el.title = 'no such entrance in that scene'; }
+    if (list.length && !list.includes(+el.dataset.entr)) { el.className = 'chk bad'; el.textContent = ' ✗'; el.title = T('no such entrance in that scene'); }
   });
 }
 
@@ -838,9 +844,9 @@ function setStampMode(mode) {
 
 function updateStampInfo() {
   const c = S.clip;
-  $('#stampInfo').innerHTML = !c ? 'Drag on the map to copy an area.'
-    : `${S.stampMode === 'paste' ? 'Click to paste' : 'Drag to copy a new area'} · clipboard ${c.w}×${c.h} from <b>${esc(c.from)}</b>` +
-      (S.map && !stampFits(c) ? '<br><span class="err">This map uses a different block set; the stamp can only be pasted into maps sharing its blocks.</span>' : '');
+  $('#stampInfo').innerHTML = !c ? T('Drag on the map to copy an area.')
+    : `${S.stampMode === 'paste' ? T('Click to paste') : T('Drag to copy a new area')} · ${T('clipboard {w}×{h} from {place}', { w: c.w, h: c.h, place: `<b>${esc(c.from)}</b>` })}` +
+      (S.map && !stampFits(c) ? `<br><span class="err">${T('This map uses a different block set; the stamp can only be pasted into maps sharing its blocks.')}</span>` : '');
 }
 
 // A stamp fits a map of its block family. Blocks past the shared part are the
@@ -912,7 +918,7 @@ function stampUp() {
   const x0 = Math.min(s.x0, s.x1), y0 = Math.min(s.y0, s.y1), w = Math.abs(s.x1 - s.x0) + 1, h = Math.abs(s.y1 - s.y0) + 1;
   const layers = m.layers.map(l => l.priority ? l : null);
   const testers = layers.map((l, i) => l && i > 0 ? objectTester(l) : null);
-  const clip = { w, h, from: (S.maps.find(o => o.number === m.number) || {}).label || 'map ' + m.number, map: m.number,
+  const clip = { w, h, from: (S.maps.find(o => o.number === m.number) || {}).label || T('map {n}', { n: m.number }), map: m.number,
     hash: m.metatiles_hash, family: m.family, familySize: m.family_size, layers: [], object: [] };
   for (let li = 0; li < layers.length; li++) {
     const l = layers[li];
@@ -939,7 +945,7 @@ function stampUp() {
   try { localStorage.setItem('gsmap.clip', JSON.stringify(clip)); } catch (e) {}
   drawStampThumb(x0, y0, w, h);
   setStampMode('paste');
-  status(`Copied ${w}×${h}. Click to paste (here or in another map with the same block set); Esc to copy again.`);
+  status(T('Copied {w}×{h}. Click to paste (here or in another map with the same block set); Esc to copy again.', { w, h }));
 }
 
 function drawStampThumb(x0, y0, w, h) {
@@ -980,10 +986,10 @@ function drawStampOverlay() {
 
 function pasteStamp(x, y) {
   const m = S.map, c = S.clip;
-  if (!stampFits(c)) return status('<span class="err">This map uses a different block set, so the stamp would draw the wrong tiles. Paste it into a place that shares its blocks.</span>');
+  if (!stampFits(c)) return status(`<span class="err">${T('This map uses a different block set, so the stamp would draw the wrong tiles. Paste it into a place that shares its blocks.')}</span>`);
   const retired = retiredSet();
   const bad = c.layers.filter(Boolean).some(L => L.block.flat().some(v => v != null && retired.has(v & 0xfff)));
-  if (bad) return status('<span class="err">This stamp uses blocks this map retired to make room for custom tiles, so they would draw the wrong art here.</span>');
+  if (bad) return status(`<span class="err">${T('This stamp uses blocks this map retired to make room for custom tiles, so they would draw the wrong art here.')}</span>`);
   const objOnly = $('#stampObjects').checked, walk = $('#stampWalk').checked;
   S.stroke = [];
   const cells = [];
@@ -1002,7 +1008,8 @@ function pasteStamp(x, y) {
   }
   finishStroke();
   redrawCells(cells); drawStampOverlay();
-  status(localWords(`Pasted ${c.w}×${c.h}${objOnly ? ' (objects only)' : ''}. Save to keep it; ⌘Z to undo.`));
+  status(localWords(objOnly ? T('Pasted {w}×{h} (objects only). Save to keep it; ⌘Z to undo.', { w: c.w, h: c.h })
+    : T('Pasted {w}×{h}. Save to keep it; ⌘Z to undo.', { w: c.w, h: c.h })));
 }
 
 // ---- chests: add, change what's inside, remove (one server action each) ----------
@@ -1030,19 +1037,19 @@ function chestSelect(x, z, mk) {
   const c = mk && S.chests?.find(c => c.x === x && c.z === z);
   if (mk && !c?.chest) {
     chestDeselect(); drawAll();
-    return status(`This is ${S.legend[String(mk.id)]?.[0] || 'a Psynergy Stone or scripted find'}; it can be moved but not changed here.`);
+    return status(T('This is {what}; it can be moved but not changed here.', { what: S.legend[String(mk.id)]?.[0] || T('a Psynergy Stone or scripted find') }));
   }
   S.chestAt = { x, z, chest: c || null };
   $('#chestForm').style.display = 'block';
-  $('#chestOk').textContent = c ? 'Change contents' : 'Add chest';
+  $('#chestOk').textContent = c ? T('Change contents') : T('Add chest');
   $('#chestRemove').style.display = c ? '' : 'none';
   const kind = c && c.value >> 20 === 2 ? 'coins' : 'item';
   document.querySelector(`input[name=chestKind][value=${kind}]`).checked = true;
   if (c && kind === 'coins') $('#chestCoins').value = c.value & 0xffff;
   if (c && kind === 'item') $('#chestItem').value = S.names.itemById[c.value & 0xffff]?.name || '';
   updateChestIcon();
-  $('#chestInfo').innerHTML = c ? `Chest holding <b>${esc(c.contents)}</b>.` + (S.advanced ? ` Code ${hex(c.code)}, opened flag ${hex(c.flag)}.` : '')
-    : 'New chest here. Pick what it holds:';
+  $('#chestInfo').innerHTML = c ? T('Chest holding {what}.', { what: `<b>${esc(c.contents)}</b>` }) + (S.advanced ? ' ' + T('Code {code}, opened flag {flag}.', { code: hex(c.code), flag: hex(c.flag) }) : '')
+    : T('New chest here. Pick what it holds:');
   drawAll();
 }
 function updateChestIcon() {
@@ -1060,7 +1067,7 @@ async function chestAction(action) {
     if (document.querySelector('input[name=chestKind]:checked').value === 'coins') contents = { coins: +$('#chestCoins').value };
     else {
       const it = itemByName($('#chestItem').value);
-      if (!it) return status('<span class="err">Pick an item from the list (start typing its name).</span>');
+      if (!it) return status(`<span class="err">${T('Pick an item from the list (start typing its name).')}</span>`);
       contents = { item: it.id };
     }
   }
@@ -1071,10 +1078,11 @@ async function chestAction(action) {
   S.pending.clear(); S.markerMoves.clear(); S.tableEdits.clear();
   await openMap(n);
   chestDeselect();
-  status(`<span class="ok">${action === 'add' ? `Added a chest with <b>${esc(r.contents)}</b>` : action === 'remove' ? 'Removed the chest' : `The chest now holds <b>${esc(r.contents)}</b>`}.</span> Press ▶ Play to try it.`);
+  const what = `<b>${esc(r.contents)}</b>`;
+  status(`<span class="ok">${action === 'add' ? T('Added a chest with {what}.', { what }) : action === 'remove' ? T('Removed the chest.') : T('The chest now holds {what}.', { what })}</span> ${T('Press ▶ Play to try it.')}`);
 }
 $('#chestOk').onclick = () => chestAction(S.chestAt?.chest ? 'contents' : 'add');
-$('#chestRemove').onclick = () => confirm('Remove this chest?') && chestAction('remove');
+$('#chestRemove').onclick = () => confirm(T('Remove this chest?')) && chestAction('remove');
 
 // ---- events: what people say, signs and step messages, in words -----------------------
 const EV = { data: null, sel: null, stage: null, spot: null };
@@ -1083,18 +1091,18 @@ function gameToPlain(t) {
   return (t || '').replace(/\{end_wait\}/g, '').replace(/\{page_break\}/g, '\n\n').replace(/([^\n])\n(?!\n)/g, '$1 ').trim();
 }
 function showNames(t) {
-  return (t || '').replace(/\{protagonist_name\}/g, S.names.characters[0] || 'the hero').replace(/\{actor_name:(\d+)\}/g, (m, n) => S.names.characters[n - 1] || 'someone')
+  return (t || '').replace(/\{protagonist_name\}/g, S.names.characters[0] || T('the hero')).replace(/\{actor_name:(\d+)\}/g, (m, n) => S.names.characters[n - 1] || T('someone'))
     .replace(/\{end_wait\}|\{end_now\}|\{pause_\w+\}/g, '').replace(/\{[^}]*\}/g, '');
 }
 async function loadEvents() {
-  const sc = scene(); if (!sc) { $('#evList').innerHTML = '<div class="note">No scene uses this map.</div>'; return; }
+  const sc = scene(); if (!sc) { $('#evList').innerHTML = `<div class="note">${T('No scene uses this map.')}</div>`; return; }
   const q = `scene=${sc.id}` + (EV.stage ? `&table=${EV.stage}` : '');
   const r = await api(`/api/map/${S.map.number}/events?${q}`);
   if (r.error) { $('#evList').innerHTML = `<div class="err">${esc(r.error)}</div>`; return; }
   EV.data = r; EV.stage = r.symbol; staleStand();
   $('#evStage').innerHTML = r.tables.map(t => `<option value="${esc(t)}" ${t === r.symbol ? 'selected' : ''}>${esc(variantName(t))}</option>`).join('');
   $('#evShared').style.display = r.shared_with.length ? '' : 'none';
-  $('#evShared').textContent = r.shared_with.length ? `This scene shares its people and events with ${r.shared_with.slice(0, 3).join(', ')}${r.shared_with.length > 3 ? '…' : ''}: changes show there too.` : '';
+  $('#evShared').textContent = r.shared_with.length ? T('This scene shares its people and events with {places}: changes show there too.', { places: r.shared_with.slice(0, 3).join(', ') + (r.shared_with.length > 3 ? '…' : '') }) : '';
   if (!S.flags) { S.flags = await api('/api/flags'); $('#flagList').innerHTML = S.flags.flags.map(f => `<option value="${esc(f.label)}">`).join(''); }
   renderEvents(); drawAll();
 }
@@ -1102,13 +1110,14 @@ $('#evStage').onchange = () => { EV.stage = $('#evStage').value; EV.sel = null; 
 function evTitle(e) {
   const icon = KIND_ICON[e.kind] || '•';
   if (e.kind === 'talk' || e.kind === 'talk-stopped') return `${icon} ${e.who}`;
-  if (e.kind === 'psynergy') return `${icon} ${e.what}${e.who ? ' on ' + e.who : ''}`;
-  if (e.kind === 'item') return `${icon} Using ${e.what}${e.who ? ' on ' + e.who : ' here'}`;
-  if (e.kind === 'search') return `${icon} Searching ${e.what}`;
-  if (e.kind === 'touch') return `${icon} Stepping here`;
-  if (e.kind === 'exit') return `${icon} Door`;
-  return `${icon} Story event`;
+  if (e.kind === 'psynergy') return `${icon} ${e.who ? T('{what} on {who}', { what: e.what, who: e.who }) : e.what}`;
+  if (e.kind === 'item') return `${icon} ${e.who ? T('Using {what} on {who}', { what: e.what, who: e.who }) : T('Using {what} here', { what: e.what })}`;
+  if (e.kind === 'search') return `${icon} ${T('Searching {what}', { what: e.what })}`;
+  if (e.kind === 'touch') return `${icon} ${T('Stepping here')}`;
+  if (e.kind === 'exit') return `${icon} ${T('Door')}`;
+  return `${icon} ${T('Story event')}`;
 }
+const EV_GROUP_LABEL = { People: T('People'), Spots: T('Spots'), 'Doors and story': T('Doors and story') };
 function renderEvents() {
   const r = EV.data; if (!r) return;
   const filt = EV.filter;
@@ -1117,23 +1126,23 @@ function renderEvents() {
     if (filt && !(filt.actor != null ? e.actor === filt.actor : e.cells.some(c => c[0] === filt.x && c[1] === filt.z))) continue;
     (e.actor != null ? groups.People : ['touch', 'search', 'item'].includes(e.kind) ? groups.Spots : groups['Doors and story']).push(e);
   }
-  let html = filt ? `<div class="row"><span class="note">${esc(filt.label)}</span><button id="evAll">Show all</button></div>` : '';
+  let html = filt ? `<div class="row"><span class="note">${esc(filt.label)}</span><button id="evAll">${T('Show all')}</button></div>` : '';
   for (const [g, list] of Object.entries(groups)) {
     if (!list.length) continue;
-    html += `<h3>${g}</h3>`;
+    html += `<h3>${EV_GROUP_LABEL[g]}</h3>`;
     for (const e of list) {
       const words = e.text != null ? '“' + showNames(gameToPlain(e.text)) + '”' : e.does + (e.script && S.advanced ? ` [${e.script}]` : '');
-      html += `<div class="ev ${EV.sel === e.index ? 'on' : ''}" data-i="${e.index}"><div class="h"><b>${esc(evTitle(e))}</b>${e.when !== 'Always' ? `<span class="w">${esc(e.when)}</span>` : ''}</div>
+      html += `<div class="ev ${EV.sel === e.index ? 'on' : ''}" data-i="${e.index}"><div class="h"><b>${esc(evTitle(e))}</b>${e.condition !== -1 ? `<span class="w">${esc(e.when)}</span>` : ''}</div>
         <div class="t">${esc(words.slice(0, 220))}</div>
-        <div class="act">${e.editable_text ? '<button data-a="edit">Change words</button>' : ''}<button data-a="when">When…</button>
-          ${e.kind !== 'exit' ? '<button data-a="remove">Remove</button>' : '<button data-a="doors">Open in Doors</button>'}</div></div>`;
+        <div class="act">${e.editable_text ? `<button data-a="edit">${T('Change words')}</button>` : ''}<button data-a="when">${T('When…')}</button>
+          ${e.kind !== 'exit' ? `<button data-a="remove">${T('Remove')}</button>` : `<button data-a="doors">${T('Open in Doors')}</button>`}</div></div>`;
     }
   }
   if (!filt && r.regions.length) {
-    html += '<h3>Exit areas</h3>' + r.regions.map((g, i) => `<div class="ev" data-region="${i}"><div class="h"><b>▭ Area</b></div><div class="t">${g.label ? 'Leads to ' + esc(g.label) + ', arrival point ' + g.entrance : 'Leads nowhere'}</div>
-      <div class="act"><button data-r="link">Change where it leads…</button><button data-r="remove">Remove</button></div></div>`).join('');
+    html += `<h3>${T('Exit areas')}</h3>` + r.regions.map((g, i) => `<div class="ev" data-region="${i}"><div class="h"><b>▭ ${T('Area')}</b></div><div class="t">${g.label ? T('Leads to {place}, arrival point {n}', { place: esc(g.label), n: g.entrance }) : T('Leads nowhere')}</div>
+      <div class="act"><button data-r="link">${T('Change where it leads…')}</button><button data-r="remove">${T('Remove')}</button></div></div>`).join('');
   }
-  $('#evList').innerHTML = html || '<div class="note">Nothing happens here yet.</div>';
+  $('#evList').innerHTML = html || `<div class="note">${T('Nothing happens here yet.')}</div>`;
   $('#evAll')?.addEventListener('click', () => { EV.filter = null; $('#evSpot').style.display = 'none'; renderEvents(); drawAll(); });
 }
 $('#evList').onclick = async e => {
@@ -1142,7 +1151,7 @@ $('#evList').onclick = async e => {
     const g = EV.data.regions[+reg.dataset.region], a = e.target.dataset.r;
     for (const el of document.querySelectorAll('#evList .ev')) el.classList.toggle('on', el === reg);
     EV.region = g; drawAll();
-    if (a === 'remove' && confirm('Remove this exit area?')) evAction({ action: 'region', region_table: g.table, index: g.index, remove: true }, 'Removed the exit area.');
+    if (a === 'remove' && confirm(T('Remove this exit area?'))) evAction({ action: 'region', region_table: g.table, index: g.index, remove: true }, T('Removed the exit area.'));
     if (a === 'link') { S.regionPick = g; openPicker({ scene: null }); }
     return;
   }
@@ -1152,7 +1161,7 @@ $('#evList').onclick = async e => {
   const a = e.target.dataset.a;
   if (a === 'edit') return openEventEditor({ mode: 'text', ev });
   if (a === 'when') return openEventEditor({ mode: 'when', ev });
-  if (a === 'remove') { if (confirm('Remove this event?')) evAction({ action: 'remove', index: ev.index }, 'Removed.'); return; }
+  if (a === 'remove') { if (confirm(T('Remove this event?'))) evAction({ action: 'remove', index: ev.index }, T('Removed.')); return; }
   if (a === 'doors') { setTool('doors'); if (ev.cells[0]) doorSelect(ev.cells[0][0], ev.cells[0][1]); return; }
   renderEvents(); drawAll(); evReveal(ev);
 };
@@ -1183,7 +1192,7 @@ function drawEvents(ctx) {
     const on = sel && sel.actor === p.actor, talks = EV.data.events.some(e => e.actor === p.actor && e.kind === 'talk');
     ctx.beginPath(); ctx.arc(x, y, 7 * z, 0, Math.PI * 2);
     ctx.lineWidth = 2; ctx.strokeStyle = on ? '#e0b84a' : talks ? '#58a6ff' : '#8b93a3'; ctx.stroke();
-    if (z >= 2) { const t = p.name || 'person'; const tw = ctx.measureText(t).width; ctx.fillStyle = '#000b'; ctx.fillRect(x - tw / 2 - 3, y + 8 * z, tw + 6, 4 * z + 6); ctx.fillStyle = '#fff'; ctx.fillText(t, x, y + 8 * z + 2); }
+    if (z >= 2) { const t = p.name || T('person'); const tw = ctx.measureText(t).width; ctx.fillStyle = '#000b'; ctx.fillRect(x - tw / 2 - 3, y + 8 * z, tw + 6, 4 * z + 6); ctx.fillStyle = '#fff'; ctx.fillText(t, x, y + 8 * z + 2); }
   }
   // exit areas
   for (const g of EV.data.regions) {
@@ -1206,13 +1215,13 @@ function evClick(e, x, y) {
   $('#evSpot').style.display = 'flex';
   if (near && near[0] < 10) {
     const p = near[1], talks = EV.data.events.some(ev => ev.actor === p.actor && ev.kind === 'talk');
-    EV.filter = { actor: p.actor, label: `${p.name || 'This person'}` }; EV.spot = null;
-    $('#evSpot').innerHTML = `<button id="evTalk" class="primary">${talks ? 'Add a line for a story moment…' : 'Make them say something…'}</button>`;
+    EV.filter = { actor: p.actor, label: `${p.name || T('This person')}` }; EV.spot = null;
+    $('#evSpot').innerHTML = `<button id="evTalk" class="primary">${talks ? T('Add a line for a story moment…') : T('Make them say something…')}</button>`;
     $('#evTalk').onclick = () => openEventEditor({ mode: 'talk', actor: p.actor, who: p.name, conditional: talks });
   } else {
     const [gx, gz] = groundAt(S.map.layers[0], sx, sy) || gridXY(S.map.layers[0], x, y);
-    EV.filter = { x: gx, z: gz, label: `Spot ${gx},${gz}` }; EV.spot = { x: gx, z: gz }; EV.newPerson = null;
-    $('#evSpot').innerHTML = '<button id="evSign">Add a sign (read with A)…</button><button id="evStep">Add a step message…</button><button id="evPerson">Add a person here…</button>';
+    EV.filter = { x: gx, z: gz, label: T('Spot {x},{z}', { x: gx, z: gz }) }; EV.spot = { x: gx, z: gz }; EV.newPerson = null;
+    $('#evSpot').innerHTML = `<button id="evSign">${T('Add a sign (read with A)…')}</button><button id="evStep">${T('Add a step message…')}</button><button id="evPerson">${T('Add a person here…')}</button>`;
     $('#evSign').onclick = () => openEventEditor({ mode: 'spot', how: 'search', x: gx, z: gz });
     $('#evStep').onclick = () => openEventEditor({ mode: 'spot', how: 'touch', x: gx, z: gz });
     $('#evPerson').onclick = () => startAddPerson(Math.round(px), Math.round(pz));
@@ -1225,11 +1234,11 @@ function evClick(e, x, y) {
 // the answer matches what you see.
 const WK = { cells: null, size: null, key: null, timer: null };
 const STAND = {
-  good: ['rgba(80,200,120,0.38)', 'The party can walk up and talk'],
-  talk: ['rgba(230,200,60,0.40)', 'Can be talked to from nearby (behind a counter, on a ledge)'],
-  slide: ['rgba(70,140,255,0.50)', 'Ice the party slides across: keep people off it'],
-  trigger: ['rgba(255,140,40,0.55)', 'A door, exit or step spot: keep it clear'],
-  cut: ['rgba(230,70,70,0.40)', "The party can't get near by walking"],
+  good: ['rgba(80,200,120,0.38)', T('The party can walk up and talk')],
+  talk: ['rgba(230,200,60,0.40)', T('Can be talked to from nearby (behind a counter, on a ledge)')],
+  slide: ['rgba(70,140,255,0.50)', T('Ice the party slides across: keep people off it')],
+  trigger: ['rgba(255,140,40,0.55)', T('A door, exit or step spot: keep it clear')],
+  cut: ['rgba(230,70,70,0.40)', T("The party can't get near by walking")],
 };
 function walkEdits() {
   return [...S.pending].filter(([k]) => /^(shape|collision):/.test(k))
@@ -1252,8 +1261,10 @@ async function loadStand() {
   WK.cells = r.cells; WK.size = r.size;
   $('#standLegend').innerHTML = Object.entries(STAND).filter(([k]) => k !== 'slide' || r.slide)
     .map(([, [c, t]]) => `<div style="display:flex;gap:6px;align-items:center"><span style="width:12px;height:12px;flex:none;background:${c};border:1px solid #0004"></span>${esc(t)}</div>`).join('')
-    + (r.arrivals ? `<div style="margin-top:4px">Worked out from the game's walking rules, starting at this place's ${r.arrivals} arrival point${r.arrivals > 1 ? 's' : ''}. Places opened by Psynergy or the story can show as red.</div>`
-                  : '<div style="margin-top:4px">This place has no arrival points, so the editor can\'t tell where the party walks.</div>');
+    + (r.arrivals ? `<div style="margin-top:4px">${r.arrivals > 1
+      ? T("Worked out from the game's walking rules, starting at this place's {n} arrival points. Places opened by Psynergy or the story can show as red.", { n: r.arrivals })
+      : T("Worked out from the game's walking rules, starting at this place's 1 arrival point. Places opened by Psynergy or the story can show as red.")}</div>`
+                  : `<div style="margin-top:4px">${T("This place has no arrival points, so the editor can't tell where the party walks.")}</div>`);
   drawAll();
 }
 function drawStand(ctx) {
@@ -1281,8 +1292,12 @@ function applyLevel(level) {
   finishStroke(); drawAll();
   WK.key = null; loadStand();
 }
-const LEVEL_NOTE = "The picture doesn't change: use Paint if it should look like a path.";
-function levelLabel(level) { return `Level ${level.count} square${level.count > 1 ? 's' : ''} to the path's height (${level.height} px)`; }
+const LEVEL_NOTE = T("The picture doesn't change: use Paint if it should look like a path.");
+function levelLabel(level) {
+  return level.count > 1 ? T("Level {n} squares to the path's height ({px} px)", { n: level.count, px: level.height })
+    : T("Level 1 square to the path's height ({px} px)", { px: level.height });
+}
+function levelledText(level) { return level.count > 1 ? T('Levelled {n} squares.', { n: level.count }) : T('Levelled 1 square.'); }
 
 // Adding a person: check the spot first, and offer a way round what's wrong.
 async function startAddPerson(x, z) {
@@ -1294,22 +1309,22 @@ async function startAddPerson(x, z) {
 async function showPersonCheck(note) {
   const p = EV.newPerson; if (!p) return;
   const box = $('#evSpot'); box.style.display = 'flex'; box.style.flexDirection = 'column'; box.style.alignItems = 'stretch';
-  box.innerHTML = '<div class="note">Checking this spot…</div>'; drawAll();
+  box.innerHTML = `<div class="note">${T('Checking this spot…')}</div>`; drawAll();
   const r = await checkSpot(p.x, p.z);
   if (EV.newPerson !== p) return;
   const lead = note ? `<div class="ok">${esc(note)}</div>` : '';
   if (r.error) {
-    box.innerHTML = `${lead}<div class="warn">${esc(r.error)}</div><button id="evPersonGo">Add a person here…</button>`;
+    box.innerHTML = `${lead}<div class="warn">${esc(r.error)}</div><button id="evPersonGo">${T('Add a person here…')}</button>`;
   } else if (!r.problems.length) {
     p.ok = true;
-    const fine = r.notes?.length ? `Fine: ${r.notes.map(n => n.text).join(' ')}` : 'Good spot: the party can walk up and talk to them.';
-    box.innerHTML = `${lead}<div class="ok">${esc(fine)}</div><button id="evPersonGo" class="primary">Add a person here…</button>`;
+    const fine = r.notes?.length ? T('Fine: {notes}', { notes: r.notes.map(n => n.text).join(' ') }) : T('Good spot: the party can walk up and talk to them.');
+    box.innerHTML = `${lead}<div class="ok">${esc(fine)}</div><button id="evPersonGo" class="primary">${T('Add a person here…')}</button>`;
   } else {
     p.ok = false;
-    box.innerHTML = `${lead}<div class="warn">This spot has a problem:</div>${problemList(r)}`
-      + (r.nearest ? '<button id="evPersonNear" class="primary">Move to the nearest good spot</button>' : '')
+    box.innerHTML = `${lead}<div class="warn">${T('This spot has a problem:')}</div>${problemList(r)}`
+      + (r.nearest ? `<button id="evPersonNear" class="primary">${T('Move to the nearest good spot')}</button>` : '')
       + (r.level ? `<button id="evPersonLevel" title="${esc(LEVEL_NOTE)}">${esc(levelLabel(r.level))}</button>` : '')
-      + '<button id="evPersonGo">Add here anyway…</button><button id="evPersonCancel">Cancel</button>';
+      + `<button id="evPersonGo">${T('Add here anyway…')}</button><button id="evPersonCancel">${T('Cancel')}</button>`;
   }
   drawAll();
   $('#evPersonGo').onclick = () => openEventEditor({ mode: 'person', x: p.x, z: p.z });
@@ -1317,11 +1332,11 @@ async function showPersonCheck(note) {
   if ($('#evPersonNear')) $('#evPersonNear').onclick = () => {
     const from = { ...p }; EV.newPerson = { x: r.nearest.x, z: r.nearest.z };
     const cells = Math.round(Math.hypot(r.nearest.x - from.x, r.nearest.z - from.z) / 16);
-    showPersonCheck(`Moved ${cells || 'less than one'} square${cells === 1 ? '' : 's'}.`);
+    showPersonCheck(!cells ? T('Moved less than one square.') : cells === 1 ? T('Moved 1 square.') : T('Moved {n} squares.', { n: cells }));
   };
   if ($('#evPersonLevel')) $('#evPersonLevel').onclick = () => {
     applyLevel(r.level);
-    showPersonCheck(`Levelled ${r.level.count} square${r.level.count > 1 ? 's' : ''}. ${LEVEL_NOTE} Save to keep it; Undo takes it back.`);
+    showPersonCheck(`${levelledText(r.level)} ${LEVEL_NOTE} ${T('Save to keep it; Undo takes it back.')}`);
   };
 }
 
@@ -1329,15 +1344,15 @@ async function showPersonCheck(note) {
 async function checkMovedPerson(t, i, x, z) {
   const actor = actorNumber(rowsOf(t), i), r = await checkSpot(x, z, actor);
   if (r.error || !r.problems.length) return;
-  status(`<span class="warn">Moved, but:</span> ${r.problems.map(p => esc(p.text)).join(' ')} `
-    + (r.nearest ? '<button id="stNear">Move to the nearest good spot</button> ' : '')
+  status(`<span class="warn">${T('Moved, but:')}</span> ${r.problems.map(p => esc(p.text)).join(' ')} `
+    + (r.nearest ? `<button id="stNear">${T('Move to the nearest good spot')}</button> ` : '')
     + (r.level ? `<button id="stLevel" title="${esc(LEVEL_NOTE)}">${esc(levelLabel(r.level))}</button>` : ''));
   if ($('#stNear')) $('#stNear').onclick = () => {
     editTable(t, rows => { rows[i].x = r.nearest.x * 65536; rows[i].z = r.nearest.z * 65536; });
-    status(`<span class="ok">Moved to a good spot.</span> Save, then press ▶ Play to try it.`);
+    status(`<span class="ok">${T('Moved to a good spot.')}</span> ${T('Save, then press ▶ Play to try it.')}`);
   };
   if ($('#stLevel')) $('#stLevel').onclick = () => {
-    applyLevel(r.level); status(`<span class="ok">Levelled ${r.level.count} square(s).</span> ${LEVEL_NOTE} Save to keep it; Undo takes it back.`);
+    applyLevel(r.level); status(`<span class="ok">${levelledText(r.level)}</span> ${LEVEL_NOTE} ${T('Save to keep it; Undo takes it back.')}`);
   };
 }
 
@@ -1346,9 +1361,10 @@ let EE = null;
 function openEventEditor(o) {
   EE = o;
   const ev = o.ev;
-  $('#eeTitle').textContent = { text: 'Change the words', when: 'When does it happen?', talk: `What should ${o.who || 'they'} say?`,
-    spot: o.how === 'search' ? 'A sign or something to examine' : 'A message when you step here', person: 'Add a person' }[o.mode];
-  $('#eeSub').textContent = ev ? evTitle(ev) : o.mode === 'spot' ? `At spot ${o.x},${o.z}. Pressing A facing it shows the text.`.replace(/Pressing A facing it/, o.how === 'search' ? 'Pressing A facing it' : 'Stepping on it') : '';
+  $('#eeTitle').textContent = { text: T('Change the words'), when: T('When does it happen?'), talk: o.who ? T('What should {who} say?', { who: o.who }) : T('What should they say?'),
+    spot: o.how === 'search' ? T('A sign or something to examine') : T('A message when you step here'), person: T('Add a person') }[o.mode];
+  $('#eeSub').textContent = ev ? evTitle(ev) : o.mode === 'spot' ? (o.how === 'search' ? T('At spot {x},{z}. Pressing A facing it shows the text.', { x: o.x, z: o.z })
+    : T('At spot {x},{z}. Stepping on it shows the text.', { x: o.x, z: o.z })) : '';
   $('#eeTextBox').style.display = o.mode === 'when' ? 'none' : '';
   $('#eePerson').style.display = o.mode === 'person' ? '' : 'none';
   $('#eeTarget').style.display = o.mode === 'spot' && o.how === 'search' ? '' : 'none';
@@ -1394,24 +1410,23 @@ function preview() {
   const raw = $('#eeRaw').checked, t = raw ? $('#eeText').value : compose($('#eeText').value);
   const boxes = t.replace(/\{end_wait\}/g, '').split('{page_break}').filter(b => b.trim());
   $('#evPreview').innerHTML = boxes.map(b => { const shown = showNames(b), long = shown.split('\n').some(l => l.length > 26) || shown.split('\n').length > 3;
-    return `<div class="gbabox${long ? ' long' : ''}" title="${long ? 'This box may not fit' : ''}">${esc(shown)}</div>`; }).join('');
+    return `<div class="gbabox${long ? ' long' : ''}" title="${long ? T('This box may not fit') : ''}">${esc(shown)}</div>`; }).join('');
 }
 function whenValue() {
   const w = $('#eeWhen').value; if (w === 'always') return { always: true };
   const label = $('#eeFlag').value.trim(), f = S.flags.flags.find(x => x.label === label);
   const flag = f ? f.flag : /^0x[0-9a-f]{1,3}$/i.test(label) ? parseInt(label, 16) : NaN;
-  if (Number.isNaN(flag)) throw new Error('Pick a story flag from the list (start typing).');
+  if (Number.isNaN(flag)) throw new Error(T('Pick a story flag from the list (start typing).'));
   return { flag, set: w === 'set' };
 }
 $('#eeSave').onclick = async () => {
   let when; try { when = whenValue(); } catch (err) { $('#eeMsg').innerHTML = `<span class="err">${esc(err.message)}</span>`; return; }
   const text = $('#eeText').value, raw = $('#eeRaw').checked, o = EE;
-  if (o.mode !== 'when' && o.mode !== 'person' && !text.trim()) { $('#eeMsg').innerHTML = '<span class="err">Write what it says.</span>'; return; }
+  if (o.mode !== 'when' && o.mode !== 'person' && !text.trim()) { $('#eeMsg').innerHTML = `<span class="err">${T('Write what it says.')}</span>`; return; }
   const body = { text: { action: 'text', index: o.ev?.index, text, raw, when }, when: { action: 'when', index: o.ev?.index, when },
     talk: { action: 'talk', actor: o.actor, text, when }, spot: { action: 'spot', x: o.x, z: o.z, how: o.how, text, target: +$('#eeTargetSel').value || 0, when },
     person: { action: 'person', sprite: +$('#eeSprite').value, x: o.x, z: o.z, text: text.trim() || null, wander: $('#eeWander').checked, when } }[o.mode];
-  if (o.mode === 'text' && o.ev && o.ev.when !== 'Always' && false) return;
-  const ok = await evAction(body, 'Saved.');
+  const ok = await evAction(body, T('Saved.'));
   if (ok) $('#evEdit').style.display = 'none';
 };
 async function evAction(body, done) {
@@ -1427,7 +1442,7 @@ async function evAction(body, done) {
   // A new person stands apart from the spot clicked: show everyone, so their line can be seen.
   if (body.action === 'person') { EV.filter = null; EV.newPerson = null; $('#evSpot').style.display = 'none'; }
   await loadEvents();
-  status(`<span class="ok">${done}</span> Press ▶ Play to try it.`);
+  status(`<span class="ok">${done}</span> ${T('Press ▶ Play to try it.')}`);
   return true;
 }
 
@@ -1456,7 +1471,7 @@ function drawDoors(ctx) {
     ctx.font = `${4 * z + 3}px sans-serif`; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
     for (const d of sceneDoors()) {
       const w = d.cells.map(c => groundXY(l0, c[0], c[1])).find(Boolean); if (!w) continue;
-      const text = d.scene == null ? 'leads nowhere' : '→ ' + shortLabel(d.label) + (d.fallback ? ' (default)' : ''), tw = ctx.measureText(text).width;
+      const text = d.scene == null ? T('leads nowhere') : '→ ' + shortLabel(d.label) + (d.fallback ? ' ' + T('(default)') : ''), tw = ctx.measureText(text).width;
       ctx.fillStyle = '#000b'; ctx.fillRect(w[0] * s, w[1] * s - 4 * z - 6, tw + 6, 4 * z + 6);
       ctx.fillStyle = d.scene == null ? '#ff7b72' : '#fff'; ctx.fillText(text, w[0] * s + 3, w[1] * s - 1);
     }
@@ -1469,13 +1484,14 @@ function drawDoors(ctx) {
 }
 function doorDeselect() { S.doorAt = null; $('#doorForm').style.display = 'none'; }
 function doorSelect(gx, gz) {
-  const d = doorAtCell(gx, gz), adv = d && S.advanced ? ` <span style="color:var(--muted)">(code ${hex(d.code)}, exit kind ${d.kind})</span>` : '';
+  const d = doorAtCell(gx, gz), adv = d && S.advanced ? ` <span style="color:var(--muted)">${T('(code {code}, exit kind {kind})', { code: hex(d.code), kind: d.kind })}</span>` : '';
   S.doorAt = { x: gx, z: gz, door: d || null };
-  $('#doorInfo').innerHTML = !d ? 'Not a door. Make one here, leading anywhere in the game.'
-    : d.scene == null ? `<span style="color:var(--bad)">This scene has no exits at all, so this door does nothing.</span> Link it to a place, or remove it.${adv}`
-    : d.fallback ? `Has no exit of its own, so the game sends it to <b>${esc(d.label)}</b>, arrival point 0 (the scene's first exit). Give it a destination of its own if you like.${adv}`
-    : `Leads to <b>${esc(d.label)}</b>, arrival point ${d.entrance}.${d.shared_kind ? ' <i>(the scene\'s catch-all exit)</i>' : ''}${d.scripted ? '<br><span style="color:var(--muted)">Opened by a scene script; its destination can change, the script stays.</span>' : ''}${adv}`;
-  $('#doorLink').textContent = d ? 'Change where it leads…' : 'Make a door here…';
+  const place = d && `<b>${esc(d.label)}</b>`;
+  $('#doorInfo').innerHTML = !d ? T('Not a door. Make one here, leading anywhere in the game.')
+    : d.scene == null ? `<span style="color:var(--bad)">${T('This scene has no exits at all, so this door does nothing.')}</span> ${T('Link it to a place, or remove it.')}${adv}`
+    : d.fallback ? `${T("Has no exit of its own, so the game sends it to {place}, arrival point 0 (the scene's first exit). Give it a destination of its own if you like.", { place })}${adv}`
+    : `${T('Leads to {place}, arrival point {n}.', { place, n: d.entrance })}${d.shared_kind ? ` <i>${T("(the scene's catch-all exit)")}</i>` : ''}${d.scripted ? `<br><span style="color:var(--muted)">${T('Opened by a scene script; its destination can change, the script stays.')}</span>` : ''}${adv}`;
+  $('#doorLink').textContent = d ? T('Change where it leads…') : T('Make a door here…');
   $('#doorRemove').style.display = d && !d.scripted ? '' : 'none';
   $('#doorForm').style.display = 'block';
   drawAll();
@@ -1488,16 +1504,19 @@ async function doorAction(action, extra) {
   if (r.error) return status(`<span class="err">${esc(r.error)}</span>`);
   S.pending.clear(); S.markerMoves.clear(); S.tableEdits.clear();
   await openMap(n);
-  status(`<span class="ok">${action === 'remove' ? `Removed the door (${r.cells} cell${r.cells === 1 ? '' : 's'})` : (action === 'add' ? 'New door' : 'The door') + ` now leads to <b>${esc(r.label)}</b>`}.</span> Press ▶ Play to try it.`);
+  const place = `<b>${esc(r.label)}</b>`;
+  const done = action === 'remove' ? (r.cells === 1 ? T('Removed the door (1 cell).') : T('Removed the door ({n} cells).', { n: r.cells }))
+    : action === 'add' ? T('New door now leads to {place}.', { place }) : T('The door now leads to {place}.', { place });
+  status(`<span class="ok">${done}</span> ${T('Press ▶ Play to try it.')}`);
 }
-$('#doorRemove').onclick = () => confirm('Remove this door? Its cells become ground again.') && doorAction('remove', {});
+$('#doorRemove').onclick = () => confirm(T('Remove this door? Its cells become ground again.')) && doorAction('remove', {});
 $('#doorLink').onclick = () => openPicker(S.doorAt?.door);
 
 // The destination picker: a place, then an arrival point on its map.
 const PK = {};
 function openPicker(door) {
   PK.scene = door?.scene ?? null; PK.entrance = door?.entrance ?? null;
-  $('#pkTitle').textContent = S.regionPick ? 'Where should this exit area lead?' : door ? 'Where should this door lead?' : 'Where should the new door lead?';
+  $('#pkTitle').textContent = S.regionPick ? T('Where should this exit area lead?') : door ? T('Where should this door lead?') : T('Where should the new door lead?');
   $('#pkFilter').value = ''; pkList(); $('#picker').style.display = 'flex'; $('#pkFilter').focus();
   if (PK.scene != null) pkScene(PK.scene, PK.entrance); else pkClear();
 }
@@ -1505,7 +1524,7 @@ function pkClear() { $('#pkImg').removeAttribute('src'); $('#pkDots').innerHTML 
 function pkList() {
   const q = $('#pkFilter').value.trim().toLowerCase();
   $('#pkList').innerHTML = S.allScenes.filter(sc => sc.map != null)
-    .map(sc => ({ id: sc.id, label: S.names.sceneById[sc.id]?.label || sc.name || 'scene ' + sc.id }))
+    .map(sc => ({ id: sc.id, label: S.names.sceneById[sc.id]?.label || sc.name || T('scene {n}', { n: sc.id }) }))
     .filter(sc => !q || sc.label.toLowerCase().includes(q) || String(sc.id) === q)
     .map(sc => `<div data-id="${sc.id}" class="${sc.id === PK.scene ? 'on' : ''}">${esc(sc.label)}${S.advanced ? ` <span style="color:var(--muted)">[${sc.id}]</span>` : ''}</div>`).join('');
 }
@@ -1517,14 +1536,14 @@ async function pkScene(id, entrance) {
   if (PK.scene !== id) return;
   PK.info = r; $('#pkHint').style.display = 'none';
   const dots = $('#pkDots'); dots.innerHTML = '';
-  $('#pkArrivals').innerHTML = r.arrivals.length ? '' : '<div class="note" style="padding:12px">This place lists no arrival points; the party arrives at its default spot (0).</div>';
+  $('#pkArrivals').innerHTML = r.arrivals.length ? '' : `<div class="note" style="padding:12px">${T('This place lists no arrival points; the party arrives at its default spot (0).')}</div>`;
   if (!r.arrivals.length) PK.entrance = 0;
   if (r.map) {
     $('#pkImg').src = `/api/map/${r.map}/render.png`;
     const [bx, bz] = [r.bounds[0] * 8, r.bounds[1] * 8];
     for (const a of r.arrivals) {
       const b = document.createElement('button');
-      b.textContent = a.entrance; b.dataset.e = a.entrance; b.title = `Arrival point ${a.entrance}`;
+      b.textContent = a.entrance; b.dataset.e = a.entrance; b.title = T('Arrival point {n}', { n: a.entrance });
       b.style.left = (a.x - bx) + 'px'; b.style.top = ((a.sz ?? a.z) - bz) + 'px';
       b.onclick = () => { PK.entrance = a.entrance; pkUpdate(); };
       dots.appendChild(b);
@@ -1536,8 +1555,9 @@ async function pkScene(id, entrance) {
 }
 function pkUpdate() {
   for (const b of $('#pkDots').children) b.classList.toggle('on', +b.dataset.e === PK.entrance);
-  const label = PK.scene != null ? (S.names.sceneById[PK.scene]?.label || 'scene ' + PK.scene) : null;
-  $('#pkSel').innerHTML = label ? `<b>${esc(label)}</b>` + (PK.entrance != null ? `, arrival point ${PK.entrance}` : ' · click an arrival point on the map') : '';
+  const label = PK.scene != null ? (S.names.sceneById[PK.scene]?.label || T('scene {n}', { n: PK.scene })) : null;
+  $('#pkSel').innerHTML = label ? (PK.entrance != null ? T('{place}, arrival point {n}', { place: `<b>${esc(label)}</b>`, n: PK.entrance })
+    : `<b>${esc(label)}</b> · ${T('click an arrival point on the map')}`) : '';
   $('#pkOk').disabled = PK.scene == null || PK.entrance == null;
 }
 $('#pkCancel').onclick = () => { $('#picker').style.display = 'none'; S.regionPick = null; };
@@ -1545,7 +1565,7 @@ $('#pkOk').onclick = () => {
   $('#picker').style.display = 'none';
   if (S.regionPick) {
     const g = S.regionPick; S.regionPick = null;
-    return evAction({ action: 'region', region_table: g.table, index: g.index, target: { scene: PK.scene, entrance: PK.entrance } }, 'The exit area now leads there.');
+    return evAction({ action: 'region', region_table: g.table, index: g.index, target: { scene: PK.scene, entrance: PK.entrance } }, T('The exit area now leads there.'));
   }
   doorAction(S.doorAt?.door ? 'relink' : 'add', { target_scene: PK.scene, target_entrance: PK.entrance });
 };
@@ -1556,11 +1576,11 @@ let importData = null;
 async function explainNoImport() {
   const own = await api('/api/maps/own-tileset').catch(() => []);
   const names = [...new Set(S.maps.filter(m => own.includes(m.number)).map(m => m.label || m.folder))];
-  const some = names.length ? ` You can import into ${own.length} places, such as ${names.slice(0, 3).map(esc).join(', ')}.` : '';
-  status(`<span class="warn">This place shares its art with other places, so a picture here would change them too.${some}</span>`);
+  const some = names.length ? ' ' + T('You can import into {n} places, such as {places}.', { n: own.length, places: names.slice(0, 3).map(esc).join(', ') }) : '';
+  status(`<span class="warn">${T('This place shares its art with other places, so a picture here would change them too.')}${some}</span>`);
 }
 $('#importBtn').onclick = () => {
-  if (!S.map) return status('<span class="warn">Pick a place first.</span>');
+  if (!S.map) return status(`<span class="warn">${T('Pick a place first.')}</span>`);
   if (!S.map.own_tileset) return explainNoImport();
   $('#importFile').value = ''; $('#importFile').click();
 };
@@ -1571,16 +1591,16 @@ $('#importFile').onchange = async () => {
 };
 $('#importLayer').onchange = () => { if (importData) importPreview(); };
 async function importPreview() {
-  status('Fitting the image to this map’s colours…');
+  status(T('Fitting the image to this map’s colours…'));
   const r = await api(`/api/map/${S.map.number}/import-image`, { png: importData, layer: +$('#importLayer').value });
   if (r.error) { $('#importBox').style.display = 'none'; return status(`<span class="err">${esc(r.error)}</span>`); }
   $('#importBox').style.display = 'block';
   $('#importPreview').src = r.preview; $('#importPreview').style.width = (r.cells[0] * 16 * 3) + 'px';
-  $('#importInfo').innerHTML = `${r.cells[0]}×${r.cells[1]} blocks · ${r.new_tiles} new tiles, ${r.reused_tiles} reused` +
-    (r.palette_row != null ? ` · colours from palette row ${r.palette_row}` : ' · colours per tile') +
-    (r.retired_blocks ? `<br><span class="warn">Makes room by retiring ${r.retired_blocks} unused block(s).</span>` : '') +
-    `<br>Room left afterwards: about ${r.free_tiles_left} tiles. This is how it will look in game.`;
-  status('Preview ready. “Add to tile set” saves the tiles and blocks, then puts them on the Stamp clipboard.');
+  $('#importInfo').innerHTML = T('{w}×{h} blocks · {added} new tiles, {reused} reused', { w: r.cells[0], h: r.cells[1], added: r.new_tiles, reused: r.reused_tiles }) +
+    ' · ' + (r.palette_row != null ? T('colours from palette row {n}', { n: r.palette_row }) : T('colours per tile')) +
+    (r.retired_blocks ? `<br><span class="warn">${T('Makes room by retiring {n} unused block(s).', { n: r.retired_blocks })}</span>` : '') +
+    `<br>${T('Room left afterwards: about {n} tiles. This is how it will look in game.', { n: r.free_tiles_left })}`;
+  status(T('Preview ready. “Add to tile set” saves the tiles and blocks, then puts them on the Stamp clipboard.'));
 }
 $('#importCancel').onclick = () => { importData = null; $('#importBox').style.display = 'none'; };
 $('#importApply').onclick = async () => {
@@ -1594,7 +1614,7 @@ $('#importApply').onclick = async () => {
   // the new blocks become the stamp: one layer, no walkability, empty cells skipped
   const m = S.map, h = r.blocks.length, w = r.blocks[0].length;
   const layers = m.layers.map((l, li) => li === layer ? { block: r.blocks, collision: null, shape: null } : null);
-  S.clip = { w, h, from: 'imported image', map: n, hash: m.metatiles_hash, family: m.family, familySize: m.family_size,
+  S.clip = { w, h, from: T('imported image'), map: n, hash: m.metatiles_hash, family: m.family, familySize: m.family_size,
     layers, object: r.blocks.map(row => row.map(v => v != null)),
     maxBlock: Math.max(...r.blocks.flat().filter(v => v != null)) };
   try { localStorage.setItem('gsmap.clip', JSON.stringify(S.clip)); } catch (e) {}
@@ -1603,7 +1623,7 @@ $('#importApply').onclick = async () => {
   const img = S.atlas[m.layers[layer].char_base];
   r.blocks.forEach((row, y) => row.forEach((b, x) => { if (b != null) g.drawImage(img, (b % 32) * 16, Math.floor(b / 32) * 16, 16, 16, x * 16, y * 16, 16, 16); }));
   setTool('stamp'); setStampMode('paste');
-  status(`Added ${r.new_tiles} tiles and ${w * h} block(s). Click the map to place your image, then Save.`);
+  status(T('Added {tiles} tiles and {blocks} block(s). Click the map to place your image, then Save.', { tiles: r.new_tiles, blocks: w * h }));
 };
 
 $('#stampCopy').onclick = () => setStampMode('copy');
@@ -1627,7 +1647,7 @@ async function doSave() {
   for (const [sym, te] of S.tableEdits) {
     const tr = await api(te.revert ? '/api/scene-table/revert' : '/api/scene-table',
       { overlay: te.overlay, symbol: sym, rows: te.rows, map: S.map.number });
-    if (tr.error) { S.saveError = tr.error; status(`<span class="err">Table ${esc(sym)} not saved: ${esc(tr.error)}</span>`); updateButtons(); return; }
+    if (tr.error) { S.saveError = tr.error; status(`<span class="err">${T('Table {name} not saved: {error}', { name: esc(sym), error: esc(tr.error) })}</span>`); updateButtons(); return; }
   }
   const savedTables = S.tableEdits.size; S.tableEdits.clear();
   if (savedTables) {  // saved: Undo now takes these back from the saved history
@@ -1638,10 +1658,10 @@ async function doSave() {
   if (!sent.length && !markers.length) {
     S.undo = []; S.redo = [];  // all saved: Undo now steps through the saved history
     updateButtons(); drawAll();
-    status('<span class="ok">Saved.</span> Press ▶ Play to try it.'); refreshUndoSave(); return;
+    status(`<span class="ok">${T('Saved.')}</span> ${T('Press ▶ Play to try it.')}`); refreshUndoSave(); return;
   }
   const r = await api(`/api/map/${S.map.number}/edits`, { edits: sent, markers });
-  if (r.error) { S.saveError = r.error; status(`<span class="err">Not saved: ${esc(r.error)}</span>`); updateButtons(); return; }
+  if (r.error) { S.saveError = r.error; status(`<span class="err">${T('Not saved: {error}', { error: esc(r.error) })}</span>`); updateButtons(); return; }
   const movedChests = S.markerMoves.size;
   S.pending.clear(); S.markerMoves.clear();
   for (const mk of S.map.markers) delete mk.orig;
@@ -1649,9 +1669,9 @@ async function doSave() {
   S.undo = []; S.redo = [];
   if (movedChests) await loadChests();
   updateButtons(); drawAll();
-  if (S.advanced) log(`Saved ${r.saved.join(', ')}`);
+  if (S.advanced) log(T('Saved {files}', { files: r.saved.join(', ') }));
   refreshUndoSave();
-  status('<span class="ok">Saved.</span> Press ▶ Play to try it.');
+  status(`<span class="ok">${T('Saved.')}</span> ${T('Press ▶ Play to try it.')}`);
 }
 
 // ---- connections: one place in the middle, what leads in and where it leads -----
@@ -1659,7 +1679,7 @@ const CN = { scene: null }, WORLD_SCENE = 2;
 function cnPlaces() {
   return S.allScenes.filter(sc => sc.map != null).map(sc => {
     const n = S.names.sceneById[sc.id] || {};
-    return { id: sc.id, label: n.label || sc.name || 'scene ' + sc.id, area: n.area || n.label || 'Other' };
+    return { id: sc.id, label: n.label || sc.name || T('scene {n}', { n: sc.id }), area: n.area || n.label || T('Other') };
   });
 }
 function cnList() {
@@ -1682,21 +1702,21 @@ async function openConnections() {
 async function cnShow(id) {
   CN.scene = id; cnList();
   const sel = $('#cnList .on'); if (sel) sel.scrollIntoView({ block: 'nearest' });
-  $('#cnView').innerHTML = '<div class="note">Loading…</div>';
+  $('#cnView').innerHTML = `<div class="note">${T('Loading…')}</div>`;
   const r = await api(`/api/connections/${id}`);
   if (CN.scene !== id) return;
   if (r.error) { $('#cnView').innerHTML = `<div class="err">${esc(r.error)}</div>`; return; }
   CN.data = r;
-  const card = (l, dir, i) => `<div class="lk" data-dir="${dir}" data-i="${i}" title="Show its connections">
+  const card = (l, dir, i) => `<div class="lk" data-dir="${dir}" data-i="${i}" title="${T('Show its connections')}">
       ${dir === 'in' ? '' : '<span class="ar">→</span>'}<div class="t">${esc(l.label)}<div class="s">${dir === 'in'
-        ? `arrives at point ${l.entrance}` : `${esc(l.how)} · arrives at point ${l.entrance}`}${S.advanced ? ` · kind ${l.kind}` : ''}</div></div>
-      ${dir === 'in' ? '<span class="ar">→</span>' : ''}<button data-open="${dir}:${i}" title="Open in the editor">Open</button></div>`;
+        ? T('arrives at point {n}', { n: l.entrance }) : `${esc(l.how)} · ${T('arrives at point {n}', { n: l.entrance })}`}${S.advanced ? ' · ' + T('kind {n}', { n: l.kind }) : ''}</div></div>
+      ${dir === 'in' ? '<span class="ar">→</span>' : ''}<button data-open="${dir}:${i}" title="${T('Open in the editor')}">${T('Open')}</button></div>`;
   $('#cnView').innerHTML = `
-    <div class="col"><h3>Reached from (${r.in.length})</h3>${r.in.map((l, i) => card(l, 'in', i)).join('') || '<div class="note">Nothing leads here.</div>'}</div>
+    <div class="col"><h3>${T('Reached from ({n})', { n: r.in.length })}</h3>${r.in.map((l, i) => card(l, 'in', i)).join('') || `<div class="note">${T('Nothing leads here.')}</div>`}</div>
     <div class="center"><h2 style="margin:0">${esc(r.label)}</h2>${r.area && r.area !== r.label ? `<div class="note">${esc(r.area)}</div>` : ''}
       ${r.map ? `<img src="/api/map/${r.map}/render.png" alt="">` : ''}
-      <button data-open="me" class="primary">Open this place in the editor</button></div>
-    <div class="col"><h3>Leads to (${r.out.length})</h3>${r.out.map((l, i) => card(l, 'out', i)).join('') || '<div class="note">No exits.</div>'}</div>`;
+      <button data-open="me" class="primary">${T('Open this place in the editor')}</button></div>
+    <div class="col"><h3>${T('Leads to ({n})', { n: r.out.length })}</h3>${r.out.map((l, i) => card(l, 'out', i)).join('') || `<div class="note">${T('No exits.')}</div>`}</div>`;
 }
 $('#cnView').onclick = async e => {
   const open = e.target.closest('[data-open]')?.dataset.open;
@@ -1735,12 +1755,12 @@ $('#exClose').onclick = () => { $('#exp').style.display = 'none'; };
 $('#exReveal').onclick = () => exResult && api('/api/reveal', { path: exResult.patch });
 $('#exGo').onclick = async () => {
   const name = $('#exName').value.trim();
-  if (!name) return $('#exMsg').innerHTML = '<span class="err">Give your mod a name.</span>';
+  if (!name) return $('#exMsg').innerHTML = `<span class="err">${T('Give your mod a name.')}</span>`;
   if (!await saveFirst()) return;
   save('modName', name); save('modAuthor', $('#exAuthor').value.trim());
   const found = await runChecks(), mine = (found || []).filter(i => !i.original);
-  if (!found && !confirm("Check couldn't finish, so your changes haven't been checked. Export anyway?")) { $('#exp').style.display = 'none'; openChecks(false); return; }
-  if (mine.length && !confirm(`Check found ${mine.length} problem(s) in your changes. Export anyway?`)) { $('#exp').style.display = 'none'; openChecks(false); return; }
+  if (!found && !confirm(T("Check couldn't finish, so your changes haven't been checked. Export anyway?"))) { $('#exp').style.display = 'none'; openChecks(false); return; }
+  if (mine.length && !confirm(T('Check found {n} problem(s) in your changes. Export anyway?', { n: mine.length }))) { $('#exp').style.display = 'none'; openChecks(false); return; }
   const r = await api('/api/export', { name, author: $('#exAuthor').value.trim(), description: $('#exDesc').value.trim(), ips: $('#exIps').checked });
   if (r.error) return $('#exMsg').innerHTML = `<span class="err">${esc(r.error)}</span>`;
   $('#exGo').disabled = true; $('#exReveal').style.display = 'none'; exResult = null;
@@ -1750,13 +1770,15 @@ $('#exGo').onclick = async () => {
     const s = await api(`/api/export/status?since=${since}`);
     if (s.log?.length) { $('#exLog').textContent += s.log.join('\n') + '\n'; $('#exLog').scrollTop = $('#exLog').scrollHeight; }
     since = s.next ?? since;
-    $('#exMsg').textContent = s.done ? '' : 'Working… the first export also builds the unmodified game once, which takes a few minutes.';
+    $('#exMsg').textContent = s.done ? '' : T('Working… the first export also builds the unmodified game once, which takes a few minutes.');
     if (s.done) {
       $('#exGo').disabled = false;
       if (s.ok) {
         exResult = s.result; $('#exReveal').style.display = '';
-        $('#exMsg').innerHTML = `<span class="ok">Saved <b>${esc(s.result.patch.split('/').pop())}</b> (${(s.result.size / 1024).toFixed(1)} KB)` +
-          (s.result.ips_size ? ` and an .ips (${(s.result.ips_size / 1048576).toFixed(1)} MB)` : '') + ' with a readme for players.</span>';
+        const file = `<b>${esc(s.result.patch.split('/').pop())}</b>`, size = (s.result.size / 1024).toFixed(1);
+        $('#exMsg').innerHTML = `<span class="ok">${s.result.ips_size
+          ? T('Saved {file} ({size} KB) and an .ips ({ips} MB) with a readme for players.', { file, size, ips: (s.result.ips_size / 1048576).toFixed(1) })
+          : T('Saved {file} ({size} KB) with a readme for players.', { file, size })}</span>`;
       } else $('#exMsg').innerHTML = `<span class="err">${esc(s.error)}</span>`;
       break;
     }
@@ -1784,7 +1806,7 @@ $('#ptPlay').onclick = async () => { const r = await api('/api/play-file', { pat
 $('#ptReveal').onclick = () => api('/api/reveal', { path: PT.result.game });
 $('#ptGo').onclick = async () => {
   const own = document.querySelector('input[name=ptBase]:checked').value === 'file';
-  if (own && !PT.rom) return $('#ptMsg').innerHTML = '<span class="err">Choose your ROM file, or use the unmodified game built here.</span>';
+  if (own && !PT.rom) return $('#ptMsg').innerHTML = `<span class="err">${T('Choose your ROM file, or use the unmodified game built here.')}</span>`;
   const r = await api('/api/patcher', { patch: PT.patch, name: PT.name, rom: own ? PT.rom : null });
   if (r.error) return $('#ptMsg').innerHTML = `<span class="err">${esc(r.error)}</span>`;
   $('#ptGo').disabled = true; $('#ptPlay').style.display = $('#ptReveal').style.display = 'none';
@@ -1794,13 +1816,14 @@ $('#ptGo').onclick = async () => {
     const s = await api(`/api/export/status?since=${since}`);
     if (s.log?.length) { $('#ptLog').textContent += s.log.join('\n') + '\n'; $('#ptLog').scrollTop = $('#ptLog').scrollHeight; }
     since = s.next ?? since;
-    $('#ptMsg').textContent = s.done ? '' : (own ? 'Patching…' : 'Patching… the first time also builds the unmodified game, a few minutes.');
+    $('#ptMsg').textContent = s.done ? '' : (own ? T('Patching…') : T('Patching… the first time also builds the unmodified game, a few minutes.'));
     if (s.done) {
       $('#ptGo').disabled = false;
       if (s.ok) {
         PT.result = s.result;
         const about = (s.result.about || '').split('\n').filter(Boolean).map(l => esc(l).replace(/^(\w+): /, (m, k) => `<b>${k[0].toUpperCase() + k.slice(1)}:</b> `)).join('<br>');
-        $('#ptMsg').innerHTML = `<span class="ok">Patched ${esc(s.result.base)} with ${s.result.format === 'ips' ? 'an' : 'a'} ${esc(s.result.format.toUpperCase())} patch: saved ${esc(s.result.game.split('/').pop())}.</span>` +
+        const pv = { base: esc(s.result.base), format: esc(s.result.format.toUpperCase()), file: esc(s.result.game.split('/').pop()) };
+        $('#ptMsg').innerHTML = `<span class="ok">${s.result.format === 'ips' ? T('Patched {base} with an {format} patch: saved {file}.', pv) : T('Patched {base} with a {format} patch: saved {file}.', pv)}</span>` +
           (about ? `<div class="note" style="margin-top:6px">${about}</div>` : '') +
           s.result.notes.map(n => `<div class="warn" style="margin-top:6px">${esc(n)}</div>`).join('');
         $('#ptPlay').style.display = $('#ptReveal').style.display = '';
@@ -1814,44 +1837,44 @@ $('#ptGo').onclick = async () => {
 // ---- checks: what your changes would break, in plain words ------------------------
 let checkResult = null, checkFailed = null;
 async function runChecks() {
-  $('#check').disabled = true; status('Checking every map…');
+  $('#check').disabled = true; status(T('Checking every map…'));
   const answer = await api('/api/check');
   $('#check').disabled = false;
-  checkFailed = answer.issues ? null : (answer.error || 'The check stopped part way.');
-  if (checkFailed) { checkResult = null; status(`<span class="err">Check couldn't finish: ${esc(checkFailed)}</span>`); return null; }
+  checkFailed = answer.issues ? null : (answer.error || T('The check stopped part way.'));
+  if (checkFailed) { checkResult = null; status(`<span class="err">${T("Check couldn't finish: {error}", { error: esc(checkFailed) })}</span>`); return null; }
   const r = checkResult = answer.issues;
   const mine = r.filter(i => !i.original);
   $('#checkBadge').style.display = mine.length ? '' : 'none'; $('#checkBadge').textContent = mine.length;
-  status(mine.length ? `<span class="warn">${mine.length} problem(s) in your changes.</span>` : '<span class="ok">No problems found in your changes.</span>');
+  status(mine.length ? `<span class="warn">${T('{n} problem(s) in your changes.', { n: mine.length })}</span>` : `<span class="ok">${T('No problems found in your changes.')}</span>`);
   return r;
 }
 function renderChecks() {
   if (checkFailed) {
-    $('#ckTitle').textContent = "Check couldn't finish";
+    $('#ckTitle').textContent = T("Check couldn't finish");
     $('#ckOrigN').textContent = '';
-    $('#ckList').innerHTML = `<div class="note" style="padding:16px 0">Nothing has been checked, so there may be problems it didn't get to see. ${esc(checkFailed)}</div>`;
+    $('#ckList').innerHTML = `<div class="note" style="padding:16px 0">${T("Nothing has been checked, so there may be problems it didn't get to see.")} ${esc(checkFailed)}</div>`;
     return;
   }
   const r = checkResult || [], mine = r.filter(i => !i.original), orig = r.filter(i => i.original);
-  $('#ckTitle').innerHTML = mine.length ? `${mine.length} problem${mine.length === 1 ? '' : 's'} in your changes` : 'No problems in your changes ✓';
+  $('#ckTitle').innerHTML = mine.length ? (mine.length === 1 ? T('1 problem in your changes') : T('{n} problems in your changes', { n: mine.length })) : T('No problems in your changes ✓');
   $('#ckOrigN').textContent = `(${orig.length})`;
   const shown = $('#ckOrig').checked ? r : mine, groups = new Map();
-  for (const i of shown) { const k = i.place || 'Everywhere'; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(i); }
-  let html = shown.length ? '' : '<div class="note" style="padding:16px 0">Nothing to fix. Your doors lead somewhere, your chests open, and every block exists.</div>';
+  for (const i of shown) { const k = i.place || T('Everywhere'); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(i); }
+  let html = shown.length ? '' : `<div class="note" style="padding:16px 0">${T('Nothing to fix. Your doors lead somewhere, your chests open, and every block exists.')}</div>`;
   for (const [place, list] of groups) {
     html += `<h3>${place}</h3>`;
     for (const i of list) {
       const idx = r.indexOf(i);
       html += `<div class="issue${i.original ? ' orig' : ''}"><span class="ico">${i.severity === 'error' ? '⛔' : '⚠️'}</span>
-        <div>${esc(i.message)}${i.original ? ' <i style="color:var(--muted)">(in the original game)</i>' : ''}<div class="fix">${esc(i.fix)}</div></div>
-        ${i.map ? `<button data-i="${idx}">Show</button>` : '<span></span>'}</div>`;
+        <div>${esc(i.message)}${i.original ? ` <i style="color:var(--muted)">${T('(in the original game)')}</i>` : ''}<div class="fix">${esc(i.fix)}</div></div>
+        ${i.map ? `<button data-i="${idx}">${T('Show')}</button>` : '<span></span>'}</div>`;
     }
   }
   $('#ckList').innerHTML = html;
 }
 async function openChecks(rerun) {
   $('#checks').style.display = 'flex';
-  if (rerun || (!checkResult && !checkFailed)) { $('#ckTitle').textContent = 'Checking every map…'; $('#ckList').innerHTML = ''; await runChecks(); }
+  if (rerun || (!checkResult && !checkFailed)) { $('#ckTitle').textContent = T('Checking every map…'); $('#ckList').innerHTML = ''; await runChecks(); }
   renderChecks();
 }
 $('#check').onclick = () => openChecks(true);
@@ -1877,31 +1900,32 @@ $('#ckList').onclick = async e => {
 };
 
 // Problems your changes would cause: true to carry on.
-async function checkFirst(doing) {
+// `anyway` is the closing question: "Build anyway?" or "Play anyway?".
+async function checkFirst(anyway) {
   const found = await runChecks();
-  if (!found && !confirm(`Check couldn't finish, so your changes haven't been checked.\n\n${doing} anyway?`)) { openChecks(false); return false; }
+  if (!found && !confirm(T("Check couldn't finish, so your changes haven't been checked.") + '\n\n' + anyway)) { openChecks(false); return false; }
   const mine = (found || []).filter(i => !i.original);
-  if (mine.length && !confirm(`Found ${mine.length} problem(s) in your changes:\n\n` +
+  if (mine.length && !confirm(T('Found {n} problem(s) in your changes:', { n: mine.length }) + '\n\n' +
       mine.slice(0, 6).map(i => '• ' + (i.place ? i.place + ': ' : '') + i.message).join('\n') +
-      (mine.length > 6 ? `\n…and ${mine.length - 6} more` : '') + `\n\n${doing} anyway?`)) { openChecks(false); return false; }
+      (mine.length > 6 ? '\n' + T('…and {n} more', { n: mine.length - 6 }) : '') + '\n\n' + anyway)) { openChecks(false); return false; }
   return true;
 }
 
 async function doBuild() {
-  if (!await saveFirst() || !await checkFirst('Build')) return;
-  $('#build').disabled = true; status('Building your game…');
+  if (!await saveFirst() || !await checkFirst(T('Build anyway?'))) return;
+  $('#build').disabled = true; status(T('Building your game…'));
   const r = await api('/api/build', { target: 'tbs-en' });
   $('#build').disabled = false;
   if (r.error) return status(`<span class="err">${esc(r.error)}</span>`);
   log(r.tail.join('\n'));
-  if (r.exit === 0) return status('<span class="ok">Your game is built.</span>');
-  failDialog("Your changes couldn't be turned into a game", r.why || 'Your files are safe. Use Undo to step back, then try again.', r.tail.join('\n'));
+  if (r.exit === 0) return status(`<span class="ok">${T('Your game is built.')}</span>`);
+  failDialog(T("Your changes couldn't be turned into a game"), r.why || T('Your files are safe. Use Undo to step back, then try again.'), r.tail.join('\n'));
 }
 
 async function doPlay() {
   if (!await saveFirst()) return;
   refreshUndoSave();
-  if (!await checkFirst('Play')) return;
+  if (!await checkFirst(T('Play anyway?'))) return;
   const from = $('#playFrom').value;
   await buildAndPlay($('#play'), S.map ? scene()?.id : undefined, from === '' ? undefined : +from);
 }
@@ -1918,12 +1942,12 @@ async function reopenPlace() {
 async function resetPlace() {
   const n = S.failed ?? S.map?.number;
   if (n == null) return;
-  const sharing = !S.failed && S.map.shares_grid?.length ? `\n\nThis place's map is shared with ${S.map.shares_grid.length} other place(s), and they go back too.` : '';
-  if (!confirm(`Put this place back as the original game has it?\n\nYour painting, chests, doors, pictures and events here go. You can bring them back with Undo.${sharing}`)) return;
+  const sharing = !S.failed && S.map.shares_grid?.length ? '\n\n' + T("This place's map is shared with {n} other place(s), and they go back too.", { n: S.map.shares_grid.length }) : '';
+  if (!confirm(T('Put this place back as the original game has it?\n\nYour painting, chests, doors, pictures and events here go. You can bring them back with Undo.') + sharing)) return;
   S.pending.clear(); S.markerMoves.clear(); S.tableEdits.clear();
   const r = await api(`/api/map/${n}/reset`, {});
   if (r.error) return status(`<span class="err">${esc(r.error)}</span>`);
-  if (r.shared_tables && confirm(`${r.shared_tables} table(s) of people and events here are shared with other places, so they were left as they are.\n\nPut those back too? Those places lose your edits to them as well.`)) {
+  if (r.shared_tables && confirm(T('{n} table(s) of people and events here are shared with other places, so they were left as they are.\n\nPut those back too? Those places lose your edits to them as well.', { n: r.shared_tables }))) {
     const again = await api(`/api/map/${n}/reset`, { shared: true });
     if (again.error) return status(`<span class="err">${esc(again.error)}</span>`);
     r.tables += again.tables; r.text = r.text || again.text; r.shared_tables = 0;
@@ -1931,18 +1955,18 @@ async function resetPlace() {
   await reopenPlace();
   refreshUndoSave();
   const nothing = !r.files && !r.tables && !r.text;
-  status((nothing ? 'This place already matches the original.' : `<span class="ok">Back to the original.</span>`) + (r.shared_tables ? ` <span class="warn">Some people and events here are shared with other places, so those stay as they are.</span>` : ''));
+  status((nothing ? T('This place already matches the original.') : `<span class="ok">${T('Back to the original.')}</span>`) + (r.shared_tables ? ` <span class="warn">${T('Some people and events here are shared with other places, so those stay as they are.')}</span>` : ''));
 }
 
 // The arrival points Play can start at, for the scene being edited.
 async function fillPlayFrom() {
   const sc = scene(), box = $('#playFrom'), want = box.dataset.scene === String(sc?.id) ? box.value : '';
   box.dataset.scene = sc?.id ?? '';
-  box.innerHTML = '<option value="">best guess</option>';
+  box.innerHTML = `<option value="">${T('best guess')}</option>`;
   if (!sc) return;
   const r = await api(`/api/scene/${sc.id}/arrivals`);
   if (box.dataset.scene !== String(sc.id)) return;
-  for (const a of r.arrivals || []) box.insertAdjacentHTML('beforeend', `<option value="${a.entrance}">arrival ${a.entrance}</option>`);
+  for (const a of r.arrivals || []) box.insertAdjacentHTML('beforeend', `<option value="${a.entrance}">${T('arrival {n}', { n: a.entrance })}</option>`);
   if ([...box.options].some(o => o.value === want)) box.value = want;
 }
 $('#sceneSel').addEventListener('change', fillPlayFrom);
@@ -1956,7 +1980,7 @@ $('#undo').onclick = async () => {
   const s = S.undo.pop();
   if (s) { applyChanges([...s].reverse(), 'before'); S.redo.push(s); updateButtons(); return; }
   if (!HIST.last) return;
-  if (dirtyCount() && !confirm('You have changes you haven\'t saved. Undoing your last saved change throws those away too.\n\nGo ahead?')) return;
+  if (dirtyCount() && !confirm(T("You have changes you haven't saved. Undoing your last saved change throws those away too.\n\nGo ahead?"))) return;
   S.pending.clear(); S.markerMoves.clear(); S.tableEdits.clear();
   await historyStep(false, afterHistory);
 };

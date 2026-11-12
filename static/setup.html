@@ -29,6 +29,7 @@
 </head>
 <body>
 <div class="wrap">
+  <div style="float:right"><label title="The editor's language. The game stays in English.">🌐 <select id="lang" style="width:auto"></select></label></div>
   <h1>Welcome to GS Map Editor</h1>
   <p class="lead">The editor makes your own copy of the game on this computer. That takes one setup, around 15 minutes in all, mostly waiting. Press the button on each step and the editor does the rest.</p>
   <div id="steps"></div>
@@ -42,6 +43,8 @@
   <pre id="log"></pre>
   <p class="note">Nothing here touches a cartridge or ROM file: the game is built from alchemy's source, and the built game stays on your computer. Please don't share built games; share your mod's changes instead.</p>
 </div>
+<script src="i18n-strings.js"></script>
+<script src="i18n.js"></script>
 <script src="setup.js"></script>
 </body>
 </html>

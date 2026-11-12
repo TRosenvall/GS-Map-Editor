@@ -5,21 +5,7 @@ function esc(text) {
   return String(text ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-// The pages are written with a Mac's keys and words. Elsewhere (Windows,
-// through WSL, and Linux) the same shortcuts use Ctrl and Alt.
-const ON_MAC = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
-function localWords(text) {
-  if (ON_MAC) return text;
-  return String(text).replace(/⇧⌘/g, 'Ctrl+Shift+').replace(/⌘/g, 'Ctrl+').replace(/⌥-click/g, 'Alt-click')
-    .replace(/⌥/g, 'Alt+').replace(/Show in Finder/g, 'Show the file').replace(/this Mac\b/g, 'this computer');
-}
-function localizePage(root) {
-  if (ON_MAC) return;
-  const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-  for (let n = walk.nextNode(); n; n = walk.nextNode()) n.nodeValue = localWords(n.nodeValue);
-  root.querySelectorAll('[title]').forEach(el => { el.title = localWords(el.title); });
-}
-document.addEventListener('DOMContentLoaded', () => localizePage(document.body));
+// ON_MAC, localWords and T come from i18n.js, which every page loads first.
 
 // Pages forbid inline script, so a picture that may not exist asks for this instead.
 document.addEventListener('error', e => { if (e.target.matches?.('img[data-hide-broken]')) e.target.remove(); }, true);
@@ -39,21 +25,21 @@ function failDialog(title, why, details) {
     d = document.createElement('div');
     d.id = 'failDialog';
     d.innerHTML = `<div class="box"><h2></h2><p class="why"></p>
-      <details><summary>Show details</summary><pre></pre></details>
-      <div class="row"><button class="copy">Copy details for a bug report</button><span style="flex:1"></span><button class="ok primary">OK</button></div></div>`;
+      <details><summary>${T('Show details')}</summary><pre></pre></details>
+      <div class="row"><button class="copy">${T('Copy details for a bug report')}</button><span style="flex:1"></span><button class="ok primary">${T('OK')}</button></div></div>`;
     document.body.appendChild(d);
     d.querySelector('.ok').onclick = () => { d.style.display = 'none'; };
     d.querySelector('.copy').onclick = async e => {
       const text = d.querySelector('pre').textContent;
-      try { await navigator.clipboard.writeText(text); e.target.textContent = 'Copied'; }
+      try { await navigator.clipboard.writeText(text); e.target.textContent = T('Copied'); }
       catch (err) { const r = document.createRange(); r.selectNodeContents(d.querySelector('pre')); d.querySelector('details').open = true; getSelection().removeAllRanges(); getSelection().addRange(r); }
     };
   }
   d.querySelector('h2').textContent = title;
   d.querySelector('.why').textContent = why;
-  d.querySelector('pre').textContent = details || '(none)';
+  d.querySelector('pre').textContent = details || T('(none)');
   d.querySelector('details').open = false;
-  d.querySelector('.copy').textContent = 'Copy details for a bug report';
+  d.querySelector('.copy').textContent = T('Copy details for a bug report');
   d.style.display = 'flex';
 }
 
@@ -62,18 +48,18 @@ function failDialog(title, why, details) {
 async function buildAndPlay(button, scene, entrance) {
   if (button) button.disabled = true;
   try {
-    status('Getting your game ready… (usually under a minute)');
+    status(T('Getting your game ready… (usually under a minute)'));
     const b = await api('/api/build', { target: 'tbs-en', playable: true });
-    if (b.error) { failDialog("Your game couldn't be built", b.error, b.error); status(''); return false; }
+    if (b.error) { failDialog(T("Your game couldn't be built"), b.error, b.error); status(''); return false; }
     if (b.exit !== 0) {
-      failDialog("Your changes couldn't be turned into a game",
-        b.why || 'Your files are safe. Use Undo to step back, then try again.',
+      failDialog(T("Your changes couldn't be turned into a game"),
+        b.why || T('Your files are safe. Use Undo to step back, then try again.'),
         (b.tail || []).join('\n'));
-      status('<span class="err">The game didn’t build.</span>');
+      status(`<span class="err">${T('The game didn’t build.')}</span>`);
       return false;
     }
     const r = await api('/api/play', { scene, entrance });
-    if (r.error) { failDialog("Your game is ready, but couldn't be opened", r.error, r.error); status(''); return false; }
+    if (r.error) { failDialog(T("Your game is ready, but couldn't be opened"), r.error, r.error); status(''); return false; }
     status(`<span class="ok">${esc(r.note)}</span>`);
     return true;
   } finally {
@@ -91,16 +77,27 @@ async function refreshUndoSave() {
   HIST.last = r.last || null; HIST.next = r.next || null;
   if (typeof updateButtons === 'function') updateButtons();
 }
-// Where a history entry's change was, in words (" in Imil"), from the page's place names.
+// Where a history entry's change was: 'world', a place's name (from the page's
+// place names), or null.
 function historyWhere(where) {
-  if (where == null) return '';
-  if (where === 'world') return ' on the world map';
-  const name = typeof placeLabel === 'function' ? placeLabel(where) : null;
-  return name ? ` in ${name}` : '';
+  if (where == null) return null;
+  if (where === 'world') return 'world';
+  return (typeof placeLabel === 'function' ? placeLabel(where) : null) || null;
 }
 function historyTitle(redo) {
   const e = redo ? HIST.next : HIST.last;
-  return e ? `${redo ? 'Redo' : 'Undo'} ${e.label}${historyWhere(e.where)}` : (redo ? 'Nothing to redo' : 'Nothing to undo');
+  if (!e) return redo ? T('Nothing to redo') : T('Nothing to undo');
+  const what = e.label, place = historyWhere(e.where);
+  if (place === 'world') return redo ? T('Redo {what} on the world map', { what }) : T('Undo {what} on the world map', { what });
+  if (place) return redo ? T('Redo {what} in {place}', { what, place }) : T('Undo {what} in {place}', { what, place });
+  return redo ? T('Redo {what}', { what }) : T('Undo {what}', { what });
+}
+// What a history step did, in words ("Undid painting in Imil."), for innerHTML.
+function historyDone(redo, label, where) {
+  const what = esc(label), w = historyWhere(where), place = esc(w);
+  if (w === 'world') return redo ? T('Redid {what} on the world map.', { what }) : T('Undid {what} on the world map.', { what });
+  if (w) return redo ? T('Redid {what} in {place}.', { what, place }) : T('Undid {what} in {place}.', { what, place });
+  return redo ? T('Redid {what}.', { what }) : T('Undid {what}.', { what });
 }
 // Undo (or redo) the newest saved action; `after(r)` reloads what the page shows.
 async function historyStep(redo, after) {
@@ -108,8 +105,8 @@ async function historyStep(redo, after) {
   if (r.error) return status(`<span class="err">${esc(r.error)}</span>`);
   HIST.last = r.last || null; HIST.next = r.next || null;
   if (r.label) await after(r);
-  status(r.label ? `<span class="ok">${redo ? 'Redid' : 'Undid'} ${esc(r.label)}${esc(historyWhere(r.where))}.</span>`
-    : (redo ? 'Nothing to redo.' : 'Nothing to undo.'));
+  status(r.label ? `<span class="ok">${historyDone(redo, r.label, r.where)}</span>`
+    : (redo ? T('Nothing to redo.') : T('Nothing to undo.')));
   if (typeof updateButtons === 'function') updateButtons();
 }
 

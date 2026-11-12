@@ -26,6 +26,7 @@ from . import layout
 from .sceneedit import actor_numbers
 from . import table as tablemod
 from .fsio import atomic_write
+from .i18n import tr
 
 CHUNKS, LAYER1 = 640, 320
 WORLD_CHUNKS = 16  # per side
@@ -272,11 +273,12 @@ def region_names(world, places, names):
     out = {}
     for kind in sorted({(w >> 24) & 0x7F for row in world.rows[:160] for w in row}):
         if kind == 0:
-            out[0] = "No encounters"
+            out[0] = tr("No encounters")
             continue
         towns = near.get(kind, [])
-        base = "Snowfield" if kind == SNOW_KIND else f"Region {kind}"
-        out[kind] = base + (f" ({', '.join(towns[:3])}{'…' if len(towns) > 3 else ''})" if towns else "")
+        base = tr("Snowfield") if kind == SNOW_KIND else tr("Region {n}", n=kind)
+        out[kind] = (tr("{region} ({places})", region=base,
+                        places=", ".join(towns[:3]) + ("…" if len(towns) > 3 else "")) if towns else base)
     return out
 
 
@@ -287,7 +289,7 @@ def apply_world_edits(world, edits):
     for e in edits:
         gx, gy, layer = int(e["gx"]), int(e["gy"]), int(e.get("layer", 0))
         if not (0 <= gx < 256 and 0 <= gy < 256 and layer in (0, 1)):
-            raise ValueError(f"cell {gx},{gy} is outside the world")
+            raise ValueError(tr("cell {x},{y} is outside the world", x=gx, y=gy))
         c = world.shown_chunk(gx // 16, gy // 16) + LAYER1 * layer
         w = world.word(c, gx % 16, gy % 16)
         before.append({"gx": gx, "gy": gy, "layer": layer, "word": w})
@@ -343,7 +345,7 @@ def move_icon(project, scenes, names, actor, x, z, move_arrivals=True):
         raise ValueError(f"no icon {actor}")
     row = numbers.index(actor)
     if not (0 <= x < 8192 and 0 <= z < 8192):
-        raise ValueError("that spot is outside the world")
+        raise ValueError(tr("that spot is outside the world"))
     old = main[row]
     ox, oz, sprite = old["x"] >> 16, old["z"] >> 16, old["sprite"]
     dx, dz = x - ox, z - oz

@@ -11,6 +11,7 @@ import struct
 import time
 
 from . import layout
+from .i18n import tr
 from .modgen import PLAYTEST_SYMBOL
 from .scenes import readelf_symbols
 
@@ -51,7 +52,7 @@ def make_copy(root, folder, scene, entrance):
     """Path of a copy of the built ROM that starts at (scene, entrance)."""
     symbols = readelf_symbols(os.path.join(root, layout.ELF))
     if PLAYTEST_SYMBOL not in symbols:
-        raise ValueError("This build can't start at a chosen place yet; build it again.")
+        raise ValueError(tr("This build can't start at a chosen place yet; build it again."))
     os.makedirs(folder, exist_ok=True)
     # A new name each time: mGBA keeps a file it already has open as it was.
     path = os.path.join(folder, f"play-{time.time_ns()}.gba")

@@ -115,6 +115,12 @@ Then press **Open the editor**. After this, the app opens straight into the edit
 
 Tick **Advanced** in the top bar to show raw numbers and codes and a separate **Build** button. You won't need it for normal editing.
 
+### Languages
+
+The editor speaks English, Spanish (Español), German (Deutsch), French (Français), Italian (Italiano) and Japanese (日本語). It starts in your computer's language when it has it. Change it with the 🌐 menu, at the top right of the first setup screen and at the end of the top bar. Only the editor's own words change: the game you're modding is the English edition, so place names, people, items and the dialogue you write stay in English.
+
+The translations were made with AI help and haven't all been checked by native speakers yet. If something reads oddly, please [say so](https://github.com/TRosenvall/GS-Map-Editor/issues/new?template=bug_report.md) with the wording you'd expect.
+
 ## Saving and undoing
 
 Some changes wait for you to save, and others save straight away:

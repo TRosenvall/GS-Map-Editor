@@ -26,6 +26,7 @@ import threading
 
 from . import host, layout, preflight
 from .fsio import atomic_write
+from .i18n import tr
 
 APP_NAME = host.APP_NAME
 SUPPORT = host.SUPPORT
@@ -130,8 +131,8 @@ def brew():
 def path_problem(root):
     """Why a checkout path can't be built, in words, or None."""
     if " " in root:
-        return (f"{root} has a space in its path, which the game's build can't handle. "
-                "Choose or move a copy of the game source to a folder with no spaces in its path.")
+        return tr("{folder} has a space in its path, which the game's build can't handle. "
+                  "Choose or move a copy of the game source to a folder with no spaces in its path.", folder=root)
     return None
 
 
@@ -165,34 +166,35 @@ def checks(root):
     """[{id, title, ok, detail, action}] in setup order."""
     if host.KIND != "mac":
         missing = linux_missing()
-        return [{"id": "packages", "title": "The tools for building the game", "ok": not missing,
-                 "detail": "Installed." if not missing else
-                 f"Missing: {', '.join(missing)}. Open a terminal (on Windows, the Ubuntu app), run "
-                 f"`{APT_COMMAND}`, then press Check again.",
+        return [{"id": "packages", "title": tr("The tools for building the game"), "ok": not missing,
+                 "detail": tr("Installed.") if not missing else
+                 tr("Missing: {packages}. Open a terminal (on Windows, the Ubuntu app), run "
+                    "`{command}`, then press Check again.", packages=", ".join(missing), command=APT_COMMAND),
                  "action": None}] + _source_steps(root)
     out = []
     clt = _run(["xcode-select", "-p"])[0] == 0 and _run(["/usr/bin/clang", "--version"])[0] == 0
-    out.append({"id": "clt", "title": "Apple's developer tools", "ok": clt,
-                "detail": "Installed." if clt else "Needed to build the game. Apple installs them for free.",
-                "action": None if clt else "Install"})
+    out.append({"id": "clt", "title": tr("Apple's developer tools"), "ok": clt,
+                "detail": tr("Installed.") if clt else tr("Needed to build the game. Apple installs them for free."),
+                "action": None if clt else tr("Install")})
     tc = bundled_toolchain()
     if tc and not missing_packages():
-        out.append({"id": "packages", "title": "The tools for building the game", "ok": True,
-                    "detail": "Included with the app.", "action": None})
+        out.append({"id": "packages", "title": tr("The tools for building the game"), "ok": True,
+                    "detail": tr("Included with the app."), "action": None})
         return out + _source_steps(root)
     b = brew()
     out.append({"id": "brew", "title": "Homebrew", "ok": bool(b),
-                "detail": "Installed." if b else "A free package manager for the remaining tools. Install it from brew.sh "
-                          "(paste its one line into Terminal), then come back and press Check again.",
-                "action": None if b else "Open brew.sh"})
+                "detail": tr("Installed.") if b else tr("A free package manager for the remaining tools. Install it "
+                                                        "from brew.sh (paste its one line into Terminal), then come "
+                                                        "back and press Check again."),
+                "action": None if b else tr("Open brew.sh")})
     missing = []
     if b:
         missing = missing_packages()
-    out.append({"id": "packages", "title": "The tools for building the game",
+    out.append({"id": "packages", "title": tr("The tools for building the game"),
                 "ok": bool(b) and not missing,
-                "detail": "Installed." if b and not missing else
-                          ("Needs Homebrew first." if not b else f"Missing: {', '.join(missing)}."),
-                "action": "Install" if b and missing else None})
+                "detail": tr("Installed.") if b and not missing else
+                          (tr("Needs Homebrew first.") if not b else tr("Missing: {packages}.", packages=", ".join(missing))),
+                "action": tr("Install") if b and missing else None})
     return out + _source_steps(root)
 
 
@@ -204,26 +206,30 @@ def _source_steps(root):
         spaced = path_problem(root or DEFAULT_WORKSPACE)
         problems = [spaced] if spaced else []
     if problems:
-        out.append({"id": "source", "title": "The game's source", "ok": False,
-                    "detail": problems[0] if " " in (root or DEFAULT_WORKSPACE) or "damaged" in problems[0] else
-                    f"{root} is a version this editor can't read yet: {problems[0]} "
-                    "Move this folder aside, then use a fresh download.",
+        damaged = isinstance(problems[0], preflight.Damage) or "damaged" in problems[0]
+        out.append({"id": "source", "title": tr("The game's source"), "ok": False,
+                    "detail": problems[0] if " " in (root or DEFAULT_WORKSPACE) or damaged else
+                    tr("{folder} is a version this editor can't read yet: {problem} "
+                       "Move this folder aside, then use a fresh download.", folder=root, problem=problems[0]),
                     "action": None})
-        return out + [{"id": "bootstrap", "title": "Preparing the build", "ok": False, "detail": "Needs the game source first.",
-                       "action": None},
-                      {"id": "build", "title": "A first build of the game", "ok": False, "detail": "Needs the compilers first.",
-                       "action": None}]
-    out.append({"id": "source", "title": "The game's source", "ok": src,
-                "detail": f"Using {root}." if src else "Downloads about 1 GB. If you already have a copy, choose its folder instead.", "action": None if src else "Download"})
+        return out + [{"id": "bootstrap", "title": tr("Preparing the build"), "ok": False,
+                       "detail": tr("Needs the game source first."), "action": None},
+                      {"id": "build", "title": tr("A first build of the game"), "ok": False,
+                       "detail": tr("Needs the compilers first."), "action": None}]
+    out.append({"id": "source", "title": tr("The game's source"), "ok": src,
+                "detail": tr("Using {folder}.", folder=root) if src else
+                tr("Downloads about 1 GB. If you already have a copy, choose its folder instead."),
+                "action": None if src else tr("Download")})
     boot = src and all(os.path.exists(os.path.join(root, p)) for p in
                        ("tools/out/compilers/xgcc", "tools/out/compilers/as", "tools/out/compiler-runtime/libgcc.a"))
-    out.append({"id": "bootstrap", "title": "Preparing the build", "ok": bool(boot),
-                "detail": "Built." if boot else "Done once. Takes several minutes and shows a lot of scrolling text; that's normal.",
-                "action": None if boot or not src else "Build"})
+    out.append({"id": "bootstrap", "title": tr("Preparing the build"), "ok": bool(boot),
+                "detail": tr("Built.") if boot else
+                tr("Done once. Takes several minutes and shows a lot of scrolling text; that's normal."),
+                "action": None if boot or not src else tr("Build")})
     rom = src and os.path.exists(os.path.join(root, layout.ROM))
-    out.append({"id": "build", "title": "A first build of the game", "ok": bool(rom),
-                "detail": "Done: the editor is ready." if rom else "Makes the game once, to check everything works.",
-                "action": None if rom or not boot else "Build"})
+    out.append({"id": "build", "title": tr("A first build of the game"), "ok": bool(rom),
+                "detail": tr("Done: the editor is ready.") if rom else tr("Makes the game once, to check everything works."),
+                "action": None if rom or not boot else tr("Build")})
     return out
 
 
@@ -297,36 +303,36 @@ def start(action, root, workspace=None):
     b = brew()
     if action == "clt":
         # Apple's own installer dialog; the page asks to press Check when it's done.
-        return Job("Apple developer tools", [["xcode-select", "--install"]]), None
+        return Job(tr("Apple developer tools"), [["xcode-select", "--install"]]), None
     if action == "packages" and host.KIND != "mac":
-        raise ValueError(f"Installing these needs your password: in a terminal, run {APT_COMMAND}")
+        raise ValueError(tr("Installing these needs your password: in a terminal, run {command}", command=APT_COMMAND))
     if action == "packages":
         if not b:
-            raise ValueError("Install Homebrew first")
-        return Job("Build tools", [[b, "install"] + (missing_packages() or BREW_PACKAGES)]), None
+            raise ValueError(tr("Install Homebrew first"))
+        return Job(tr("Build tools"), [[b, "install"] + (missing_packages() or BREW_PACKAGES)]), None
     if action == "source":
         dest = os.path.join(workspace or DEFAULT_WORKSPACE, "alchemy")
         if os.path.exists(dest) and not [n for n in os.listdir(dest) if n != ".DS_Store"]:
             shutil.rmtree(dest)  # an empty folder: the download below couldn't land on it
         if os.path.exists(dest) and os.listdir(dest):
             if is_alchemy(dest):
-                return Job("Game source", [GIT_PATIENT_ARGS(dest) + ["submodule", "update", "--init", "--recursive",
+                return Job(tr("Game source"), [GIT_PATIENT_ARGS(dest) + ["submodule", "update", "--init", "--recursive",
                                                                       "alchemy-gcc"]], on_done=None), dest
-            raise ValueError(f"{dest} already exists, but it isn't a version of alchemy this editor can read. "
-                             "Move it aside (your mod's changes are in it) and press Download again.")
+            raise ValueError(tr("{folder} already exists, but it isn't a version of alchemy this editor can read. "
+                                "Move it aside (your mod's changes are in it) and press Download again.", folder=dest))
         spaced = path_problem(dest)
         if spaced:
             raise ValueError(spaced)
         try:
             os.makedirs(os.path.dirname(dest), exist_ok=True)
         except OSError as e:
-            raise ValueError(f"Couldn't create {os.path.dirname(dest)} ({e.strerror}). If macOS asked about your "
-                             "Documents folder, allow it in System Settings, Privacy & Security, Files and "
-                             "Folders, then try again.") from e
+            raise ValueError(tr("Couldn't create {folder} ({error}). If macOS asked about your "
+                                "Documents folder, allow it in System Settings, Privacy & Security, Files and "
+                                "Folders, then try again.", folder=os.path.dirname(dest), error=e.strerror)) from e
         # Everything happens in a folder that's only named as the game once it's
         # whole, so a dropped connection just means pressing the button again.
         partial = dest + ".partial"
-        return Job("Game source", [
+        return Job(tr("Game source"), [
             ["rm", "-rf", partial],
             GIT_LIMITS + ["clone", ALCHEMY_URL, partial],
             GIT_PATIENT_ARGS(partial) + ["checkout", "-q", ALCHEMY_PIN],
@@ -334,9 +340,9 @@ def start(action, root, workspace=None):
             ["mv", partial, dest],
         ]), dest
     if action == "bootstrap":
-        return Job("Compilers", [["make", "bootstrap"]], cwd=root), None
+        return Job(tr("Compilers"), [["make", "bootstrap"]], cwd=root), None
     if action == "build":
-        return Job("First build", [["make", "-j4", "tbs-en"]], cwd=root), None
+        return Job(tr("First build"), [["make", "-j4", "tbs-en"]], cwd=root), None
     raise ValueError(f"unknown step {action}")
 
 
