@@ -15,7 +15,7 @@ import re
 from PIL import Image
 
 from . import layout
-from .i18n import tr
+from .i18n import tr, translate
 from .messages import Messages
 
 DATA = os.path.join(os.path.dirname(__file__), "data")
@@ -226,7 +226,9 @@ class Names:
     def client_tables(self):
         """Everything the UI needs to name things, in one payload."""
         return {
-            "collision": self.collision,
+            # Walkability brushes: data/collision.json keeps them in English;
+            # tools/extract_strings.py collects their names and meanings.
+            "collision": [dict(r, name=translate(r["name"]), meaning=translate(r["meaning"])) for r in self.collision],
             "items": [
                 {"id": i, "name": it["name"], "type": it.get("type"), "unused": it.get("unused", False)}
                 for i, it in sorted(self.items.items())

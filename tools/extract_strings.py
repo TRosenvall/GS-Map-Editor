@@ -2,12 +2,13 @@
 step: new messages are added untranslated (empty), messages no longer used
 are dropped, translations are kept.
 
-Messages are found in three places:
+Messages are found in four places:
 - Python: tr("…") and N_("…") calls in gsmap/, server.py and desktop.py (a plain string,
   never an f-string: changing parts are {name} placeholders);
 - the pages' scripts: T('…') calls in static/*.js;
 - the pages themselves: each text and title, placeholder or aria-label in
-  static/*.html, outside script, style and data-notr elements.
+  static/*.html, outside script, style and data-notr elements;
+- the walkability brushes' names and meanings in gsmap/data/collision.json.
 
 Run: python3 tools/extract_strings.py          update the catalogs
      python3 tools/extract_strings.py --check  fail if they're out of step or
@@ -129,10 +130,17 @@ def from_html():
     return out
 
 
+def from_data():
+    """The walkability brushes' names and meanings (gsmap/names.py translates them)."""
+    with open(os.path.join(ROOT, "gsmap", "data", "collision.json"), encoding="utf-8") as f:
+        ranges = json.load(f)["ranges"]
+    return {r[k]: "gsmap/data/collision.json" for r in ranges for k in ("name", "meaning") if r.get(k)}
+
+
 def messages():
     problems = []
     found = {}
-    for part in (from_html(), from_js(problems), from_python(problems)):
+    for part in (from_html(), from_js(problems), from_python(problems), from_data()):
         for k, v in part.items():
             found.setdefault(k, v)
     for k in list(found):

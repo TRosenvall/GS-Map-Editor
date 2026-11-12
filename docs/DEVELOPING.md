@@ -162,6 +162,8 @@ The editor's own words are translated; the game stays English. Write each messag
 
 `python3 tools/extract_strings.py` collects every message into `static/i18n/<lang>.json` (English → translation), adding new ones empty and dropping ones the code no longer has; `--check` fails if any are out of step or untranslated. The language picked in the 🌐 menu is kept in the editor's settings (`language`); until one is picked, the browser's preferred languages decide. Each request's messages use it (`i18n.begin` in both servers), and the pages get their catalog from `/i18n-strings.js`. To add a language, add it to `LANGS` in `gsmap/i18n.py`, run the extractor, and fill in the new file.
 
+The README and these docs are translated too: `README.<lang>.md` beside the README, and `docs/<lang>/` for `DEVELOPING.md`, `PRODUCT.md`, `SPEC.md` and `research/`. `docs/upstream-issues.md` (for alchemy's English tracker), `docs/releases/` and `THIRD_PARTY_NOTICES.md` stay English. The English files are the originals: change them first, then the translations, and run `python3 tools/doc_translations.py --stamp` to record which English text each translation now follows. Without `--stamp` it checks every translation's links, headings, web addresses and `code` spans, and lists any whose English has changed since. The walkability brushes' names and meanings, in `gsmap/data/collision.json`, are collected by the extractor too.
+
 ## Docs
 
 - [`SPEC.md`](SPEC.md): the editor spec, invariants and staged build plan.

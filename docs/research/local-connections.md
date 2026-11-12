@@ -68,7 +68,7 @@ All values are offsets from `ResourceId_Map001`. Expanding the directory macros 
 
 123 of 186 rows are not six consecutive resources: a row can mix sheets from different sets, and recolours reuse sheets. So the editor must treat the row as six independent references.
 
-`map_NNN/` is named after `Field_MapNNN` (the directory's numbering, `src/map/README.md` "The map numbers are the directory's"). For example, scene ValeHome (id 5) has mapIndex 4 → `Field_Map003` = `src/map/map_003/`. That map's `markers.tsv` (13,44,100) matches ValeHome's `SEARCH(...)` event with trigger 100 (`src/scene/vale_home.c`, events). See the Appendix for all 201 scenes.
+`map_NNN/` is named after `Field_MapNNN` (the directory's numbering, `src/map/README.md` "The map numbers are the directory's"). For example, scene ValeHome (id 5) has mapIndex 4 → `Field_Map003` = `src/map/map_003/`. That map's `markers.tsv` (13,44,100) matches ValeHome's `SEARCH(...)` event with trigger 100 (`src/scene/vale_home.c`, events).
 
 Two maps carry place names instead of numbers: `gondowan_passage/` (`Field_GondowanPassage`) and `venus_entrance/` (`Field_VenusEntrance`). Of 182 distinct map resources referenced, 8 are used by more than one scene.
 

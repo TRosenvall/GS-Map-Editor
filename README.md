@@ -1,5 +1,7 @@
 # GS Map Editor
 
+**English** · [Español](README.es.md) · [Deutsch](README.de.md) · [Français](README.fr.md) · [Italiano](README.it.md) · [日本語](README.ja.md)
+
 Make your own version of **Golden Sun: The Broken Seal** without writing code. Repaint towns, hide chests, write new dialogue, add people and doors, reshape the world map, then press **▶ Play** and walk around in your change. When you're happy with it, export a small patch to share.
 
 The editor works on [alchemy](https://github.com/PascalPixel/alchemy), a project that rebuilds the game from readable source files. It builds your game from that source on your own computer, so you don't need a ROM to make a mod.
@@ -119,7 +121,7 @@ Tick **Advanced** in the top bar to show raw numbers and codes and a separate **
 
 The editor speaks English, Spanish (Español), German (Deutsch), French (Français), Italian (Italiano) and Japanese (日本語). It starts in your computer's language when it has it. Change it with the 🌐 menu, at the top right of the first setup screen and at the end of the top bar. Only the editor's own words change: the game you're modding is the English edition, so place names, people, items and the dialogue you write stay in English.
 
-The translations were made with AI help and haven't all been checked by native speakers yet. If something reads oddly, please [say so](https://github.com/TRosenvall/GS-Map-Editor/issues/new?template=bug_report.md) with the wording you'd expect.
+This guide is also translated: see the links at the top. The translations of the editor and of this guide were made with AI help and haven't all been checked by native speakers yet. Where a translated guide differs from this one, this English guide is the current one. If something reads oddly, please [say so](https://github.com/TRosenvall/GS-Map-Editor/issues/new?template=bug_report.md) with the wording you'd expect.
 
 ## Saving and undoing
 

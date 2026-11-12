@@ -19,6 +19,8 @@ jobs:
       # this commit, and the gs-map-editor command.
       - name: Every message is translated
         run: python3 tests/i18n.py
+      - name: The translated guides have every link and detail
+        run: python3 tools/doc_translations.py
 
       - name: Install as the Windows installer does inside Ubuntu
         run: |
