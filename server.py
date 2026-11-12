@@ -40,6 +40,7 @@ from gsmap import world as worldmod
 from gsmap import patch as patchmod
 from gsmap import setup as setupmod
 from gsmap import tileset as tilesetmod
+from gsmap.walk import Walk, flat_shapes
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 STATIC = os.path.join(HERE, "static")
@@ -52,6 +53,11 @@ KIND_COLOURS = {1: (255, 214, 10, 90), 2: (255, 120, 40, 90), 3: (80, 200, 255, 
 
 EXPORTS = setupmod.EXPORTS
 PATCHED = os.path.join(setupmod.DEFAULT_WORKSPACE, "Patched")
+
+
+EVENT_LABELS = {"text": "changing some words", "when": "changing when something happens", "talk": "a new line",
+                "spot": "adding a sign or step message", "remove": "removing an event", "person": "adding a person",
+                "region": "changing an exit area"}
 
 
 class Cache:
@@ -125,12 +131,24 @@ def make_handler(project, token=None, local_only=True):
         state["conn"] = None
         cache.drop(lambda k: True)
 
+    def walk_for(n, sid, table=None, edits=()):
+        """The walking graph of map n for scene sid, kept until a save changes
+        anything (or built afresh around unsaved edits)."""
+        def make():
+            info = project.maps[n]
+            events = EventEditor(project, scenes(), names).describe(info, sid, table)["events"]
+            return Walk(project, info, events, DoorEditor(project, scenes(), names).entrances(sid), edits)
+        if edits:
+            return make()
+        return cache.get(("walk", n, sid, table), make)
+
     @contextlib.contextmanager
-    def writing(label="your last change"):
+    def writing(label="your last change", where=None):
         """One user action: serialised, all its files land or none do, and it
-        can be undone afterwards."""
+        can be undone (and then redone) afterwards. `where` is the map number,
+        or "world", so undo can show the place it changes."""
         with write_lock:
-            with fsio.transaction(project.root, history, label) as txn:
+            with fsio.transaction(project.root, history, label, where) as txn:
                 try:
                     yield txn
                 except BaseException:
@@ -366,7 +384,7 @@ def make_handler(project, token=None, local_only=True):
                 return
             try:
                 if path == "/api/history":
-                    return self.send_json({"last": fsio.last_saved(history)})
+                    return self.send_json({"last": fsio.last_saved(history), "next": fsio.next_redo(history)})
                 if path == "/api/maps/own-tileset":
                     return self.send_json(tilesetmod.own_tileset_maps(project))
                 if path == "/api/maps":
@@ -553,7 +571,7 @@ def make_handler(project, token=None, local_only=True):
                 m = re.fullmatch(r"/api/map/(\w+)/edits", path)
                 if m and m.group(1) in project.maps:
                     n = m.group(1)
-                    with writing("moving a chest" if body.get("markers") and not body.get("edits") else "your painting"):
+                    with writing("moving a chest" if body.get("markers") and not body.get("edits") else "your painting", n):
                         try:
                             result = project.apply_edits(
                                 project.maps[n], body.get("edits", []), body.get("markers", [])
@@ -573,7 +591,7 @@ def make_handler(project, token=None, local_only=True):
                     forgetting = path.endswith("/revert") and Overrides(project.root).get(ovl, sym) is not None
                     if not forgetting and (t is None or not t["editable"]):
                         return self.send_json({"error": f"{sym} is not an editable table"}, 409)
-                    with writing("a scene table change"):
+                    with writing("a scene table change", body.get("map")):
                         ov = Overrides(project.root)
                         if path.endswith("/revert"):
                             ov.remove(ovl, sym)
@@ -586,13 +604,14 @@ def make_handler(project, token=None, local_only=True):
                             ov.set(ovl, sym, t["kind"], body["rows"])
                         ov.save()
                         summary = generate(project.root, scenes(), ov)
+                        cache.drop(lambda k: k[0] == "walk")  # arrival points may have moved
                     return self.send_json({"ok": True, **summary})
                 m = re.fullmatch(r"/api/map/(\w+)/chest", path)
                 if m and m.group(1) in project.maps:
                     n = m.group(1)
                     ce = ChestEditor(project, scenes(), names)
                     x, z, action = int(body["x"]), int(body["z"]), body.get("action")
-                    with writing("a chest change"):
+                    with writing({"add": "adding a chest", "remove": "removing a chest"}.get(action, "a chest change"), n):
                         try:
                             if action == "add":
                                 r = ce.add(project.maps[n], x, z, body.get("contents", {}))
@@ -607,14 +626,36 @@ def make_handler(project, token=None, local_only=True):
                             return self.send_json({"error": str(e)}, 409)
                         cache.drop(lambda k: k[1] == n and k[0] != "atlas")  # tiles are unchanged
                     return self.send_json({"ok": True, **r})
-                if path == "/api/history/undo":
+                if path in ("/api/history/undo", "/api/history/redo"):
+                    redo = path.endswith("redo")
                     with write_lock:
-                        label = fsio.undo_last(history, project.root)
+                        entry = fsio.next_redo(history) if redo else fsio.last_saved(history)
+                        label = (fsio.redo_last if redo else fsio.undo_last)(history, project.root)
                         forget_loaded()
-                    return self.send_json({"ok": True, "label": label, "next": fsio.last_saved(history)})
+                    return self.send_json({"ok": True, "label": label, "where": (entry or {}).get("where") if label else None,
+                                           "last": fsio.last_saved(history), "next": fsio.next_redo(history)})
+                m = re.fullmatch(r"/api/map/(\w+)/walk(/check)?", path)
+                if m and m.group(1) in project.maps:
+                    n = m.group(1)
+                    try:
+                        w = walk_for(n, int(body["scene"]), body.get("table"), body.get("edits") or ())
+                    except (KeyError, ValueError, StopIteration) as e:
+                        return self.send_json({"error": f"Can't work out where people can walk here: {e}"}, 409)
+                    if not m.group(2):
+                        return self.send_json({"size": [w.w, w.h], "cells": w.cells(), "slide": bool(w.slide),
+                                               "arrivals": len(w.starts)})
+                    x, z, actor = int(body["x"]), int(body["z"]), body.get("actor")
+                    problems, notes = w.review(x, z, actor)
+                    out = {"problems": problems, "notes": notes, "nearest": None, "level": None}
+                    if problems:
+                        near = w.nearest_good(x, z, actor)
+                        out["nearest"] = {"x": near[0], "z": near[1]} if near else None
+                        if any(p["kind"] == "cut" for p in problems):
+                            out["level"] = w.level(x, z, flat_shapes(project, project.maps[n]))
+                    return self.send_json(out)
                 m = re.fullmatch(r"/api/map/(\w+)/reset", path)
                 if m and m.group(1) in project.maps:
-                    with writing("resetting a place"):
+                    with writing("resetting a place", m.group(1)):
                         try:
                             r = reset_map(project, scenes(), names, project.maps[m.group(1)], setupmod.load_settings(),
                                           bool(body.get("shared")))
@@ -624,7 +665,7 @@ def make_handler(project, token=None, local_only=True):
                         forget_loaded()
                     return self.send_json({"ok": True, **r})
                 if path == "/api/world/reset":
-                    with writing("resetting the world map"):
+                    with writing("resetting the world map", "world"):
                         try:
                             r = reset_world(project, scenes(), names, setupmod.load_settings())
                         except ValueError as e:
@@ -633,7 +674,7 @@ def make_handler(project, token=None, local_only=True):
                         forget_loaded()
                     return self.send_json({"ok": True, **r})
                 if path == "/api/world/edits":
-                    with writing("world map painting"):
+                    with writing("world map painting", "world"):
                         w = world()
                         try:
                             before = worldmod.apply_world_edits(w, body.get("edits", []))
@@ -647,7 +688,7 @@ def make_handler(project, token=None, local_only=True):
                 if path == "/api/world/icon":
                     de = DoorEditor(project, scenes(), names)
                     actor = int(body.get("actor", 0))
-                    with writing("a town icon change"):
+                    with writing("a town icon change", "world"):
                         try:
                             if body.get("action") == "move":
                                 r = worldmod.move_icon(project, scenes(), names, actor, int(body["x"]), int(body["z"]),
@@ -667,7 +708,7 @@ def make_handler(project, token=None, local_only=True):
                     a, sid, tbl = body.get("action"), int(body["scene"]), body.get("table")
                     if not tbl and a != "region":  # the Events panel hadn't loaded a story stage yet
                         tbl = ee.describe(project.maps[n], sid)["symbol"]
-                    with writing("an event change"):
+                    with writing(EVENT_LABELS.get(a, "an event change"), n):
                         try:
                             if a == "text":
                                 r = ee.set_text(sid, tbl, int(body["index"]), body["text"], bool(body.get("raw")), body.get("when"))
@@ -698,7 +739,7 @@ def make_handler(project, token=None, local_only=True):
                     n = m.group(1)
                     de = DoorEditor(project, scenes(), names)
                     action, sid = body.get("action"), int(body["scene"])
-                    with writing("a door change"):
+                    with writing({"add": "adding a door", "remove": "removing a door"}.get(action, "a door change"), n):
                         try:
                             if action == "relink":
                                 r = de.relink(project.maps[n], sid, int(body["code"]),
@@ -720,7 +761,7 @@ def make_handler(project, token=None, local_only=True):
                     n = m.group(1)
                     data = body.get("png", "")
                     png = base64.b64decode(data.split(",", 1)[-1])
-                    with writing("an imported image"):
+                    with writing("an imported image", n):
                         try:
                             report = tilesetmod.import_image(
                                 project, project.maps[n], png, int(body.get("layer", 1)),

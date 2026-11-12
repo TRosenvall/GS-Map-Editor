@@ -265,6 +265,29 @@ with tempfile.TemporaryDirectory() as tmp:
     check("history that can't be written doesn't undo the save", read(other) == "kept")
     check("or leave a journal that would undo it next start", not os.path.exists(os.path.join(tmp, fsio.JOURNAL)))
 
+    # ---- redo puts back what undo took, until something new is saved
+    rh = os.path.join(tmp, "redo-history")
+    one, made = os.path.join(tmp, "one.txt"), os.path.join(tmp, "made.txt")
+    fsio.atomic_write(one, "1")
+    with fsio.transaction(tmp, rh, "the second", "051"):
+        fsio.atomic_write(one, "2")
+    with fsio.transaction(tmp, rh, "the third"):
+        fsio.atomic_write(one, "3")
+        fsio.atomic_write(made, "new")
+    check("undo takes back the newest", fsio.undo_last(rh, tmp) == "the third" and read(one) == "2" and not os.path.exists(made))
+    check("and Redo offers it", (fsio.next_redo(rh) or {}).get("label") == "the third")
+    check("undo again takes the one before", fsio.undo_last(rh, tmp) == "the second" and read(one) == "1")
+    check("redo does them again in order", fsio.redo_last(rh, tmp) == "the second" and read(one) == "2"
+          and fsio.last_saved(rh).get("where") == "051")
+    check("all the way", fsio.redo_last(rh, tmp) == "the third" and read(one) == "3" and read(made) == "new")
+    check("then there's nothing to redo", fsio.next_redo(rh) is None and fsio.redo_last(rh, tmp) is None)
+    fsio.undo_last(rh, tmp)
+    with fsio.transaction(tmp, rh, "something new"):
+        fsio.atomic_write(one, "new")
+    check("a new change clears Redo", fsio.next_redo(rh) is None)
+    check("and Undo still steps back through it", fsio.undo_last(rh, tmp) == "something new" and read(one) == "2")
+    check("undo and redo leave no journal", not os.path.exists(os.path.join(tmp, fsio.JOURNAL)))
+
     # ---- bad input can't poison the mod
     for bad, why in (([{"control": 2 ** 40, "trigger": 1, "condition": -1, "value": 0}], "too big"),
                      ([{"control": 0xFFFFFFFF, "trigger": "x", "condition": -1, "value": 0}], "not a number"),

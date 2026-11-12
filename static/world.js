@@ -1,10 +1,10 @@
 const $ = s => document.querySelector(s);
-const W = { tool: 'view', block: { 0: null, 1: null }, recent: { 0: [], 1: [] }, kind: 1, cells: {}, undo: [], sel: null, ver: 0 };
+const W = { tool: 'view', block: { 0: null, 1: null }, recent: { 0: [], 1: [] }, kind: 1, cells: {}, sel: null, ver: 0 };
 const KIND_COLOURS = { 0: 'transparent', 1: 'rgb(255,214,10)', 2: 'rgb(255,120,40)', 3: 'rgb(80,200,255)', 4: 'rgb(190,90,255)',
   5: 'rgb(60,230,120)', 6: 'rgb(255,80,160)', 21: 'rgb(240,240,255)', 31: 'rgb(255,50,50)' };
 const HELP = {
   view: ['Look around', 'Hover to see a spot\'s region and what it does. Click a town, dungeon or blue step spot to see where it leads.'],
-  ground: ['Paint ground', localWords('Pick a block, then click or drag on the map. ⌥-click the map to pick up the block under the cursor. Changes save as you paint; Undo takes the last stroke back. The pause-screen map is a separate picture: it won\'t follow coastline changes.')],
+  ground: ['Paint ground', localWords('Pick a block, then click or drag on the map. ⌥-click the map to pick up the block under the cursor. Changes save as you paint; Undo takes the last stroke back and Redo puts it back. The pause-screen map is a separate picture: it won\'t follow coastline changes.')],
   overlay: ['Paint overlay', 'Mountains, trees and coastline sit on the overlay, drawn over the ground. Walking is decided by both layers\' tiles.'],
   region: ['Encounter regions', 'Each region has its own random battles. Pick one and paint; the region overlay turns on so you can see them.'],
   icons: ['Towns and dungeons', 'Drag a town to move it. Click one to change where it leads.'],
@@ -113,11 +113,9 @@ window.addEventListener('mouseup', async e => {
   const d = drag; drag = null;
   if (!d.moved) return selectIcon(d.ic);
   const z = zoom(), x = Math.round(d.ic.x + (e.clientX - d.x0) * 2 / z), zz = Math.round(d.ic.z + (e.clientY - d.y0) * 2 / z);
-  const before = { x: d.ic.x, z: d.ic.z };
   status(`Moving ${esc(short(d.ic.lead?.label)) || 'the icon'}…`);
   const r = await api('/api/world/icon', { action: 'move', actor: d.ic.actor, x, z: zz, move_arrivals: $('#moveArrivals').checked });
   if (r.error) { status(`<span class="err">${esc(r.error)}</span>`); drawMarks(); return; }
-  W.undo.push({ icon: d.ic.actor, before, arrivals: $('#moveArrivals').checked }); updateButtons();
   await loadPlaces();
   status(`<span class="ok">Moved ${esc(short(d.ic.lead?.label)) || 'the icon'}</span>${r.arrivals_moved.length ? `, with ${r.arrivals_moved.length} arrival point(s)` : ''}. Press ▶ Play to try it.`);
 });
@@ -166,7 +164,6 @@ window.addEventListener('mouseup', async () => {
   if (!edits.length) return;
   const r = await api('/api/world/edits', { edits });
   if (r.error) { status(`<span class="err">${esc(r.error)}</span>`); $('#pend').innerHTML = ''; return; }
-  W.undo.push({ edits: r.before }); updateButtons();
   reloadChunks(new Set(edits.map(e => `${e.gx >> 4},${e.gy >> 4}`)));
   setTimeout(() => { $('#pend').innerHTML = ''; }, 400);
   status(`<span class="ok">Saved ${edits.length} cell(s).</span> Press ▶ Play to try it.`);
@@ -254,37 +251,32 @@ function buildKinds() {
 }
 
 // ---- undo, build, play --------------------------------------------------------------------
-function updateButtons() { $('#undo').disabled = !W.undo.length; }
-$('#undo').onclick = async () => {
-  const u = W.undo.pop(); updateButtons(); if (!u) return;
-  if (u.edits) {
-    const r = await api('/api/world/edits', { edits: u.edits });
-    if (r.error) return status(`<span class="err">${esc(r.error)}</span>`);
-    reloadChunks(new Set(u.edits.map(e => `${e.gx >> 4},${e.gy >> 4}`)));
-  } else {
-    const r = await api('/api/world/icon', { action: 'move', actor: u.icon, x: u.before.x, z: u.before.z, move_arrivals: u.arrivals });
-    if (r.error) return status(`<span class="err">${esc(r.error)}</span>`);
-    await loadPlaces();
-  }
-  status('Undone.');
-};
+// Everything here saves as it's made, so Undo and Redo step through the saved
+// history (common.js), newest first, as they do in the place editor.
+function updateButtons() {
+  $('#undo').disabled = !HIST.last; $('#undo').title = localWords(historyTitle(false) + (HIST.last ? ' (⌘Z)' : ''));
+  $('#redo').disabled = !HIST.next; $('#redo').title = localWords(historyTitle(true) + (HIST.next ? ' (⇧⌘Z)' : ''));
+}
+async function reloadWorld() { await loadPlaces(); W.ver++; buildTiles(); }
+function placeLabel(n) { const m = W.maps?.find(x => x.number === n); return m ? (m.label || m.folder) : null; }
+$('#undo').onclick = () => historyStep(false, reloadWorld);
+$('#redo').onclick = () => historyStep(true, reloadWorld);
 $('#build').onclick = async () => {
   $('#build').disabled = true; status('Building your game…');
   const r = await api('/api/build', { target: 'tbs-en' }); $('#build').disabled = false;
   if (r.error) return status(`<span class="err">${esc(r.error)}</span>`);
   if (r.exit === 0) return status('<span class="ok">Your game is built.</span>');
-  failDialog("Your changes couldn't be turned into a game", 'Your files are safe. Use “Undo last save” to step back, then try again.', (r.tail || []).join('\n'));
+  failDialog("Your changes couldn't be turned into a game", 'Your files are safe. Use Undo to step back, then try again.', (r.tail || []).join('\n'));
 };
 $('#play').onclick = () => buildAndPlay($('#play'), 2);  // 2: the world map's scene
 $('#resetWorld').onclick = async () => {
-  if (!confirm('Put the world map back as the original game has it?\n\nYour painting, moved towns and changed links go. You can bring them back with Undo last save.')) return;
+  if (!confirm('Put the world map back as the original game has it?\n\nYour painting, moved towns and changed links go. You can bring them back with Undo.')) return;
   const r = await api('/api/world/reset', {});
   if (r.error) return status(`<span class="err">${esc(r.error)}</span>`);
-  W.undo = []; updateButtons(); await loadPlaces(); W.ver++; buildTiles(); refreshUndoSave();
+  await reloadWorld(); refreshUndoSave();
   const nothing = !r.files && !r.tables && !r.text;
   status(nothing ? 'The world map already matches the original.' : '<span class="ok">The world map is back to the original.</span>');
 };
-$('#undoSave').onclick = () => undoLastSave(async () => { W.undo = []; updateButtons(); await loadPlaces(); W.ver++; buildTiles(); });
 
 // ---- destination picker (as in the place editor) ----------------------------------------------
 const PK = {};
@@ -349,14 +341,15 @@ window.addEventListener('keydown', e => {
   const dialog = openDialog();
   if (dialog) { if (e.key === 'Escape') dialog.style.display = 'none'; return; }
   if (isTyping(e.target)) return;  // typing isn't a shortcut
-  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); if (!e.shiftKey) $('#undo').click(); return; }
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); (e.shiftKey ? $('#redo') : $('#undo')).click(); return; }
   const t = { v: 'view', g: 'ground', o: 'overlay', r: 'region', t: 'icons' }[e.key.toLowerCase()];
   if (t && !e.metaKey && !e.ctrlKey) setTool(t);
 });
 (async () => {
   try { W.adv = JSON.parse(localStorage.getItem('gsmap.advanced')) || false; } catch (e) { W.adv = false; }
   $('#advanced').checked = W.adv; document.body.classList.toggle('advanced', W.adv);
-  const [names, scenes] = await Promise.all([api('/api/names'), api('/api/scenes')]);
+  const [names, scenes, maps] = await Promise.all([api('/api/names'), api('/api/scenes'), api('/api/maps')]);
+  W.maps = maps;
   W.names = names; W.names.sceneById = Object.fromEntries(names.scenes.map(s => [s.id, s])); W.scenes = scenes;
   W.z = zoom(); buildTiles(); setTool('view');
   await loadPlaces();

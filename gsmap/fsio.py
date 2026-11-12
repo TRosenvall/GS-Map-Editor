@@ -7,8 +7,10 @@ nothing: the first time a file is written its old contents go to a journal
 folder, and any failure puts them back. If the editor dies part way, recover
 finds the journal next time it starts and does the same.
 
-A finished action's journal can be kept as history, which is what makes "Undo
-last save" possible even for actions that save the moment you make them.
+A finished action's journal can be kept as history, which is what makes Undo
+possible even for actions that save the moment you make them. Undoing keeps
+what it replaced under history/redo, so Redo can put it back; a new action
+clears that, as any undo does.
 """
 
 import contextlib
@@ -21,6 +23,7 @@ import time
 
 JOURNAL = ".gsmap-journal"
 HISTORY_KEPT = 30
+REDO = "redo"
 _current = threading.local()
 
 
@@ -122,14 +125,15 @@ class _Transaction:
     def undo(self):
         _restore(self.dir, self.kept)
 
-    def finish(self, history=None, label=None):
+    def finish(self, history=None, label=None, where=None):
         if history and self.kept and not self.aborted:
             # The action has already happened. If its history can't be kept it
             # just can't be undone; that mustn't look like the save failed.
             try:
                 os.makedirs(history, exist_ok=True)
+                _remove_tree(os.path.join(history, REDO))  # a new change: nothing to redo
                 with open(os.path.join(self.dir, "label.json"), "w", encoding="utf-8") as f:
-                    json.dump({"label": label or "your last change", "when": time.time()}, f)
+                    json.dump({"label": label or "your last change", "when": time.time(), "where": where}, f)
                 name = f"{time.time_ns()}"
                 shutil.move(self.dir, os.path.join(history, name))
                 for old in _entries(history)[:-HISTORY_KEPT]:
@@ -161,7 +165,7 @@ def _restore(folder, kept):
 
 
 @contextlib.contextmanager
-def transaction(root, history=None, label=None):
+def transaction(root, history=None, label=None, where=None):
     """All the writes in this block land together, or none do. A failure means
     an exception leaving the block, or abort() from inside it. With `history`,
     a finished action's old contents are kept there for undo_last."""
@@ -177,7 +181,7 @@ def transaction(root, history=None, label=None):
     else:
         if txn.aborted:
             txn.undo()
-        txn.finish(history, label)
+        txn.finish(history, label, where)
     finally:
         _current.txn = None
 
@@ -216,18 +220,42 @@ def _read_entry(folder):
     return (kept, label) if isinstance(label, dict) and isinstance(label.get("label"), str) else None
 
 
-def undo_last(history, root=None):
-    """Put back the files as they were before the newest action. Its label, or None.
-    With root, a copy goes in the journal first, so a crash part way is finished by
-    recover the next time the editor starts, instead of leaving mixed files."""
-    for name in reversed(_entries(history)):
-        folder = os.path.join(history, name)
+def _snapshot(paths, folder, label):
+    """Keep the files at `paths` as they are now (None for a missing one) in
+    `folder`, as a history entry with `label`, written whole or not at all."""
+    tmp = folder + ".tmp"
+    _remove_tree(tmp)
+    os.makedirs(tmp)
+    kept = {}
+    for i, path in enumerate(paths):
+        if os.path.exists(path):
+            _copy(path, os.path.join(tmp, str(i)))
+            kept[path] = str(i)
+        else:
+            kept[path] = None
+    with open(os.path.join(tmp, "list.json"), "w", encoding="utf-8") as f:
+        json.dump(kept, f)
+    with open(os.path.join(tmp, "label.json"), "w", encoding="utf-8") as f:
+        json.dump(label, f)
+    os.replace(tmp, folder)
+
+
+def _step(history, source, target, root):
+    """Put back the newest entry of `source`, first keeping what it replaces as
+    the newest entry of `target`. Its label, or None when there is none."""
+    for name in reversed(_entries(source)):
+        folder = os.path.join(source, name)
         entry = _read_entry(folder)
         if entry is None:  # cut short by a crash: nothing it could put back
             _remove_tree(folder)
             continue
+        os.makedirs(target, exist_ok=True)
+        _snapshot(list(entry[0]), os.path.join(target, f"{time.time_ns()}"), dict(entry[1], when=time.time()))
         journal = os.path.join(root, JOURNAL) if root else None
         if journal:
+            # With root, a copy goes in the journal first, so a crash part way is
+            # finished by recover the next time the editor starts, instead of
+            # leaving mixed files.
             _remove_tree(journal)
             tmp = journal + ".tmp"
             _remove_tree(tmp)
@@ -237,8 +265,26 @@ def undo_last(history, root=None):
         _remove_tree(folder)
         if journal:
             _remove_tree(journal)
+        for old in _entries(target)[:-HISTORY_KEPT]:
+            _remove_tree(os.path.join(target, old))
         return entry[1]["label"]
     return None
+
+
+def undo_last(history, root=None):
+    """Put back the files as they were before the newest action, keeping what
+    it replaces for redo_last. Its label, or None."""
+    return _step(history, history, os.path.join(history, REDO), root)
+
+
+def redo_last(history, root=None):
+    """Do again the action undo_last last took back. Its label, or None."""
+    return _step(history, os.path.join(history, REDO), history, root)
+
+
+def next_redo(history):
+    """{"label", "when", "where"} of what Redo would do, or None."""
+    return last_saved(os.path.join(history, REDO))
 
 
 def abort():

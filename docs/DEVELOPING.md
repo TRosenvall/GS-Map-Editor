@@ -45,7 +45,7 @@ Windows runs the same Linux editor inside WSL, which is also the only way alchem
 - The editor opens in the Windows browser through WSL's localhost forwarding. Play starts the Windows mGBA from `Program Files\mGBA`, given the game's `\\wsl.localhost\…` path. The game builds in Ubuntu's own disk, since a build on `/mnt/c` is many times slower.
 - The pages show Ctrl and Alt in place of ⌘ and ⌥ on any system but a Mac (`localWords` in `static/common.js`).
 
-`.github/workflows/linux.yml` checks this on GitHub's Ubuntu machines at every push: `setup-in-wsl.sh` installs the editor, `tests/setup_flow.py` goes through first-run setup through the installed command, the build must match `rom.sha1`, and the round-trip and edit tests run on that checkout. The Windows half (the `.cmd`, WSL's install, the shortcut, Windows mGBA) has no automatic test: it needs a Windows PC.
+`.github/workflows/linux.yml` checks this on GitHub's Ubuntu machines at every push: `setup-in-wsl.sh` installs the editor, `tests/setup_flow.py` goes through first-run setup through the installed command, the build must match `rom.sha1`, and the round-trip, edit and placement tests run on that checkout. The Windows half (the `.cmd`, WSL's install, the shortcut, Windows mGBA) has no automatic test: it needs a Windows PC.
 
 ### Releasing
 
@@ -104,7 +104,7 @@ Local maps, The Broken Seal, English edition. For how to use these, see the [REA
   - **Build** runs the check first and asks before building with problems.
 - **World map** (top of the place list): the whole overworld, loaded as you scroll, with town and dungeon icons labelled by where they lead.
   - Overlays: walkability (blocked ground in red) and encounter regions, each named after the towns inside it ("Region 1 (Vale, Lunpa…)").
-  - **Ground** / **Overlay**: paint blocks (⌥-click picks one up; recently used blocks stay at hand). **Regions**: paint encounter regions. Changes save as you paint; Undo takes the last stroke back. Cells are written into `map/world/blocks.tsv`, keeping each word's other fields.
+  - **Ground** / **Overlay**: paint blocks (⌥-click picks one up; recently used blocks stay at hand). **Regions**: paint encounter regions. Changes save as you paint; Undo takes the last stroke back and Redo puts it back. Cells are written into `map/world/blocks.tsv`, keeping each word's other fields.
   - **Towns**: drag an icon to move it. Its arrival points (where you appear on leaving the town) move with it, in every story stage that has the icon there. Click an icon or a blue step spot to change where it leads.
   - The snowy north is drawn with its own graphics set. The pause-screen map is a separate picture and doesn't follow edits.
 - **Export mod…:** saves your mod as a small `.bps` patch, plus a readme for players, in `~/Documents/GSMapEditor/Exports/`.
@@ -116,8 +116,9 @@ Local maps, The Broken Seal, English edition. For how to use these, see the [REA
   - BPS and UPS refuse the wrong game. IPS can't check, so the patcher says so.
   - Export can also write an `.ips` for older patchers. It's larger, because IPS can't record moved data (4.2 MB against 383 KB for the debug-room mod), and is checked the same way.
 - **▶ Play:** one button: saves what's unsaved, runs Check, builds, and opens your game in mGBA, starting a fresh game at the place you're editing (from the world map page, on the world map). The start is written into a throwaway copy of the game; what you export has no trace of it. If the build fails you get a plain explanation, with the technical details folded away and a Copy button for bug reports. Build on its own is under Advanced.
-- **Undo last save:** steps back through saved actions whichever tool made them, including chests, doors and events, which save immediately. The last 30 are kept.
-- **Reset place…:** puts a place back as the original game has it (Undo last save brings your version back). Scene tables other places share are left alone, and it says so.
+- **Undo / Redo:** one pair of buttons for everything. Undo takes back unsaved painting first (the page's own stack), then saved actions newest first, whichever tool and place made them; a save turns the page's stack into one saved action. Every write goes through `server.py`'s `writing(label, where)`, a `gsmap/fsio.py` transaction that keeps the files' old contents as a history entry labelled with what and where ("adding a person", map `051`). `undo_last` puts an entry back and keeps what it replaced under `history/redo`; `redo_last` does the reverse; a new action clears `history/redo`. Both go through the journal, so a crash part way is finished on the next start. The last 30 of each are kept, under the support folder's `history/`.
+- **Where people can stand** (`gsmap/walk.py`): the game's walking rules, from alchemy's field code: 8-pixel steps that need five probes clear, at most 8 pixels up and 12 down (`terrain.c`, `MapGrid_CheckCollision`), heights from each cell's shape by the sixteen terrain functions and `terrain_tables.c`, ledges, climbing spots and gaps, and talking within 32 pixels and 48 up or down. Slides are followed as `Imil_RunIceSlide` does, for any step trigger whose script slides. The party is followed on an 8-pixel lattice from every arrival point of the scene; a person blocks within 12 pixels (two radii of 8, less 2 each). `POST /api/map/<n>/walk` colours every square; `/walk/check` returns the problems with one spot, the nearest spot with none, and the shape edits that level a path to it (flat shapes the map already has). Unsaved shape and walkability edits are sent along. Psynergy and story events aren't followed, and people other than the one checked aren't obstacles. Checked against the game: about 92% of the people Camelot placed are talkable by these rules, the rest being cutscene rooms and places opened by Psynergy.
+- **Reset place…:** puts a place back as the original game has it (Undo brings your version back). Scene tables other places share are left alone, and it says so.
 - **Saving is all or nothing:** one action's files land together or not at all, every file is replaced in one step, and if the editor dies part way it finishes undoing on the next start.
 - **Names:** places are listed by their in-game names ("Vale · Vale Home").
 - **Walkability brushes:** named and colour-coded (Floor, Wall, Ledge, Ladder, Jump gap, Hazard, search spots, …).
@@ -149,7 +150,8 @@ Saved scene edits carry a fingerprint of the table they were made for. A table r
 
 ### Tests
 
-- `python3 tests/safety.py`: what must never go wrong: failures and crashes leave no half-saved files, chests stay in their own rooms, bad values and hostile patches are refused, renamed or changed tables are handled, an unknown layout is reported rather than guessed at.
+- `python3 tests/safety.py`: what must never go wrong: failures and crashes leave no half-saved files, undo and redo step through saved actions in order and a new change clears redo, chests stay in their own rooms, bad values and hostile patches are refused, renamed or changed tables are handled, an unknown layout is reported rather than guessed at.
+- `python3 tests/placement.py`: the walking rules against the game: the people placed in eight towns are talkable and their ways out reachable, and in Imil the ice, an unreachable snowy spot (with its leveling fix), a narrow lane, a doorstep and a wall are each warned about.
 - `python3 tests/edits.py`: saves block, walkability and height edits on a copy of real maps and checks they read back, with nothing else changed.
 - `python3 tests/roundtrip.py`: loads and re-saves every map grid, cell-picture and shape table, and chest list (727 files with the debug-room mod, 721 on a plain checkout). All must come out byte-identical. This guarantees that saving a map only changes what you edited.
 

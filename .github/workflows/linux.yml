@@ -36,3 +36,6 @@ jobs:
 
       - name: Edits save what was edited and nothing else
         run: python3 tests/edits.py "$RUNNER_TEMP/home/GSMapEditor/alchemy"
+
+      - name: Where people can stand follows the game's walking rules
+        run: python3 tests/placement.py "$RUNNER_TEMP/home/GSMapEditor/alchemy"

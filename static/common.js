@@ -67,7 +67,7 @@ async function buildAndPlay(button, scene, entrance) {
     if (b.error) { failDialog("Your game couldn't be built", b.error, b.error); status(''); return false; }
     if (b.exit !== 0) {
       failDialog("Your changes couldn't be turned into a game",
-        b.why || 'Your files are safe. Use “Undo last save” to step back, then try again.',
+        b.why || 'Your files are safe. Use Undo to step back, then try again.',
         (b.tail || []).join('\n'));
       status('<span class="err">The game didn’t build.</span>');
       return false;
@@ -81,20 +81,36 @@ async function buildAndPlay(button, scene, entrance) {
   }
 }
 
-// “Undo last save” steps back through saved actions, whichever tool made them.
+// Saved history: every action that writes files (painting once saved, chests,
+// doors, events, people, the world map) can be undone and then redone, newest
+// first, whichever tool made it. Each page's Undo and Redo fall back to it once
+// nothing unsaved is left to take back. HIST holds what they would do.
+const HIST = { last: null, next: null };
 async function refreshUndoSave() {
-  const b = document.getElementById('undoSave');
-  if (!b) return;
   const r = await api('/api/history');
-  b.disabled = !r.last;
-  b.title = r.last ? `Undo ${r.last.label}` : 'Nothing saved to undo yet';
+  HIST.last = r.last || null; HIST.next = r.next || null;
+  if (typeof updateButtons === 'function') updateButtons();
 }
-async function undoLastSave(after) {
-  const r = await api('/api/history/undo', {});
+// Where a history entry's change was, in words (" in Imil"), from the page's place names.
+function historyWhere(where) {
+  if (where == null) return '';
+  if (where === 'world') return ' on the world map';
+  const name = typeof placeLabel === 'function' ? placeLabel(where) : null;
+  return name ? ` in ${name}` : '';
+}
+function historyTitle(redo) {
+  const e = redo ? HIST.next : HIST.last;
+  return e ? `${redo ? 'Redo' : 'Undo'} ${e.label}${historyWhere(e.where)}` : (redo ? 'Nothing to redo' : 'Nothing to undo');
+}
+// Undo (or redo) the newest saved action; `after(r)` reloads what the page shows.
+async function historyStep(redo, after) {
+  const r = await api(`/api/history/${redo ? 'redo' : 'undo'}`, {});
   if (r.error) return status(`<span class="err">${esc(r.error)}</span>`);
-  await after();
-  status(r.label ? `<span class="ok">Undid ${esc(r.label)}.</span>` : 'Nothing saved to undo.');
-  refreshUndoSave();
+  HIST.last = r.last || null; HIST.next = r.next || null;
+  if (r.label) await after(r);
+  status(r.label ? `<span class="ok">${redo ? 'Redid' : 'Undid'} ${esc(r.label)}${esc(historyWhere(r.where))}.</span>`
+    : (redo ? 'Nothing to redo.' : 'Nothing to undo.'));
+  if (typeof updateButtons === 'function') updateButtons();
 }
 
 // Escape closes whatever dialog is open; a dialog being open also stops the tool keys.

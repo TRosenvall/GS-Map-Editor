@@ -127,14 +127,14 @@ Some changes wait for you to save, and others save straight away:
 
 The editor also saves for you before you switch places, go to the world map or press Play, so moving on won't lose your work. If a save is refused, you stay where you are and the bottom line says why.
 
-There are four ways back:
+There are three ways back:
 
-- **Undo / Redo** (⌘Z / ⇧⌘Z) step through changes you haven't saved yet.
-- **Undo last save** steps back through saved actions, whichever tool made them. The last 30 are kept.
-- **Reset place…** puts a place's maps, imported pictures and its own people, doors and events back as the original game has them. If you change your mind, **Undo last save** brings your version back. If a place shares its map with others, they go back too, and the editor warns you first. People and events that other places share are left alone unless you say otherwise: the editor asks.
+- **Undo** (⌘Z) takes back your last change, whatever it was: painting you haven't saved yet first, then saved actions, newest first, from any tool and any place. Adding a person, a chest, a door, an event, a world map stroke: all of them. The button's tooltip says what it will undo and where, and the editor opens that place to show you. The last 30 saved actions are kept, even after you close the editor.
+- **Redo** (⇧⌘Z) puts back what Undo took, until you make a new change.
+- **Reset place…** puts a place's maps, imported pictures and its own people, doors and events back as the original game has them. If you change your mind, **Undo** brings your version back. If a place shares its map with others, they go back too, and the editor warns you first. People and events that other places share are left alone unless you say otherwise: the editor asks.
 - **Reset world map…**, on the world map page, does the same for the world map.
 
-Text you've written stays in the game's text file while any event still uses some of it. It's only removed once nothing uses any of your lines. **Undo last save** throws away unsaved changes too, and asks first.
+Text you've written stays in the game's text file while any event still uses some of it. It's only removed once nothing uses any of your lines. Undoing a saved action while you have unsaved changes throws those away too, and asks first.
 
 Each save is all or nothing. If the editor stops part way through, it finishes undoing the half-done save the next time it starts. If a file can't be written, for example because it's locked in Finder, the save is refused and the rest of it is undone.
 
@@ -205,7 +205,29 @@ Click a spot on the map, then choose:
 
 - **Add a sign (read with A)…** for a sign or something to examine.
 - **Add a step message…** for a message that shows when you step there. It won't repeat while you stand there, so it can't trap the player, and it shows again if you step off and come back.
-- **Add a person here…** to choose who it is with a picture preview, and whether they **walk around**.
+- **Add a person here…** to choose who it is with a picture preview, and whether they **walk around**. The editor checks the spot first (see below).
+
+### Where people can stand
+
+Not every spot that looks open is a good place for someone to stand. Tick **Where people can stand** at the top, or just press **Add a person here…**, and the map is coloured by what a person there would mean:
+
+| Colour | Means |
+|---|---|
+| Green | The party can walk up and talk to them. |
+| Yellow | The party can't walk onto that square, but can talk to them from beside it, like a shopkeeper behind a counter. |
+| Blue | Ice the party slides across, as in Imil. Someone standing there gets in the way of sliding. |
+| Orange | A door, exit or step spot: someone there would be in the way. |
+| Red | The party can't get near enough to talk by walking. |
+
+It's worked out from the game's own walking rules, starting from every point where the party arrives in the place: you can step up 8 pixels and down 12, walls stop you, and you can talk to someone within two squares. Places that only Psynergy or the story open up show as red, so red there doesn't always mean wrong.
+
+When a spot has a problem, the editor says what it is in plain words, for example "the ground here is 32 pixels higher than the nearest path", or that standing there would cut the party off from a door. Then it offers a way round:
+
+- **Move to the nearest good spot** moves the person to the closest square with nothing wrong.
+- **Level … squares to the path's height** changes the height of the ground from the nearest path up to the spot, so the party can walk there. The picture doesn't change, so use **Paint** if it should look like a path. It's ordinary unsaved painting: Save keeps it and Undo takes it back.
+- **Add here anyway…** if you know better, for example when a story event opens the way.
+
+Dragging a person with **Move people** gets the same check when you let go.
 
 ### Making people talk
 
@@ -295,7 +317,7 @@ Choose the world map at the top of the place list. Press **← Places** to go ba
 
 - Tick **Walkability**, **Encounter regions** or **Places** to show those on the map.
 - When you move a town, **move its arrival points too** keeps you appearing next to it when you leave. It's on by default.
-- Changes save as you paint. **Undo** takes back the last stroke.
+- Changes save as you paint. **Undo** takes back the last stroke, and **Redo** puts it back.
 - The pause-screen map is a separate picture, so it won't follow your changes.
 
 ## Check: finding problems
@@ -351,7 +373,7 @@ The patched game is saved in `~/Documents/GSMapEditor/Patched/`, and you can pre
 | Your mod | Inside the game source folder, by default `~/Documents/GSMapEditor/alchemy/` |
 | Exported patches | `~/Documents/GSMapEditor/Exports/` |
 | Patched games | `~/Documents/GSMapEditor/Patched/` |
-| Editor settings and your Undo last save history | `~/Library/Application Support/GS Map Editor/` |
+| Editor settings and your Undo history | `~/Library/Application Support/GS Map Editor/` |
 | Temporary builds, safe to delete | `~/Library/Caches/GSMapEditor/` |
 
 On Windows and Linux the first three are in `~/GSMapEditor/` in your Linux home folder, settings in `~/.config/gs-map-editor/` and temporary builds in `~/.cache/gs-map-editor/`.
@@ -375,7 +397,7 @@ On Windows and Linux, use Ctrl for ⌘ and Alt for ⌥.
 | S | Stamp | |
 | G / O / R / T | | Ground / Overlay / Regions / Towns |
 | ⌘Z | Undo | Undo |
-| ⇧⌘Z | Redo | |
+| ⇧⌘Z | Redo | Redo |
 | ⌘S | Save | |
 | ⌥-click | Pick up a block | Pick up a block or region |
 | ⇧ while dropping | Snap people to the nearest 8 pixels | |
@@ -396,9 +418,9 @@ On Windows and Linux, use Ctrl for ⌘ and Alt for ⌥.
 |---|---|
 | "Play needs mGBA" | Install it from [mgba.io](https://mgba.io) and press Play again. |
 | The editor says the game source is a version it can't read | The source has changed in a way this editor doesn't understand yet. Move that folder aside, then use **Download** on the setup screen. Your mod stays in the folder you moved. |
-| "Your changes couldn't be turned into a game" | Your files are safe. If it names a line you wrote, change its words. Otherwise use **Undo last save** until it builds, and press **Show details** to see the build's own message. |
-| "This place's files can't be read" | One of its files is damaged. Use **Reset place…**, or **Undo last save** if a recent save caused it. |
-| "The file that holds your people, door and event edits can't be read" | Use **Undo last save**. If that doesn't help, restore that file from your backup. |
+| "Your changes couldn't be turned into a game" | Your files are safe. If it names a line you wrote, change its words. Otherwise use **Undo** until it builds, and press **Show details** to see the build's own message. |
+| "This place's files can't be read" | One of its files is damaged. Use **Reset place…**, or **Undo** if a recent save caused it. |
+| "The file that holds your people, door and event edits can't be read" | Use **Undo**. If that doesn't help, restore that file from your backup. |
 | "This place has no room for more of these" | The place has run out of codes for signs and step messages. Remove one you've added. |
 | "The game's font has no…" | Replace that character with plain letters and punctuation. |
 | The setup screen says your folder has a space in its path | The build can't use paths with spaces. Choose a copy of the game source in a folder with no spaces in its path. |
