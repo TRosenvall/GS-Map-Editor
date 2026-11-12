@@ -113,7 +113,7 @@ Appuyez ensuite sur **Ouvrir l'éditeur**. Par la suite, l'application s'ouvre d
 | Zone | Ce qu'on y trouve |
 |---|---|
 | **Gauche** | La liste des lieux. La carte du monde est en haut. |
-| **Barre du haut** | Le zoom, les calques, les superpositions, les outils, et les boutons pour enregistrer, vérifier et jouer. |
+| **Barre du haut** | Le zoom, les calques, les surcouches, les outils, et les boutons pour enregistrer, vérifier et jouer. |
 | **Milieu** | La carte. |
 | **Droite** | Le panneau de l'outil que vous utilisez. |
 | **Ligne du bas** | Les messages d'état. Quand vous survolez la carte, elle indique ce que fait la case sous votre curseur, par exemple « Coffre : Herb » ou la destination d'une sortie. |
@@ -151,7 +151,7 @@ Chaque enregistrement se fait en entier ou pas du tout. Si l'éditeur s'arrête 
 
 ## Regarder la carte
 
-Appuyez sur **Affichage** (V) pour regarder sans rien modifier.
+Appuyez sur **Regarder** (V) pour regarder sans rien modifier.
 
 - **Zoom :** de 1× à 4×.
 - **Calques :** chaque lieu en a jusqu'à trois, appelés **Sol**, **Milieu** et **Au-dessus**. Vous pouvez masquer chacun d'eux. Cochez **Avancé** pour avoir des curseurs qui les estompent.
@@ -180,7 +180,7 @@ Appuyez sur **Praticabilité** (C). Peindre un bloc ne change pas les endroits o
 | **Rebord (sauter en bas)** | Maintenez Bas contre lui un instant et le meneur saute en contrebas. |
 | **Mur à escalader / échelle** | Maintenez Haut ou Bas contre lui un instant pour grimper. |
 | **Trou à sauter (saut en avant)** | Poussez contre lui un instant et le meneur saute par-dessus, si l'autre côté permet d'atterrir. |
-| **Sol à combats A / B** | Praticable. Les combats aléatoires utilisent la première ou la deuxième zone de rencontres du lieu. |
+| **Sol de rencontres A / B** | Praticable. Les combats aléatoires utilisent la première ou la deuxième zone de rencontres du lieu. |
 | **Sol dangereux** | Praticable, mais blesse le groupe après assez de pas, si la scène l'active. |
 | **Ombre pour Cloak** | Praticable. Le seul sol où la Psynergie Cloak garde le groupe caché. |
 | **Jarre, tonneau, caisse, tombe, livres, puits vides** | Le fouiller ne donne rien. En général c'est aussi un mur, par sa hauteur. |
@@ -320,7 +320,7 @@ Choisissez la carte du monde en haut de la liste des lieux. Appuyez sur **← Li
 
 | Outil | Touche | Ce qu'il fait |
 |---|---|---|
-| **Affichage** | V | Survolez pour voir la région d'un emplacement et ce qu'il fait. Cliquez sur une ville, un donjon ou une case de passage bleue pour voir où elle mène. |
+| **Regarder** | V | Survolez pour voir la région d'un emplacement et ce qu'il fait. Cliquez sur une ville, un donjon ou une case de passage bleue pour voir où elle mène. |
 | **Sol** | G | Peindre les blocs du sol. ⌥-clic prend un bloc, et les blocs récents restent à portée de main. |
 | **Surcouche** | O | Peindre les montagnes, les arbres et les côtes. La marche dépend des tuiles des deux calques. |
 | **Régions** | R | Peindre les régions de rencontres. Chacune a ses propres combats aléatoires, et chacune porte le nom des villes qu'elle contient. |
@@ -397,7 +397,7 @@ Sous Windows et Linux, utilisez Ctrl pour ⌘ et Alt pour ⌥.
 
 | Touche | Lieux | Carte du monde |
 |---|---|---|
-| V | Affichage | Affichage |
+| V | Regarder | Regarder |
 | B | Peindre | |
 | C | Praticabilité | |
 | H | Hauteur | |
@@ -412,7 +412,7 @@ Sous Windows et Linux, utilisez Ctrl pour ⌘ et Alt pour ⌥.
 | ⌘S | Enregistrer | |
 | ⌥-clic | Prendre un bloc | Prendre un bloc ou une région |
 | ⇧ en relâchant | Aligner les personnages sur les 8 pixels les plus proches | |
-| Échap | Fermer une boîte de dialogue, ou revenir à la copie dans Tampon | Fermer une boîte de dialogue |
+| Échap | Fermer une fenêtre, ou revenir à la copie dans Tampon | Fermer une fenêtre |
 
 ## Ce qu'il ne sait pas encore faire
 

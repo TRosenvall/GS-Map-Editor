@@ -11,7 +11,7 @@ El editor funciona sobre [alchemy](https://github.com/PascalPixel/alchemy), un p
 
 > **Versión preliminar: se buscan testers.** El editor cubre la edición inglesa de The Broken Seal, en macOS y, como prueba temprana, en Windows. Se ha probado sobre todo en un solo Mac con Intel, y la versión de Windows nunca se ha ejecutado en un PC con Windows de verdad, así que cada informe ayuda, incluido "me funcionó": [descárgalo](https://github.com/TRosenvall/GS-Map-Editor/releases), pruébalo y [cuéntanos qué tal fue](https://github.com/TRosenvall/GS-Map-Editor/issues/new?template=bug_report.md). Guarda una copia de seguridad de cualquier mod que te importe.
 
-**Versión de alchemy:** este editor está probado con el commit de alchemy [`0c937e7df0`](https://github.com/PascalPixel/alchemy/commit/0c937e7df0b71b23760fbd19d048e99dd3969490) (2026-11-11). La configuración descarga exactamente ese commit. Alchemy cambia rápido, así que puede que una copia más nueva no funcione hasta que el editor se ponga al día.
+**Versión de alchemy:** este editor está probado con el commit de alchemy [`0c937e7df0`](https://github.com/PascalPixel/alchemy/commit/0c937e7df0b71b23760fbd19d048e99dd3969490) (2026-11-11). La instalación descarga exactamente ese commit. Alchemy cambia rápido, así que puede que una copia más nueva no funcione hasta que el editor se ponga al día.
 
 ## Contenido
 
@@ -50,7 +50,7 @@ El editor funciona sobre [alchemy](https://github.com/PascalPixel/alchemy), un p
 - Un Mac con macOS 11 o posterior, o un PC con Windows 10 u 11.
 - Unos 3 GB de espacio libre para el código fuente del juego y su compilación.
 - [mGBA](https://mgba.io/downloads.html), un emulador gratuito de Game Boy Advance, para jugar a tu juego (en Windows, su instalador para Windows).
-- Una conexión a internet para la primera configuración.
+- Una conexión a internet para la primera instalación.
 
 ### Consigue la app (Mac)
 
@@ -88,7 +88,7 @@ Abre **GS Map Editor**. Aparece una ventana pequeña; déjala abierta mientras u
 
 En Windows, los atajos de teclado usan Ctrl donde esta guía dice ⌘, y Alt donde dice ⌥. Tu trabajo se guarda dentro de Ubuntu, en `GSMapEditor` en tu carpeta personal de Ubuntu; el Explorador de archivos lo muestra en **Linux → Ubuntu → home**.
 
-### Configuración inicial
+### Instalación inicial
 
 La primera vez, el editor se abre en una lista de pasos. Tarda unos 15 minutos, casi todo esperando. Pulsa el botón de cada paso y el editor hace el resto:
 
@@ -122,7 +122,7 @@ Marca **Avanzado** en la barra superior para mostrar números y códigos en brut
 
 ### Idiomas
 
-El editor habla inglés, español (Español), alemán (Deutsch), francés (Français), italiano (Italiano) y japonés (日本語). Empieza en el idioma de tu ordenador si lo tiene. Cámbialo con el menú 🌐, arriba a la derecha de la primera pantalla de configuración y al final de la barra superior. Solo cambian las palabras del propio editor: el juego que modificas es la edición inglesa, así que los nombres de lugares, las personas, los objetos y los diálogos que escribas se quedan en inglés.
+El editor habla inglés, español (Español), alemán (Deutsch), francés (Français), italiano (Italiano) y japonés (日本語). Empieza en el idioma de tu ordenador si lo tiene. Cámbialo con el menú 🌐, arriba a la derecha de la primera pantalla de instalación y al final de la barra superior. Solo cambian las palabras del propio editor: el juego que modificas es la edición inglesa, así que los nombres de lugares, las personas, los objetos y los diálogos que escribas se quedan en inglés.
 
 Esta guía también está traducida: mira los enlaces de arriba. Las traducciones del editor y de esta guía se hicieron con ayuda de IA y todavía no las han revisado todas hablantes nativos. Donde una guía traducida difiera de esta, la guía en inglés es la vigente. Si algo suena raro, por favor [dínoslo](https://github.com/TRosenvall/GS-Map-Editor/issues/new?template=bug_report.md) con la redacción que esperarías.
 
@@ -167,7 +167,7 @@ Pulsa **Pintar** (B).
 3. Haz clic o arrastra sobre el mapa.
 4. Guarda.
 
-Cada lugar tiene su propio juego de bloques, así que el panel cambia de un lugar a otro.
+Cada lugar tiene su propio conjunto de bloques, así que el panel cambia de un lugar a otro.
 
 ## Zonas de paso: por dónde se puede caminar
 
@@ -179,11 +179,11 @@ Pulsa **Zonas de paso** (C). Pintar un bloque no cambia por dónde se puede cami
 | **Pared** | Impide caminar, sea cual sea la altura. |
 | **Saliente (saltar abajo)** | Mantén Abajo contra él un momento y el líder salta hacia abajo. |
 | **Pared trepable / escalera** | Mantén Arriba o Abajo contra ella un momento para trepar. |
-| **Hueco para saltar (salto adelante)** | Empuja contra él un momento y el líder lo salta, si el otro lado permite aterrizar. |
-| **Suelo con combates A / B** | Se puede caminar. Los combates aleatorios usan la primera o la segunda zona de encuentros del lugar. |
+| **Hueco para saltar (saltar adelante)** | Empuja contra él un momento y el líder lo salta, si el otro lado permite aterrizar. |
+| **Suelo con encuentros A / B** | Se puede caminar. Los combates aleatorios usan la primera o la segunda zona de encuentros del lugar. |
 | **Suelo dañino** | Se puede caminar, pero hace daño al grupo tras suficientes pasos, si la escena lo activa. |
 | **Sombra para Cloak** | Se puede caminar. El único suelo donde la Psinergía Cloak mantiene oculto al grupo. |
-| **Jarrón, barril, caja, tumba, libros o pozo vacíos** | Al buscar no se encuentra nada. Normalmente también es una pared, por su altura. |
+| **Jarrón, barril, caja, tumba, libros o pozo vacíos** | Al examinarlo no se encuentra nada. Normalmente también es una pared, por su altura. |
 
 Las herramientas Cofre, Puertas y Eventos ponen ellas mismas los códigos especiales que necesitan, así que no tienes que pintarlos.
 
@@ -206,7 +206,7 @@ El editor se ocupa del resto, incluida la marca que recuerda que un cofre se ha 
 
 ## Eventos: personas, letreros y mensajes
 
-Pulsa **Eventos** (E). El panel muestra, en palabras, todo lo que pasa en este lugar: lo que dice la gente, los pensamientos de Mind Read, letreros, mensajes al pisar, búsquedas y zonas de salida.
+Pulsa **Eventos** (E). El panel muestra, en palabras, todo lo que pasa en este lugar: lo que dice la gente, los pensamientos de Mind Read, letreros, mensajes al pisar, cosas que examinar y zonas de salida.
 
 La **Etapa de la historia** de arriba importa. Muchos lugares cambian a medida que avanza la historia, y cada etapa tiene sus propias personas y eventos. Elige la etapa que quieras editar.
 
@@ -249,7 +249,7 @@ Haz clic en una persona. Pulsa **Hacer que diga algo…**, o **Añadir una líne
 Cada evento de la lista tiene estos botones, cuando corresponden:
 
 - **Cambiar palabras** abre el editor de texto.
-- **Cuándo…** decide cuándo ocurre el evento: **Siempre**, **Solo cuando** una marca de la historia esté activada, o **Solo mientras** no lo esté. Las marcas se muestran por su nombre.
+- **Cuándo…** decide cuándo ocurre el evento: **Siempre**, **Solo cuando** una marca de la historia esté activada, o **Solo mientras no…** esté activada. Las marcas se muestran por su nombre.
 - **Quitar** lo borra.
 
 ### El editor de texto
@@ -287,13 +287,13 @@ Los puntos de llegada son donde aparece el grupo al entrar en un lugar.
 Pulsa **Sello** (S).
 
 1. Arrastra un rectángulo en el mapa para copiarlo.
-2. Haz clic para pegar, aquí o en otro lugar que use el mismo juego de bloques.
+2. Haz clic para pegar, aquí o en otro lugar que use el mismo conjunto de bloques.
 3. Pulsa Esc para volver a copiar.
 
 - **Zonas de paso y altura** copia eso junto con los bloques, y está activado por defecto.
 - **Solo objetos** pega solo los árboles y otros objetos, no el suelo que tienen debajo.
 - Un pegado es un solo paso de deshacer, y lo que copiaste se conserva al cambiar de lugar y al recargar.
-- Los lugares con otro juego de bloques rechazan el pegado, porque cada bloque dibujaría una imagen equivocada.
+- Los lugares con otro conjunto de bloques rechazan el pegado, porque cada bloque dibujaría una imagen equivocada.
 
 ## Importar tus propias imágenes
 
@@ -428,29 +428,29 @@ En Windows y Linux, usa Ctrl en lugar de ⌘ y Alt en lugar de ⌥.
 | Ves | Qué hacer |
 |---|---|
 | "Para Jugar se necesita mGBA" | Instálalo desde [mgba.io](https://mgba.io) y vuelve a pulsar Jugar. |
-| El editor dice que el código fuente del juego es de una versión que no sabe leer | El código fuente ha cambiado de una forma que este editor todavía no entiende. Aparta esa carpeta y luego usa **Descargar** en la pantalla de configuración. Tu mod se queda en la carpeta que apartaste. |
+| El editor dice que el código fuente del juego es de una versión que no sabe leer | El código fuente ha cambiado de una forma que este editor todavía no entiende. Aparta esa carpeta y luego usa **Descargar** en la pantalla de instalación. Tu mod se queda en la carpeta que apartaste. |
 | "Tus cambios no se pudieron convertir en un juego" | Tus archivos están a salvo. Si menciona una línea que escribiste, cambia sus palabras. Si no, usa **Deshacer** hasta que compile, y pulsa **Mostrar detalles** para ver el mensaje de la propia compilación. |
 | "No se pueden leer los archivos de este lugar" | Uno de sus archivos está dañado. Usa **Restaurar lugar…**, o **Deshacer** si lo causó un guardado reciente. |
 | "No se puede leer el archivo que guarda tus cambios de personas, puertas y eventos" | Usa **Deshacer**. Si eso no ayuda, restaura ese archivo desde tu copia de seguridad. |
 | "Este lugar no tiene espacio para más de estos" | El lugar se ha quedado sin códigos para letreros y mensajes al pisar. Quita uno que hayas añadido. |
 | "La fuente del juego no tiene…" | Sustituye ese carácter por letras y signos de puntuación simples. |
-| La pantalla de configuración dice que tu carpeta tiene un espacio en su ruta | La compilación no puede usar rutas con espacios. Elige una copia del código fuente del juego en una carpeta sin espacios en su ruta. |
-| La app se abre en la pantalla de configuración con un error | El mensaje dice qué no pudo leer. Pulsa **Revisar de nuevo** después de arreglarlo. |
+| La pantalla de instalación dice que tu carpeta tiene un espacio en su ruta | La compilación no puede usar rutas con espacios. Elige una copia del código fuente del juego en una carpeta sin espacios en su ruta. |
+| La app se abre en la pantalla de instalación con un error | El mensaje dice qué no pudo leer. Pulsa **Revisar de nuevo** después de arreglarlo. |
 | "Algo salió mal" | Esa acción no terminó. Vuelve a intentarlo y, si sigue pasando, reinicia la app. |
-| "Este mapa usa otro juego de bloques" | Sello solo pega entre lugares que comparten un juego de bloques. |
+| "Este mapa usa otro conjunto de bloques" | Sello solo pega entre lugares que comparten un conjunto de bloques. |
 | "Este lugar comparte sus gráficos con otros lugares" | Importar solo funciona en lugares con gráficos propios. El mensaje nombra algunos que puedes usar. |
 | "Ese bloque se retiró" | Sus gráficos se reutilizaron para una imagen importada. Elige otro bloque. |
 | "El juego no tiene espacio para más cofres" | El juego se ha quedado sin marcas de "abierto" libres. Quita un cofre que hayas añadido. |
 | Falta un cofre en el juego | Un lugar solo muestra sus primeros 10 cofres y piedras. Ejecuta **Revisar**. |
 | Revisar dice que una edición "ya no encaja" | El código fuente del juego cambió por debajo de esa edición. Se conserva, pero queda fuera de tu juego. |
 | Un lugar se ve distinto de lo que editaste | Puede que estés en otra **Etapa de la historia**, y Jugar empieza una partida nueva, que muestra la versión del principio. |
-| La configuración falló a mitad | Pulsa **Revisar de nuevo** y luego el botón del paso. El registro bajo la lista de pasos muestra lo que pasó. |
+| La instalación falló a mitad | Pulsa **Revisar de nuevo** y luego el botón del paso. El registro bajo la lista de pasos muestra lo que pasó. |
 | Windows: el editor no se abrió en tu navegador | La pequeña ventana de GS Map Editor muestra su dirección: cópiala en tu navegador. |
 | Windows: el instalador dice que Ubuntu no está listo | Reinicia Windows si te lo pidió, abre **Ubuntu** una vez desde el menú Inicio para elegir un nombre de usuario y una contraseña, y luego vuelve a ejecutar el instalador. |
 
 ## Informar de problemas
 
-Por favor, [abre una incidencia](https://github.com/TRosenvall/GS-Map-Editor/issues/new?template=bug_report.md) con lo que estabas haciendo, lo que pasó, y el chip y la versión de macOS de tu Mac. Cuando el editor ofrezca **Mostrar detalles** o un registro de la configuración, pulsa **Copiar** y pégalo. Por favor, no adjuntes ROMs ni archivos del juego.
+Por favor, [abre una incidencia](https://github.com/TRosenvall/GS-Map-Editor/issues/new?template=bug_report.md) con lo que estabas haciendo, lo que pasó, y el chip y la versión de macOS de tu Mac. Cuando el editor ofrezca **Mostrar detalles** o un registro de la instalación, pulsa **Copiar** y pégalo. Por favor, no adjuntes ROMs ni archivos del juego.
 
 ## Aspectos legales
 

@@ -1,4 +1,4 @@
-<!-- translated from docs/DEVELOPING.md @ 033864075a8f -->
+<!-- translated from docs/DEVELOPING.md @ 0055eb8d2996 -->
 # GS Map Editor entwickeln
 
 *Dies ist eine Übersetzung der englischen [DEVELOPING.md](../DEVELOPING.md). Wenn sich die beiden unterscheiden, ist die englische Fassung aktuell.*
@@ -64,8 +64,8 @@ Releases baut GitHub auf seinen Macs mit `.github/workflows/release.yml`: ein Di
 
 Lokale Karten, The Broken Seal, englische Edition. Wie man sie benutzt, steht in der [README](../../README.de.md).
 
-- **Ansicht:** alle 182 Karten, mit korrekten Tilesets und Platzhaltern, Ein-/Ausschalter und Deckkraft pro Ebene, Overlays für Kollision und Höhe.
-- **Malen:** Blöcke, Kollision und Höhe, mit ⌥-Klick-Pipette und Rückgängig/Wiederholen. Gespeichert wird alles Unbearbeitete Byte für Byte gleich.
+- **Ansicht:** alle 182 Karten, mit korrekten Tilesets und Platzhaltern, Ein-/Ausschalter und Deckkraft pro Ebene, Overlays für Begehbarkeit und Höhe.
+- **Malen:** Blöcke, Begehbarkeit und Höhe, mit ⌥-Klick-Pipette und Rückgängig/Wiederholen. Gespeichert wird alles Unbearbeitete Byte für Byte gleich.
 - **Stempel** (S): Zieh ein Rechteck auf, um einen Bereich zu kopieren, dann klick, um ihn einzufügen, hier oder in einer anderen Karte mit demselben Blocksatz (Vale ↔ Debug · Sandbox).
   - Die Kopie enthält alle drei Ebenen plus Begehbarkeit und Höhe.
   - **Nur Objekte** fügt nur die Bäume und anderen Objekte ein, nicht den Boden darunter (ein Farbtest gegen den Hintergrundblock jeder Ebene).
@@ -77,11 +77,11 @@ Lokale Karten, The Broken Seal, englische Edition. Wie man sie benutzt, steht in
   - Neue Kacheln kommen zuerst in leeren Platz. Danach kommen Kacheln, die nur von Blöcken benutzt werden, die die Karte nie platziert. Diese Blöcke werden *ausgemustert* (in der Palette ausgeblendet, vom Stempel verweigert) und in alchemys `games/tbs/src/mod/tilesets.json` aufgeführt.
   - Die Vorschau zeigt die Farben, die das Spiel zeichnen wird, und wie viel Platz noch übrig ist.
 - **Ereignisse** (E): alles, was in einer Szene passiert, in Worten, für den Story-Abschnitt, den du wählst:
-  - **Personen:** „🗨 Garet: “Ever since the tremors started…”“, Gedankenlesen-Gedanken und Skripte mit eigener Beschreibung („Fragt vor der Abreise nach dem Bürgermeister, nach der Rückkehr nach den Beben“).
+  - **Personen:** „🗨 Garet: “Ever since the tremors started…”“, Mind-Read-Gedanken und Skripte mit eigener Beschreibung („Fragt vor der Abreise nach dem Bürgermeister, nach der Rückkehr nach den Beben“).
   - **Stellen:** Schilder (mit A lesen), Tritt-Nachrichten, Untersuchungen und was sie finden.
   - **Ausgangsbereiche:** Felder, die als Türen wirken, auf der Karte eingezeichnet. Ändere, wohin sie führen, oder entferne sie.
   - Klick auf eine Person, um ihre Ereignisse zu sehen und **sie etwas sagen zu lassen** (oder eine Zeile für einen Story-Moment hinzuzufügen). Klick auf eine beliebige Stelle, um **ein Schild**, **eine Tritt-Nachricht** oder **eine Person hinzuzufügen**.
-  - **Text ändern** öffnet einen Schreibbereich mit Live-Vorschauen der Dialogfenster: Schreib ganz normal, eine Leerzeile beginnt ein neues Fenster. **Wann …** legt „immer“, „erst sobald <Story-Flag> gesetzt ist“ oder „nur solange es nicht gesetzt ist“ fest, mit Flags nach Namen.
+  - **Text ändern** öffnet einen Schreibbereich mit Live-Vorschauen der Textfenster: Schreib ganz normal, eine Leerzeile beginnt ein neues Textfenster. **Wann …** legt „Immer“, „Erst sobald <Story-Flag> gesetzt ist“ oder „Nur solange es nicht gesetzt ist“ fest, mit Flags nach Namen.
   - Neue Zeilen werden in einem Block, der dem Editor gehört, zu `en.po` hinzugefügt. Die eigenen Zeilen des Spiels werden nie umgeschrieben: Zu ändern, was jemand sagt, verweist ihn auf eine neue Zeile. Text, den die Schrift des Spiels nicht zeichnen kann, wird vor dem Build abgelehnt.
   - Wenn eine Szene ihre Personen und Ereignisse mit anderen teilt (die Sandbox und der Debug-Hub tun das), sagt der Bereich das.
 - **Türen** (D): Jede Tür erscheint auf der Karte mit ihrem Ziel („→ Vale Home“); solche, die nirgendwohin führen, erscheinen rot.
@@ -95,7 +95,7 @@ Lokale Karten, The Broken Seal, englische Edition. Wie man sie benutzt, steht in
   - Eine Truhe ist eine `treasure_spot`-Zeile in der `map.s` der Karte, im Teil der Datei für die englische Edition.
 - **Truhen und Psynergie-Steine:** zum Verschieben ziehen. Die Markierungszeile und die Kollisionscodes beider Felder werden zusammen aktualisiert, und Speichervorgänge, die die Regel Markierung/Kollision verletzen, werden abgelehnt.
 - **Szenentabellen:** Wähl für jede Szene, die die Karte nutzt, eine Tabelle.
-  - Eingänge und NPCs erscheinen auf der Karte; zieh sie mit dem Werkzeug „Personen verschieben“ (Points).
+  - Eingänge und NPCs erscheinen auf der Karte; zieh sie mit dem Werkzeug „Personen verschieben“ (P).
   - Ausgänge werden als Liste bearbeitet (Art, Zielszene, Eingang, Flag), mit einer Prüfung, dass der Zieleingang existiert.
 - **Verbindungen:** ein beliebiger Ort in der Mitte, links jeder Ort, der zu ihm führt, rechts alles, wohin er führt (Tür, geskriptete Tür oder Szenenereignis, und der Ankunftspunkt). Klick auf einen Ort, um dorthin zu wechseln; **Öffnen** springt im Editor zur Tür.
 - **Prüfen:** sieht sich jede Karte nach Problemen an, die deine Änderungen im Spiel verursachen würden, und benennt sie in einfachen Worten, jeweils mit einer Lösung und einem Knopf **Anzeigen**, der die Stelle öffnet:
@@ -110,24 +110,24 @@ Lokale Karten, The Broken Seal, englische Edition. Wie man sie benutzt, steht in
   - **Boden** / **Overlay**: Blöcke malen (⌥-Klick nimmt einen auf; zuletzt benutzte Blöcke bleiben griffbereit). **Regionen**: Kampfregionen malen. Änderungen werden beim Malen gespeichert; Rückgängig nimmt den letzten Strich zurück, Wiederholen bringt ihn zurück. Felder werden in `map/world/blocks.tsv` geschrieben, wobei die anderen Felder jedes Worts erhalten bleiben.
   - **Städte**: Zieh ein Symbol, um es zu verschieben. Seine Ankunftspunkte (wo du beim Verlassen der Stadt erscheinst) wandern mit, in jedem Story-Abschnitt, der das Symbol dort hat. Klick auf ein Symbol oder eine blaue Trittstelle, um zu ändern, wohin es führt.
   - Der verschneite Norden wird mit einem eigenen Grafiksatz gezeichnet. Die Karte im Pausenmenü ist ein eigenes Bild und folgt Änderungen nicht.
-- **Mod exportieren …:** speichert deinen Mod als kleinen `.bps`-Patch plus eine Readme für Spieler in `~/Documents/GSMapEditor/Exports/`.
-  - Der Patch führt vom unveränderten Spiel zu deinem Build. Das unveränderte Spiel wird einmal aus dem Commit gebaut, von dem dein Mod ausgeht: in einem separaten Ordner über `git archive`, sodass dein Checkout unberührt bleibt. Es wird gegen alchemys `rom.sha1` geprüft, ist also gleich dem Original-Modul, und der Patch lässt sich auf den eigenen Dump jedes Spielers anwenden.
+- **Mod exportieren …:** speichert deine Mod als kleinen `.bps`-Patch plus eine Readme für Spieler in `~/Documents/GSMapEditor/Exports/`.
+  - Der Patch führt vom unveränderten Spiel zu deinem Build. Das unveränderte Spiel wird einmal aus dem Commit gebaut, von dem deine Mod ausgeht: in einem separaten Ordner über `git archive`, sodass dein Checkout unberührt bleibt. Es wird gegen alchemys `rom.sha1` geprüft, ist also gleich dem Original-Modul, und der Patch lässt sich auf den eigenen Dump jedes Spielers anwenden.
   - Patches sind BPS (Rom Patcher JS, Floating IPS, Soft-Patching im Emulator). Verschobene Daten werden zu Kopien statt zu neuen Bytes. Jeder Patch wird nach dem Schreiben einmal angewendet, um zu prüfen, dass er deinen Build genau reproduziert.
   - Der Export führt zuerst die Prüfung aus. Du teilst deine Änderungen, nie das Spiel.
-- **Patcher …:** wendet den `.bps`-, `.ips`- oder `.ups`-Patch eines Mods an und speichert das Spiel in `~/Documents/GSMapEditor/Patched/`, mit **In mGBA spielen** und **Im Finder zeigen**.
+- **Patcher …:** wendet den `.bps`-, `.ips`- oder `.ups`-Patch einer Mod an und speichert das Spiel in `~/Documents/GSMapEditor/Patched/`, mit **In mGBA spielen** und **Im Finder zeigen**.
   - Patche entweder das unveränderte Spiel, das dieser Mac aus dem Quellcode gebaut hat (kein ROM nötig), oder deine eigene ROM-Datei. Deine Datei wird nach alchemys `rom.sha1` benannt („Golden Sun (English)“), mit einer Warnung, wenn sie kein unverändertes Spiel ist.
   - BPS und UPS verweigern das falsche Spiel. IPS kann das nicht prüfen, und der Patcher sagt das.
-  - Der Export kann für ältere Patcher auch eine `.ips` schreiben. Sie ist größer, weil IPS verschobene Daten nicht festhalten kann (4.2 MB gegenüber 383 KB beim Debug-Raum-Mod), und wird genauso geprüft.
+  - Der Export kann für ältere Patcher auch eine `.ips` schreiben. Sie ist größer, weil IPS verschobene Daten nicht festhalten kann (4.2 MB gegenüber 383 KB bei der Debug-Raum-Mod), und wird genauso geprüft.
 - **▶ Spielen:** ein Knopf: speichert Ungespeichertes, führt die Prüfung aus, baut und öffnet dein Spiel in mGBA, mit einem neuen Spielstand an dem Ort, den du gerade bearbeitest (von der Weltkarten-Seite aus auf der Weltkarte). Der Start wird in eine Wegwerfkopie des Spiels geschrieben; was du exportierst, enthält keine Spur davon. Wenn der Build fehlschlägt, bekommst du eine verständliche Erklärung, mit eingeklappten technischen Details und einem Kopieren-Knopf für Fehlerberichte. Bauen allein liegt unter Erweitert.
 - **Rückgängig / Wiederholen:** ein Knopfpaar für alles. Rückgängig nimmt zuerst ungespeichertes Malen zurück (der eigene Stapel der Seite), dann gespeicherte Aktionen, die neuesten zuerst, egal welches Werkzeug und welcher Ort sie gemacht haben; ein Speichern macht den Stapel der Seite zu einer gespeicherten Aktion. Jeder Schreibvorgang geht durch `writing(label, where)` in `server.py`, eine Transaktion aus `gsmap/fsio.py`, die die alten Inhalte der Dateien als Verlaufseintrag behält, beschriftet mit was und wo („eine Person hinzufügen“, Karte `051`). `undo_last` stellt einen Eintrag wieder her und behält, was er ersetzt hat, unter `history/redo`; `redo_last` macht das Umgekehrte; eine neue Aktion leert `history/redo`. Beide gehen durch das Journal, sodass ein Absturz mittendrin beim nächsten Start zu Ende geführt wird. Die letzten 30 von jedem werden behalten, unter `history/` im Support-Ordner.
 - **Wo Personen stehen können** (`gsmap/walk.py`): die Laufregeln des Spiels, aus alchemys Feldcode: 8-Pixel-Schritte, bei denen fünf Proben frei sein müssen, höchstens 8 Pixel hoch und 12 hinunter (`terrain.c`, `MapGrid_CheckCollision`), Höhen aus der Form jedes Felds über die sechzehn Geländefunktionen und `terrain_tables.c`, Absätze, Kletterstellen und Lücken, und Ansprechen innerhalb von 32 Pixeln und 48 nach oben oder unten. Rutschpartien werden so verfolgt, wie `Imil_RunIceSlide` es tut, für jeden Tritt-Auslöser, dessen Skript rutscht. Die Gruppe wird auf einem 8-Pixel-Raster von jedem Ankunftspunkt der Szene aus verfolgt; eine Person blockiert innerhalb von 12 Pixeln (zwei Radien von 8, abzüglich je 2). `POST /api/map/<n>/walk` färbt jedes Feld; `/walk/check` liefert die Probleme an einer Stelle, die nächste Stelle ohne Probleme und die Formänderungen, die einen Weg dorthin ebnen (flache Formen, die die Karte schon hat). Ungespeicherte Form- und Begehbarkeitsänderungen werden mitgeschickt. Psynergie und Story-Ereignisse werden nicht verfolgt, und andere Personen als die geprüfte sind keine Hindernisse. Gegen das Spiel geprüft: Etwa 92 % der Personen, die Camelot platziert hat, sind nach diesen Regeln ansprechbar; der Rest sind Zwischensequenz-Räume und Orte, die Psynergie öffnet.
 - **Ort zurücksetzen …:** stellt einen Ort so wieder her, wie das Originalspiel ihn hat (Rückgängig bringt deine Fassung zurück). Szenentabellen, die andere Orte teilen, bleiben unverändert, und das wird gesagt.
 - **Speichern ist alles oder nichts:** Die Dateien einer Aktion landen zusammen oder gar nicht, jede Datei wird in einem Schritt ersetzt, und wenn der Editor mittendrin abstürzt, schließt er das Rückgängigmachen beim nächsten Start ab.
 - **Namen:** Orte werden mit ihren Namen im Spiel aufgeführt („Vale · Vale Home“).
-- **Begehbarkeits-Pinsel:** benannt und farbcodiert (Boden, Wand, Kante, Kletterwand / Leiter, Sprunglücke, Schadensboden, Untersuchungsstellen, …).
+- **Begehbarkeits-Pinsel:** benannt und farbcodiert (Fußboden, Wand, Kante, Kletterwand / Leiter, Sprunglücke, Schadensboden, Suchstellen, …).
 - **Hover:** sagt, was ein Feld tut („Ausgang → Vale“, „Truhe: Herb“, „Scripted (probably a door to …)“).
 - **NPCs:** als ihre Sprites gezeichnet, nach Namen aufgeführt.
-- **Szenentabellen:** freundliche Namen („Arrival points: normal“, „People: After Kalay“).
+- **Szenentabellen:** freundliche Namen („Ankunftspunkte: Standard“, „Personen: After Kalay“).
 - **Kontrollkästchen „Erweitert“:** bringt die rohen Codes zurück.
 - **Links:** `?map=003&tool=points&kind=placements` öffnet direkt einen Ort.
 - **Keine mitgelieferten Grafiken oder Texte:** Namen von Gegenständen, Orten, Figuren, Sprites und Flags, Gegenstandssymbole und Sprite-Vorschauen werden alle zur Laufzeit aus dem eigenen alchemy-Checkout des Spielers gelesen. `gsmap/data` enthält nur die eigenen Erkenntnisse des Editors: Vorschaubilder, freie Truhen-Flags und was jeder Begehbarkeitscode tut.
@@ -157,7 +157,7 @@ Gespeicherte Szenenänderungen tragen einen Fingerabdruck der Tabelle, für die 
 - `python3 tests/placement.py`: die Laufregeln gegen das Spiel: Die in acht Städten platzierten Personen sind ansprechbar und ihre Auswege erreichbar, und in Imil wird jeweils vor dem Eis, einer unerreichbaren verschneiten Stelle (mit ihrer Einebnungs-Lösung), einer schmalen Gasse, einer Türschwelle und einer Wand gewarnt.
 - `python3 tests/edits.py`: speichert Block-, Begehbarkeits- und Höhenänderungen auf einer Kopie echter Karten und prüft, dass sie sich zurücklesen lassen, ohne dass sich sonst etwas geändert hat.
 - `python3 tests/i18n.py`: Jede Meldung, die der Code zeigt, ist in jeder Sprache übersetzt, und jede Übersetzung behält ihre `{placeholders}`, HTML-Tags und Tasten (⌘ ⇧ ⌥ ▶).
-- `python3 tests/roundtrip.py`: lädt und speichert jedes Kartenraster, jede Feldbild- und Formtabelle und jede Truhenliste neu (727 Dateien mit dem Debug-Raum-Mod, 721 bei einem unveränderten Checkout). Alle müssen byte-identisch herauskommen. Das garantiert, dass das Speichern einer Karte nur ändert, was du bearbeitet hast.
+- `python3 tests/roundtrip.py`: lädt und speichert jedes Kartenraster, jede Feldbild- und Formtabelle und jede Truhenliste neu (727 Dateien mit der Debug-Raum-Mod, 721 bei einem unveränderten Checkout). Alle müssen byte-identisch herauskommen. Das garantiert, dass das Speichern einer Karte nur ändert, was du bearbeitet hast.
 
 ### Sprachen
 

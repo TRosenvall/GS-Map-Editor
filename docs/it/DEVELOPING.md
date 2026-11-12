@@ -1,4 +1,4 @@
-<!-- translated from docs/DEVELOPING.md @ 033864075a8f -->
+<!-- translated from docs/DEVELOPING.md @ 0055eb8d2996 -->
 # Sviluppare GS Map Editor
 
 *Questa è una traduzione del file inglese [DEVELOPING.md](../DEVELOPING.md); se i due differiscono, vale quello inglese.*
@@ -64,7 +64,7 @@ Le release sono compilate da GitHub, sui suoi Mac, da `.github/workflows/release
 
 Mappe locali, The Broken Seal, edizione inglese. Per come usarle, vedi il [README](../../README.it.md).
 
-- **Visualizza:** tutte le 182 mappe, con i tileset corretti e i segnaposto, attivazione e opacità per livello, sovrapposizioni di collisione e altezza.
+- **Visualizza:** tutte le 182 mappe, con i set di tile corretti e i segnaposto, attivazione e opacità per livello, sovrapposizioni di collisione e altezza.
 - **Dipingi:** blocchi, collisione e altezza, con contagocce ⌥-clic e annulla/ripeti. I salvataggi sono identici byte per byte per tutto ciò che non è stato modificato.
 - **Timbro** (S): trascina un rettangolo per copiare un'area, poi clicca per incollarla, qui o in un'altra mappa con lo stesso set di blocchi (Vale ↔ Debug · Sandbox).
   - La copia porta con sé tutti e tre i livelli più calpestabilità e altezza.
@@ -78,7 +78,7 @@ Mappe locali, The Broken Seal, edizione inglese. Per come usarle, vedi il [READM
   - L'anteprima mostra i colori che il gioco disegnerà, più quanto spazio rimane.
 - **Eventi** (E): tutto ciò che succede in una scena, a parole, per la fase della storia che scegli:
   - **Persone:** "🗨 Garet: “Ever since the tremors started…”", pensieri di Mind Read e script con una loro descrizione ("Chiede del sindaco prima della partenza, o dei tremori dopo il ritorno").
-  - **Punti:** cartelli (da leggere con A), messaggi al passaggio, ricerche e ciò che trovano.
+  - **Punti:** cartelli (da leggere con A), messaggi al passaggio, punti da esaminare e ciò che vi si trova.
   - **Aree di uscita:** riquadri che fanno da porte, disegnati sulla mappa. Cambia dove portano, o rimuovili.
   - Clicca una persona per vederne gli eventi e **Fagli dire qualcosa…** (o **Aggiungi una battuta per un momento della storia…**). Clicca un punto qualsiasi per aggiungere **un cartello**, **un messaggio al passaggio** o **una persona**.
   - **Cambia parole** apre un editor di testo con anteprime dal vivo dei riquadri di dialogo: scrivi normalmente, e una riga vuota inizia un nuovo riquadro. **Quando…** imposta "sempre", "solo dopo che <flag della storia> è attivo" o "solo finché non è attivo", con i flag per nome.
@@ -95,7 +95,7 @@ Mappe locali, The Broken Seal, edizione inglese. Per come usarle, vedi il [READM
   - Un forziere è una riga `treasure_spot` nel `map.s` della mappa, nella parte del file dell'edizione inglese.
 - **Forzieri e Psynergy Stone:** trascina per spostarli. La riga del marcatore e i codici di collisione di entrambe le celle si aggiornano insieme, e i salvataggi che violano la regola marcatore/collisione vengono rifiutati.
 - **Tabelle delle scene:** per ogni scena che usa la mappa, scegli una tabella.
-  - Ingressi e PNG appaiono sulla mappa; trascinali con lo strumento Punti.
+  - Ingressi e PNG appaiono sulla mappa; trascinali con lo strumento Sposta persone (P).
   - Le uscite si modificano come elenco (tipo, scena di destinazione, ingresso, flag), con un controllo che l'ingresso di destinazione esista.
 - **Collegamenti:** un luogo qualsiasi al centro, con ogni luogo che porta lì a sinistra e ogni posto verso cui porta a destra (porta, porta con script o evento di scena, e il punto di arrivo). Clicca un luogo per spostarti lì; **Apri** salta alla porta nell'editor.
 - **Controlla:** esamina ogni mappa alla ricerca di problemi che le tue modifiche causerebbero nel gioco e li descrive a parole semplici, ciascuno con una soluzione e un pulsante **Mostra** che apre il punto:
@@ -114,17 +114,17 @@ Mappe locali, The Broken Seal, edizione inglese. Per come usarle, vedi il [READM
   - La patch va dal gioco non modificato alla tua build. Il gioco non modificato viene compilato una volta dal commit da cui parte la tua mod: in una cartella separata tramite `git archive`, così il tuo checkout resta intatto. Viene verificato con il `rom.sha1` di alchemy, quindi è uguale alla cartuccia originale, e la patch si applica al dump di chiunque.
   - Le patch sono BPS (Rom Patcher JS, Floating IPS, soft-patching negli emulatori). I dati spostati diventano copie invece di byte nuovi. Ogni patch viene applicata una volta dopo essere stata scritta, per verificare che riproduca esattamente la tua build.
   - L'esportazione esegue prima Controlla. Condividi le tue modifiche, mai il gioco.
-- **Patcher…:** applica la patch `.bps`, `.ips` o `.ups` di una mod e salva il gioco in `~/Documents/GSMapEditor/Patched/`, con **Gioca in mGBA** e **Mostra nel Finder**.
+- **Applica patch…:** applica la patch `.bps`, `.ips` o `.ups` di una mod e salva il gioco in `~/Documents/GSMapEditor/Patched/`, con **Gioca in mGBA** e **Mostra nel Finder**.
   - Applica la patch al gioco non modificato che questo Mac ha compilato dai sorgenti (nessuna ROM necessaria) o al tuo file ROM. Il tuo file viene riconosciuto grazie al `rom.sha1` di alchemy ("Golden Sun (English)"), con un avviso quando non è un gioco non modificato.
   - BPS e UPS rifiutano il gioco sbagliato. IPS non può verificarlo, e il patcher lo dice.
   - Esporta può anche scrivere un `.ips` per i patcher più vecchi. È più grande, perché IPS non può registrare i dati spostati (4,2 MB contro 383 KB per la mod della stanza di debug), e viene verificato allo stesso modo.
 - **▶ Gioca:** un solo pulsante: salva ciò che non è salvato, esegue Controlla, compila e apre il tuo gioco in mGBA, iniziando una nuova partita nel luogo che stai modificando (dalla pagina della mappa del mondo, sulla mappa del mondo). La partenza viene scritta in una copia usa e getta del gioco; ciò che esporti non ne ha traccia. Se la build fallisce ricevi una spiegazione semplice, con i dettagli tecnici ripiegati e un pulsante Copia per le segnalazioni di bug. Compila da solo si trova sotto Avanzate.
-- **Annulla / Ripeti:** una sola coppia di pulsanti per tutto. Annulla toglie prima la pittura non salvata (la pila della pagina), poi le azioni salvate dalla più recente, qualunque strumento e luogo le abbia fatte; un salvataggio trasforma la pila della pagina in un'unica azione salvata. Ogni scrittura passa per `writing(label, where)` di `server.py`, una transazione di `gsmap/fsio.py` che conserva il vecchio contenuto dei file come voce di cronologia etichettata con cosa e dove ("aggiunta di una persona", mappa `051`). `undo_last` rimette una voce e conserva ciò che ha sostituito sotto `history/redo`; `redo_last` fa il contrario; una nuova azione svuota `history/redo`. Entrambi passano per il journal, così un crash a metà viene completato all'avvio successivo. Vengono conservate le ultime 30 di ciascuno, sotto `history/` nella cartella di supporto.
+- **Annulla / Ripeti:** una sola coppia di pulsanti per tutto. Annulla toglie prima le pennellate non salvate (la pila della pagina), poi le azioni salvate dalla più recente, qualunque strumento e luogo le abbia fatte; un salvataggio trasforma la pila della pagina in un'unica azione salvata. Ogni scrittura passa per `writing(label, where)` di `server.py`, una transazione di `gsmap/fsio.py` che conserva il vecchio contenuto dei file come voce di cronologia etichettata con cosa e dove ("aggiunta di una persona", mappa `051`). `undo_last` rimette una voce e conserva ciò che ha sostituito sotto `history/redo`; `redo_last` fa il contrario; una nuova azione svuota `history/redo`. Entrambi passano per il journal, così un crash a metà viene completato all'avvio successivo. Vengono conservate le ultime 30 di ciascuno, sotto `history/` nella cartella di supporto.
 - **Dove possono stare le persone** (`gsmap/walk.py`): le regole di movimento del gioco, dal codice del campo di alchemy: passi di 8 pixel che richiedono cinque sonde libere, al massimo 8 pixel in salita e 12 in discesa (`terrain.c`, `MapGrid_CheckCollision`), altezze ricavate dalla forma di ogni cella tramite le sedici funzioni del terreno e `terrain_tables.c`, sporgenze, punti di arrampicata e fossi, e parlare entro 32 pixel e 48 in su o in giù. Gli scivoloni vengono seguiti come fa `Imil_RunIceSlide`, per ogni attivatore a passo il cui script fa scivolare. Il gruppo viene seguito su un reticolo di 8 pixel da ogni punto di arrivo della scena; una persona blocca entro 12 pixel (due raggi di 8, meno 2 ciascuno). `POST /api/map/<n>/walk` colora ogni casella; `/walk/check` restituisce i problemi di un punto, il punto più vicino che non ne ha, e le modifiche di forma che livellano un percorso fino a lì (forme piatte che la mappa ha già). Le modifiche non salvate di forma e calpestabilità vengono inviate insieme. La Psicoenergia e gli eventi della storia non vengono seguiti, e le persone diverse da quella controllata non sono ostacoli. Verificato sul gioco: circa il 92% delle persone piazzate da Camelot è raggiungibile per parlarci secondo queste regole, mentre il resto si trova in stanze di cutscene e in posti aperti con la Psicoenergia.
 - **Ripristina luogo…:** rimette un luogo com'è nel gioco originale (Annulla riporta la tua versione). Le tabelle delle scene condivise da altri luoghi vengono lasciate stare, e lo dice.
 - **Il salvataggio è tutto o niente:** i file di un'azione arrivano insieme o per niente, ogni file viene sostituito in un solo passo, e se l'editor si chiude a metà completa l'annullamento all'avvio successivo.
 - **Nomi:** i luoghi sono elencati con i loro nomi nel gioco ("Vale · Vale Home").
-- **Pennelli di calpestabilità:** con nome e colore (Pavimento, Muro, Sporgenza, Parete scalabile / scala, Varco da saltare, Terreno dannoso, punti di ricerca, …).
+- **Pennelli di calpestabilità:** con nome e colore (Pavimento, Muro, Sporgenza, Parete scalabile / scala, Varco da saltare, Terreno dannoso, punti da esaminare, …).
 - **Passaggio del mouse:** dice cosa fa una cella ("Uscita → Vale", "Forziere: Herb", "Con script (probabilmente una porta per …)").
 - **PNG:** disegnati con i loro sprite, elencati per nome.
 - **Tabelle delle scene:** nomi comprensibili ("Punti di arrivo: normale", "Persone: After Kalay").
@@ -171,6 +171,6 @@ Anche il README e questa documentazione sono tradotti: `README.<lang>.md` accant
 
 - [`SPEC.md`](SPEC.md): la specifica dell'editor, le invarianti e il piano di sviluppo a fasi.
 - [`research/`](research/): prove con riferimenti file:riga.
-  - `rendering.md`: segnaposto, tileset, finestre, fusione, animazione.
+  - `rendering.md`: segnaposto, set di tile, finestre, fusione, animazione.
   - `local-connections.md`: scene, uscite, marcatori, PNG, nuove mappe.
   - `overworld.md`: la mappa del mondo.

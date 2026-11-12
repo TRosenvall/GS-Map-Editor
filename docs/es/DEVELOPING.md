@@ -1,4 +1,4 @@
-<!-- translated from docs/DEVELOPING.md @ 033864075a8f -->
+<!-- translated from docs/DEVELOPING.md @ 0055eb8d2996 -->
 # Desarrollo de GS Map Editor
 
 *Esta es una traducción del documento en inglés [DEVELOPING.md](../DEVELOPING.md); si los dos difieren, el inglés es el actualizado.*
@@ -66,11 +66,11 @@ Mapas locales, The Broken Seal, edición inglesa. Para saber cómo usarlas, cons
 
 - **Ver:** los 182 mapas, con los tilesets correctos y los marcadores de posición, interruptores y opacidad por capa, y capas de colisión y altura.
 - **Pintar:** bloques, colisión y altura, con cuentagotas con ⌥-clic y deshacer/rehacer. Lo que no se ha editado se guarda idéntico byte a byte.
-- **Sello** (S): arrastra un rectángulo para copiar una zona y luego haz clic para pegarla, aquí o en otro mapa con el mismo juego de bloques (Vale ↔ Debug · Sandbox).
+- **Sello** (S): arrastra un rectángulo para copiar una zona y luego haz clic para pegarla, aquí o en otro mapa con el mismo conjunto de bloques (Vale ↔ Debug · Sandbox).
   - La copia lleva las tres capas más las zonas de paso y la altura.
   - **Solo objetos** pega solo los árboles y demás objetos, no el suelo de debajo (una prueba de color contra el bloque de fondo de cada capa).
   - Un pegado es un solo paso de deshacer. El portapapeles sobrevive al cambio de mapa y a la recarga de la página. Esc vuelve a copiar.
-  - Los mapas con otro juego de bloques rechazan el pegado, ya que cada número de bloque dibujaría el tile equivocado.
+  - Los mapas con otro conjunto de bloques rechazan el pegado, ya que cada número de bloque dibujaría el tile equivocado.
 - **Importar imagen** (mapas con su propio conjunto de tiles; hoy el Debug · Sandbox): elige un PNG y una capa y mira una vista previa, luego **Añadir al conjunto de tiles**. Los bloques nuevos van al portapapeles del Sello, listos para colocarlos con un clic.
   - El importador corta la imagen en tiles de 8×8 y ajusta sus colores a una de las 14 filas de la paleta del mapa (cada tile elige su propia fila solo si ninguna fila sirve para todos). El índice 0 es transparente.
   - Los tiles que ya están en las hojas, incluidos los reflejados, se reutilizan.
@@ -78,10 +78,10 @@ Mapas locales, The Broken Seal, edición inglesa. Para saber cómo usarlas, cons
   - La vista previa muestra los colores que dibujará el juego, y cuánto espacio queda.
 - **Eventos** (E): todo lo que pasa en una escena, en palabras, para la etapa de la historia que elijas:
   - **Personas:** "🗨 Garet: “Ever since the tremors started…”", pensamientos de Mind Read, y scripts con su propia descripción ("Pregunta por el alcalde antes de la partida, o por los temblores después de volver").
-  - **Sitios:** letreros (se leen con A), mensajes al pisar, búsquedas y lo que encuentran.
+  - **Sitios:** letreros (se leen con A), mensajes al pisar, cosas que examinar y lo que se encuentra.
   - **Zonas de salida:** recuadros que funcionan como puertas, dibujados en el mapa. Cambia adónde llevan, o quítalos.
   - Haz clic en una persona para ver sus eventos y **hacer que diga algo** (o añadir una línea para un momento de la historia). Haz clic en cualquier sitio para **añadir un letrero**, **un mensaje al pisar** o **una persona**.
-  - **Cambiar palabras** abre un editor de texto con vistas previas en directo del cuadro de diálogo: escribe con normalidad, y una línea en blanco empieza un cuadro nuevo. **Cuándo…** establece "siempre", "solo cuando <indicador de historia> esté activado" o "solo mientras no lo esté", con los indicadores por su nombre.
+  - **Cambiar palabras** abre un editor de texto con vistas previas en directo del cuadro de diálogo: escribe con normalidad, y una línea en blanco empieza un cuadro nuevo. **Cuándo…** establece "siempre", "solo cuando <marca de la historia> esté activado" o "solo mientras no lo esté", con las marcas por su nombre.
   - Las líneas nuevas se añaden a `en.po` en un bloque propio del editor. Las líneas del propio juego nunca se reescriben: cambiar lo que dice alguien le hace apuntar a una línea nueva. El texto que la fuente del juego no puede dibujar se rechaza antes de compilar.
   - Cuando una escena comparte sus personas y eventos con otras (el sandbox y el centro de depuración lo hacen), el panel lo indica.
 - **Puertas** (D): cada puerta aparece en el mapa con su destino ("→ Vale Home"); las que no llevan a ningún sitio aparecen en rojo.
@@ -90,17 +90,17 @@ Mapas locales, The Broken Seal, edición inglesa. Para saber cómo usarlas, cons
   - Las puertas que abren los scripts de escena (la mayoría de las de Vale) también se encuentran, leyendo qué salida pide el script. Su destino se puede cambiar; el script se queda.
   - Una puerta cambia en todas las etapas de la historia de la escena, mediante sustituciones de salidas y eventos. Los archivos `.c` de escena no se tocan.
 - **Cofres** (K): haz clic en un sitio vacío, elige un objeto (con su icono) o una cantidad de monedas, y **Añadir cofre**. Haz clic en un cofre para cambiar su contenido o quitarlo.
-  - Una sola acción escribe todo lo que necesita un cofre: el marcador, el código de colisión de la celda, un evento `SEARCH(SEARCH_CHEST)` en la tabla de eventos de la escena (como sustitución, para que los archivos `.c` de escena no se toquen) y un indicador de "abierto" nuevo del rango libre para cofres.
+  - Una sola acción escribe todo lo que necesita un cofre: el marcador, el código de colisión de la celda, un evento `SEARCH(SEARCH_CHEST)` en la tabla de eventos de la escena (como sustitución, para que los archivos `.c` de escena no se toquen) y una marca de "abierto" nueva del rango libre para cofres.
   - El código es uno que no usa ninguna tabla de eventos de las escenas del mapa, y que ningún mapa que comparta esas tablas tiene en su colisión, así que nada más se vuelve examinable. Como máximo 10 cofres y piedras por mapa.
   - Un cofre es una línea `treasure_spot` en el `map.s` del mapa, en la parte del archivo de la edición inglesa.
 - **Cofres y Piedras de Psinergía:** arrastra para mover. La fila del marcador y los códigos de colisión de ambas celdas se actualizan juntos, y se rechazan los guardados que rompan la regla marcador/colisión.
 - **Tablas de escena:** para cada escena que usa el mapa, elige una tabla.
-  - Las entradas y los PNJ aparecen en el mapa; arrástralos con la herramienta Puntos.
-  - Las salidas se editan como una lista (tipo, escena de destino, entrada, indicador), con una comprobación de que la entrada de destino existe.
+  - Las entradas y los PNJ aparecen en el mapa; arrástralos con la herramienta Mover personas (P).
+  - Las salidas se editan como una lista (tipo, escena de destino, entrada, marca), con una comprobación de que la entrada de destino existe.
 - **Conexiones:** cualquier lugar en el centro, con todos los lugares que llevan a él a la izquierda y todos a los que lleva a la derecha (puerta, puerta con script o evento de escena, y el punto de llegada). Haz clic en un lugar para ir allí; **Abrir** salta a la puerta en el editor.
 - **Revisar:** examina todos los mapas en busca de problemas que tus cambios causarían en el juego y los explica en palabras sencillas, cada uno con un arreglo y un botón **Mostrar** que abre el sitio:
   - puertas que no llevan a ningún sitio, o a un punto de llegada que no existe;
-  - cofres que no se pueden abrir, que no tienen nada definido, que se rellenan por un indicador temporal o que comparten un indicador de "abierto";
+  - cofres que no se pueden abrir, que no tienen nada definido, que se rellenan por una marca temporal o que comparten una marca de "abierto";
   - más de 10 cofres y piedras en un mapa; celdas que usan bloques que faltan o retirados;
   - ediciones de tablas de escena que ya no coinciden con el código fuente del juego (tras una actualización de alchemy).
   - El juego original tiene sus propias rarezas (115 hoy, p. ej. 83 puertas sobrantes). Cada problema se busca también en el juego sin modificar, y esos se ocultan salvo que los pidas.
@@ -124,13 +124,13 @@ Mapas locales, The Broken Seal, edición inglesa. Para saber cómo usarlas, cons
 - **Restaurar lugar…:** devuelve un lugar a como está en el juego original (Deshacer recupera tu versión). Las tablas de escena que comparten otros lugares no se tocan, y lo indica.
 - **Guardar es todo o nada:** los archivos de una acción se guardan juntos o ninguno, cada archivo se sustituye en un solo paso, y si el editor muere a medias termina de deshacer en el siguiente arranque.
 - **Nombres:** los lugares se listan por sus nombres del juego ("Vale · Vale Home").
-- **Pinceles de zonas de paso:** con nombre y código de color (Suelo, Pared, Saliente, Pared trepable / escalera, Hueco para saltar, Suelo dañino, puntos de búsqueda, …).
+- **Pinceles de zonas de paso:** con nombre y código de color (Suelo, Pared, Saliente, Pared trepable / escalera, Hueco para saltar, Suelo dañino, sitios para examinar, …).
 - **Al pasar el ratón:** dice qué hace una celda ("Salida → Vale", "Cofre: Herb", "Con script (probablemente una puerta a …)").
 - **PNJ:** dibujados con sus sprites, listados por nombre.
 - **Tablas de escena:** nombres amigables ("Arrival points: normal", "People: After Kalay").
 - **Casilla Avanzado:** vuelve a mostrar los códigos en bruto.
 - **Enlaces:** `?map=003&tool=points&kind=placements` abre directamente un lugar.
-- **Sin arte ni texto incluidos:** los nombres de objetos, lugares, personajes, sprites e indicadores, los iconos de objetos y las vistas previas de sprites se leen todos en tiempo de ejecución de la propia copia de alchemy del jugador. `gsmap/data` contiene solo los hallazgos propios del editor: fotogramas de vista previa, indicadores libres para cofres y qué hace cada código de zona de paso.
+- **Sin arte ni texto incluidos:** los nombres de objetos, lugares, personajes, sprites y marcas, los iconos de objetos y las vistas previas de sprites se leen todos en tiempo de ejecución de la propia copia de alchemy del jugador. `gsmap/data` contiene solo los hallazgos propios del editor: fotogramas de vista previa, marcas libres para cofres y qué hace cada código de zona de paso.
 
 **Cómo llegan las ediciones de escena al juego:** mediante un solo gancho, sin reescribir los archivos de escena de alchemy. Consulta `docs/SPEC.md` y `games/tbs/src/mod/README.md` de alchemy.
 - El editor guarda copias editadas de las tablas en `games/tbs/src/mod/overrides.json` de alchemy y genera `mod.c` a partir de él.

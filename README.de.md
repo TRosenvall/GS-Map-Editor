@@ -154,7 +154,7 @@ Jedes Speichern geschieht ganz oder gar nicht. Wenn der Editor mittendrin stoppt
 Drück auf **Ansicht** (V), um dich umzusehen, ohne etwas zu ändern.
 
 - **Zoom:** 1× bis 4×.
-- **Ebenen:** Jeder Ort hat bis zu drei, genannt **Boden**, **Mitte** und **Darüber**. Du kannst jede einzeln ausblenden. Setz das Häkchen bei **Erweitert** für Schieberegler, mit denen du sie ausblendest.
+- **Ebenen:** Jeder Ort hat bis zu drei, genannt **Boden**, **Mitte** und **Oben**. Du kannst jede einzeln ausblenden. Setz das Häkchen bei **Erweitert** für Schieberegler, mit denen du sie ausblendest.
 - **Overlays:** Setz das Häkchen bei **Begehbarkeit**, bei **Höhe**, um die Bodenhöhe zu sehen, oder bei **Raster**, um die Felder zu sehen.
 - **Truhen** sind immer auf der Karte zu sehen. Türen, Personen und Ereignisse erscheinen, wenn du ihre Werkzeuge benutzt.
 
@@ -162,7 +162,7 @@ Drück auf **Ansicht** (V), um dich umzusehen, ohne etwas zu ändern.
 
 Drück auf **Malen** (B).
 
-1. Wähl im Menü **an** in der oberen Leiste eine Ebene.
+1. Wähl im Menü **auf** in der oberen Leiste eine Ebene.
 2. Wähl rechts im Bereich **Blöcke** einen Block, oder halte ⌥ gedrückt und klick auf die Karte, um den Block unter dem Mauszeiger aufzunehmen.
 3. Klick oder zieh auf der Karte.
 4. Speichere.
@@ -175,7 +175,7 @@ Drück auf **Begehbarkeit** (C). Einen Block zu malen ändert nicht, wo man lauf
 
 | Pinsel | Was er tut |
 |---|---|
-| **Boden** | Normaler Boden, auf dem man laufen kann. |
+| **Fußboden** | Normaler Boden, auf dem man laufen kann. |
 | **Wand** | Versperrt den Weg, egal wie hoch. |
 | **Kante (hinunterspringen)** | Drück eine Weile nach unten dagegen, und der Anführer springt hinunter. |
 | **Kletterwand / Leiter** | Drück eine Weile nach oben oder unten dagegen, um zu klettern. |
@@ -254,7 +254,7 @@ Jedes Ereignis in der Liste hat diese Knöpfe, wo sie passen:
 
 ### Der Texteditor
 
-Tipp ganz normal. Eine Leerzeile beginnt ein neues Dialogfeld, und die Vorschau zeigt, wie die Felder im Spiel aussehen werden. **+ Name des Helden** fügt den Namen ein, den der Spieler gewählt hat. Die Schrift des Spiels hat einfache Buchstaben, Ziffern und Satzzeichen, ohne Akzente (also auch ohne Umlaute). Typografische Anführungszeichen, lange Gedankenstriche und „…“ werden von selbst zu ihren einfachen Formen, und alles andere, was die Schrift nicht darstellen kann, wird beim Speichern abgelehnt.
+Tipp ganz normal. Eine Leerzeile beginnt ein neues Textfenster, und die Vorschau zeigt, wie die Textfenster im Spiel aussehen werden. **+ Name des Helden** fügt den Namen ein, den der Spieler gewählt hat. Die Schrift des Spiels hat einfache Buchstaben, Ziffern und Satzzeichen, ohne Akzente (also auch ohne Umlaute). Typografische Anführungszeichen, lange Gedankenstriche und „…“ werden von selbst zu ihren einfachen Formen, und alles andere, was die Schrift nicht darstellen kann, wird beim Speichern abgelehnt.
 
 Deine Worte werden als neue Zeilen hinzugefügt, und der eigene Text des Spiels wird nie überschrieben. Wenn dieselbe Zeile woanders benutzt wird, bleibt sie dort, wie sie war.
 
@@ -308,7 +308,7 @@ Das Bild wird an die Farben dieses Orts angepasst, und wiederholte Teile werden 
 
 ## Tabellen für Story und Szene
 
-Der Bereich **Story und Szene** zeigt die Szenen, die diese Karte nutzen, und die Tabellen dahinter, mit verständlichen Namen wie „Ankunftspunkte: normal“. Ankunftspunkte und Personen werden auf der Karte angezeigt. Ausgänge werden als Liste bearbeitet, mit einer Prüfung, ob der Ankunftspunkt, den du wählst, existiert. Meistens sind die Werkzeuge Türen, Ereignisse und Personen verschieben einfacher.
+Der Bereich **Story und Szene** zeigt die Szenen, die diese Karte nutzen, und die Tabellen dahinter, mit verständlichen Namen wie „Ankunftspunkte: Standard“. Ankunftspunkte und Personen werden auf der Karte angezeigt. Ausgänge werden als Liste bearbeitet, mit einer Prüfung, ob der Ankunftspunkt, den du wählst, existiert. Meistens sind die Werkzeuge Türen, Ereignisse und Personen verschieben einfacher.
 
 ## Verbindungen
 

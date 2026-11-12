@@ -134,13 +134,13 @@ Alcune modifiche aspettano che tu salvi, altre si salvano subito:
 |---|---|
 | Dipingi, Calpestabilità, Altezza | Aggiungere, modificare o rimuovere un forziere |
 | Incollature con il Timbro | Eventi e porte |
-| Trascinare forzieri, pietre e persone | Pittura della mappa del mondo e spostamenti delle città |
+| Trascinare forzieri, pietre e persone | Pennellate sulla mappa del mondo e spostamenti delle città |
 
 L'editor salva anche da solo prima che tu cambi luogo, vada alla mappa del mondo o prema Gioca, quindi andare avanti non ti fa perdere il lavoro. Se un salvataggio viene rifiutato, resti dove sei e la riga in basso dice perché.
 
 Ci sono tre modi per tornare indietro:
 
-- **Annulla** (⌘Z) toglie la tua ultima modifica, qualunque fosse: prima la pittura non ancora salvata, poi le azioni salvate, dalla più recente, da qualsiasi strumento e in qualsiasi luogo. Aggiungere una persona, un forziere, una porta, un evento, una pennellata sulla mappa del mondo: tutto. Il suggerimento del pulsante dice cosa annullerà e dove, e l'editor apre quel luogo per mostrartelo. Le ultime 30 azioni salvate vengono conservate, anche dopo aver chiuso l'editor.
+- **Annulla** (⌘Z) toglie la tua ultima modifica, qualunque fosse: prima le pennellate non ancora salvate, poi le azioni salvate, dalla più recente, da qualsiasi strumento e in qualsiasi luogo. Aggiungere una persona, un forziere, una porta, un evento, una pennellata sulla mappa del mondo: tutto. Il suggerimento del pulsante dice cosa annullerà e dove, e l'editor apre quel luogo per mostrartelo. Le ultime 30 azioni salvate vengono conservate, anche dopo aver chiuso l'editor.
 - **Ripeti** (⇧⌘Z) rimette ciò che Annulla ha tolto, finché non fai una nuova modifica.
 - **Ripristina luogo…** riporta le mappe di un luogo, le immagini importate e le sue persone, porte ed eventi come sono nel gioco originale. Se cambi idea, **Annulla** ti restituisce la tua versione. Se un luogo condivide la mappa con altri, anche quelli tornano all'originale, e l'editor ti avvisa prima. Le persone e gli eventi condivisi con altri luoghi restano come sono, a meno che tu non dica diversamente: l'editor te lo chiede.
 - **Ripristina mappa del mondo…**, nella pagina della mappa del mondo, fa lo stesso per la mappa del mondo.
@@ -183,7 +183,7 @@ Premi **Calpestabilità** (C). Dipingere un blocco non cambia dove si può cammi
 | **Terreno con scontri A / B** | Calpestabile. Le battaglie casuali usano la prima o la seconda zona di scontri del luogo. |
 | **Terreno dannoso** | Calpestabile, ma ferisce il gruppo dopo un certo numero di passi, se la scena lo attiva. |
 | **Ombra per Cloak** | Calpestabile. L'unico terreno dove la Psicoenergia Cloak tiene nascosto il gruppo. |
-| **Giara, barile, cassa, tomba, libri, pozzo vuoti** | Cercandoci non si trova nulla. Di solito è anche un muro, grazie alla sua altezza. |
+| **Giara, barile, cassa, tomba, libri, pozzo vuoti** | Esaminandolo non si trova niente. Di solito è anche un muro, grazie alla sua altezza. |
 
 Gli strumenti Forziere, Porte ed Eventi impostano da soli i codici speciali di cui hanno bisogno, quindi non devi dipingerli tu.
 
@@ -206,7 +206,7 @@ L'editor pensa al resto, compreso il flag che ricorda che un forziere è stato a
 
 ## Eventi: persone, cartelli e messaggi
 
-Premi **Eventi** (E). Il pannello elenca a parole tutto ciò che succede in questo luogo: cosa dicono le persone, i pensieri letti con Mind Read, i cartelli, i messaggi al passaggio, le ricerche e le aree di uscita.
+Premi **Eventi** (E). Il pannello elenca a parole tutto ciò che succede in questo luogo: cosa dicono le persone, i pensieri letti con Mind Read, i cartelli, i messaggi al passaggio, i punti da esaminare e le aree di uscita.
 
 La **Fase della storia** in cima è importante. Molti luoghi cambiano man mano che la storia va avanti, e ogni fase ha le sue persone e i suoi eventi. Scegli la fase che vuoi modificare.
 
@@ -235,7 +235,7 @@ Viene calcolato con le regole di movimento del gioco stesso, partendo da ogni pu
 Quando un punto ha un problema, l'editor dice qual è a parole semplici, per esempio "il terreno qui è 32 pixel più alto del percorso più vicino", oppure che stare lì taglierebbe fuori il gruppo da una porta. Poi offre una soluzione:
 
 - **Sposta nel punto buono più vicino** sposta la persona sulla casella più vicina senza problemi.
-- **Livella … caselle all'altezza del sentiero** cambia l'altezza del terreno dal sentiero più vicino fino al punto, così il gruppo può arrivarci camminando. L'immagine non cambia, quindi usa **Dipingi** se deve sembrare un sentiero. È una normale pittura non salvata: Salva la mantiene e Annulla la toglie.
+- **Livella … caselle all'altezza del sentiero** cambia l'altezza del terreno dal sentiero più vicino fino al punto, così il gruppo può arrivarci camminando. L'immagine non cambia, quindi usa **Dipingi** se deve sembrare un sentiero. Sono normali pennellate non salvate: Salva le mantiene e Annulla le toglie.
 - **Aggiungi qui comunque…** se ne sai di più, per esempio quando un evento della storia apre la strada.
 
 Trascinare una persona con **Sposta persone** comporta lo stesso controllo quando la lasci andare.
@@ -369,11 +369,11 @@ Spunta **Salva anche un .ips** se i tuoi giocatori usano patcher più vecchi. È
 
 ## Giocare alla mod di qualcun altro
 
-Premi **Patcher…**.
+Premi **Applica patch…**.
 
 1. Premi **Scegli una patch…** e scegli un file `.bps`, `.ips` o `.ups`.
 2. Scegli il gioco a cui applicarla: **Il gioco originale, compilato su questo Mac** (nessuna ROM necessaria), oppure **Il mio file ROM**.
-3. Premi **Patch**.
+3. Premi **Applica**.
 
 Il gioco modificato viene salvato in `~/Documents/GSMapEditor/Patched/`, e puoi premere **Gioca in mGBA** o **Mostra nel Finder**. Le patch BPS e UPS rifiutano il gioco sbagliato. Le patch IPS non possono controllarlo, e il patcher te lo dice.
 

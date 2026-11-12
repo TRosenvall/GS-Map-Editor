@@ -1,4 +1,4 @@
-<!-- translated from docs/DEVELOPING.md @ 033864075a8f -->
+<!-- translated from docs/DEVELOPING.md @ 0055eb8d2996 -->
 # Développer GS Map Editor
 
 *Ceci est une traduction du document anglais [DEVELOPING.md](../DEVELOPING.md) ; en cas de différence, c'est la version anglaise qui fait foi.*
@@ -64,7 +64,7 @@ Les versions sont construites par GitHub, sur ses Mac, par `.github/workflows/re
 
 Cartes locales, The Broken Seal, édition anglaise. Pour savoir comment les utiliser, voir le [README](../../README.fr.md).
 
-- **Affichage :** les 182 cartes, avec les bons jeux de tuiles et les emplacements réservés, affichage et opacité par calque, surcouches de collision et de hauteur.
+- **Regarder :** les 182 cartes, avec les bons jeux de tuiles et les emplacements réservés, affichage et opacité par calque, surcouches de collision et de hauteur.
 - **Peindre :** blocs, collision et hauteur, avec pipette au ⌥-clic et annuler/rétablir. Les enregistrements sont exacts à l'octet près pour tout ce qui n'est pas modifié.
 - **Tampon** (S) : faites glisser un rectangle pour copier une zone, puis cliquez pour la coller, ici ou dans une autre carte ayant le même jeu de blocs (Vale ↔ Debug · Sandbox).
   - La copie emporte les trois calques ainsi que la praticabilité et la hauteur.
@@ -95,7 +95,7 @@ Cartes locales, The Broken Seal, édition anglaise. Pour savoir comment les util
   - Un coffre est une ligne `treasure_spot` dans le `map.s` de la carte, dans la partie du fichier propre à l'édition anglaise.
 - **Coffres et Pierres de Psynergie :** faites-les glisser pour les déplacer. La ligne du marqueur et les codes de collision des deux cases sont mis à jour ensemble, et les enregistrements qui enfreignent la règle marqueur/collision sont refusés.
 - **Tables de scène :** pour chaque scène qui utilise la carte, choisissez une table.
-  - Les entrées et les PNJ apparaissent sur la carte ; faites-les glisser avec l'outil Points.
+  - Les entrées et les PNJ apparaissent sur la carte ; faites-les glisser avec l'outil Déplacer les personnages (P).
   - Les sorties sont modifiées sous forme de liste (type, scène cible, entrée, drapeau), avec une vérification que l'entrée cible existe.
 - **Connexions :** n'importe quel lieu au centre, avec à gauche tous les lieux qui y mènent et à droite tous ceux vers lesquels il mène (porte, porte scriptée ou événement de scène, et le point d'arrivée). Cliquez sur un lieu pour vous y rendre ; **Ouvrir** saute à la porte dans l'éditeur.
 - **Vérifier :** examine toutes les cartes à la recherche des problèmes que vos modifications causeraient dans le jeu et les décrit en termes simples, chacun avec une correction et un bouton **Afficher** qui ouvre l'endroit :

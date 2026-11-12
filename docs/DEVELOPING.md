@@ -92,7 +92,7 @@ Local maps, The Broken Seal, English edition. For how to use these, see the [REA
   - A chest is a `treasure_spot` line in the map's `map.s`, in the English edition's part of the file.
 - **Chests and Psynergy stones:** drag to move. The marker row and both cells' collision codes update together, and saves that break the marker/collision rule are refused.
 - **Scene tables:** for every scene using the map, pick a table.
-  - Entrances and NPCs show on the map; drag them with the Points tool.
+  - Entrances and NPCs show on the map; drag them with the Move people tool (P).
   - Exits are edited as a list (kind, target scene, entrance, flag), with a check that the target entrance exists.
 - **Connections:** any place in the middle, with every place that leads to it on the left and everywhere it leads on the right (door, scripted door or scene event, and the arrival point). Click a place to move there; **Open** jumps to the door in the editor.
 - **Check:** looks over every map for problems your changes would cause in the game and says them in plain words, each with a fix and a **Show** button that opens the spot:
