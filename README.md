@@ -83,7 +83,7 @@ The editor runs inside WSL, the Linux built into Windows, because that's the onl
 
 Open **GS Map Editor**. A small window appears; keep it open while you use the editor, since closing it stops the editor. The editor opens in your browser. Running the installer again updates the editor to the version it came with.
 
-On Windows, keyboard shortcuts use Ctrl where this guide says ⌘, and Alt where it says ⌥. Your work lives inside Ubuntu, in `GSMapEditor` in your Ubuntu home folder; File Explorer shows it under **Linux → Ubuntu → home**.
+On Windows, keyboard shortcuts use Ctrl where this guide says ⌘, and Alt where it says ⌥. Exported patches and patched games go in **Documents\\GSMapEditor**, as on a Mac. The game source and its builds stay inside Ubuntu, in `GSMapEditor` in your Ubuntu home folder, because building there is much faster; File Explorer shows it under **Linux → Ubuntu → home**.
 
 ### First-run setup
 
@@ -91,7 +91,7 @@ The editor opens on a checklist the first time. It takes around 15 minutes, most
 
 1. **Apple's developer tools** (Mac only): opens Apple's installer.
 2. **The tools for building the game:** already included with the app on a Mac, and put in place by the installer on Windows.
-3. **The game's source:** downloads alchemy into `~/Documents/GSMapEditor/` (on Windows, `GSMapEditor` in your Ubuntu home folder). If you already have a copy, choose **I already have a copy…** (on Windows, type its path).
+3. **The game's source:** downloads alchemy into `~/Documents/GSMapEditor/` (on Windows, `GSMapEditor` in your Ubuntu home folder). If you already have a copy, choose **I already have a copy…** and pick its folder.
 4. **Preparing the build:** sets up the game's compilers, once.
 5. **A first build of the game:** builds the game once.
 

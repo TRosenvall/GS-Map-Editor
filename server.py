@@ -53,7 +53,7 @@ KIND_COLOURS = {1: (255, 214, 10, 90), 2: (255, 120, 40, 90), 3: (80, 200, 255, 
 
 
 EXPORTS = setupmod.EXPORTS
-PATCHED = os.path.join(setupmod.DEFAULT_WORKSPACE, "Patched")
+PATCHED = os.path.join(host.SHARED, "Patched")
 
 
 def event_label(action):

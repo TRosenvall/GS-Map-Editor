@@ -50,7 +50,7 @@ $('#recheck').onclick = () => { $('#msg').textContent = ''; refresh(); };
 $('#choose').onclick = async () => {
   let r = await api('/api/setup/choose', {});
   if (r.ask) {
-    // No folder picker outside the Mac app: the path is typed instead.
+    // No folder dialog to show (Linux without zenity): the path is typed instead.
     const folder = prompt(T('The full path of your copy of the game source (alchemy), for example {example}:', { example: '/home/you/alchemy' }));
     if (!folder) return;
     r = await api('/api/setup/choose', { folder });

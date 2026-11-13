@@ -200,9 +200,10 @@ def remember_root(root):
 
 
 def choose_folder():
+    """The folder picked; "" when cancelled; None when the page should ask for a path."""
     w = APP["window"]
     if w is None:
-        return None
+        return host.choose_folder(tr("Choose your copy of the game source (alchemy)"))
     import webview
     r = w.create_file_dialog(webview.FOLDER_DIALOG, directory=os.path.expanduser("~"))
     return r[0] if r else None

@@ -34,7 +34,9 @@ SETTINGS = os.path.join(SUPPORT, "settings.json")
 # Build folders have no spaces: alchemy's compiler Makefile (like most
 # Makefiles) breaks on paths with spaces.
 DEFAULT_WORKSPACE = host.WORKSPACE
-EXPORTS = os.path.join(DEFAULT_WORKSPACE, "Exports")
+# Exports and patched games go where the person's own file browser shows them
+# (on Windows, Documents rather than inside Ubuntu).
+EXPORTS = os.path.join(host.SHARED, "Exports")
 CACHE = host.CACHE
 if " " in CACHE:  # builds run from here too; macOS's per-user temporary folder has no spaces
     CACHE = os.path.join(tempfile.gettempdir(), "GSMapEditorCache")
