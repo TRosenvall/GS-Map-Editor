@@ -1,4 +1,4 @@
-<!-- translated from docs/DEVELOPING.md @ 0055eb8d2996 -->
+<!-- translated from docs/DEVELOPING.md @ 9804c9abc13f -->
 # Sviluppare GS Map Editor
 
 *Questa è una traduzione del file inglese [DEVELOPING.md](../DEVELOPING.md); se i due differiscono, vale quello inglese.*
@@ -41,7 +41,7 @@ Dopo di che, l'app si apre direttamente nell'editor. Le impostazioni stanno in `
 
 ### Linux e Windows (WSL)
 
-Su Linux l'editor gira dai sorgenti e si apre nel browser: `python3 desktop.py` (serve `python3-pil`) mostra la stessa lista di configurazione, con i pacchetti apt dell'INSTALL.md di alchemy al posto di Homebrew. Installarli richiede `sudo`, quindi la lista mostra il comando invece di eseguirlo. Le impostazioni vanno in `~/.config/gs-map-editor`, la cache di compilazione in `~/.cache/gs-map-editor`, e il sorgente del gioco e le esportazioni in `~/GSMapEditor`. Ciò che cambia da sistema a sistema (cartelle, apertura di un link, mGBA, mostrare un file) si trova in `gsmap/host.py`.
+Su Linux l'editor gira dai sorgenti e si apre nel browser: `python3 desktop.py` (serve `python3-pil`) mostra la stessa lista di configurazione, con i pacchetti apt dell'INSTALL.md di alchemy al posto di Homebrew. Installarli richiede `sudo`, quindi la lista mostra il comando invece di eseguirlo. Le impostazioni vanno in `~/.config/gs-map-editor`, la cache di compilazione in `~/.cache/gs-map-editor`, e il sorgente del gioco e le esportazioni in `~/GSMapEditor`. Su Windows (WSL), invece, le esportazioni e i giochi modificati con patch vanno nella cartella Documenti\\GSMapEditor di Windows, e **Ne ho già una copia** apre la finestra di scelta cartella di Windows tramite PowerShell; sugli altri Linux usa zenity se è installato, e altrimenti chiede di scrivere un percorso. Ciò che cambia da sistema a sistema (cartelle, apertura di un link, mGBA, mostrare un file) si trova in `gsmap/host.py`.
 
 Windows esegue lo stesso editor Linux dentro WSL, che è anche l'unico modo in cui alchemy si compila su Windows:
 - `windows/Install-GS-Map-Editor.cmd`, che una release include con il suo tag già inserito, attiva WSL e installa Ubuntu se serve (diritti di amministratore, forse un riavvio), esegue `windows/setup-in-wsl.sh` dentro Ubuntu a quel tag, e aggiunge collegamenti nel menu Start e sul desktop a `wsl.exe … gs-map-editor`.

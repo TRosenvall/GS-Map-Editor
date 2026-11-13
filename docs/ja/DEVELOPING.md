@@ -1,4 +1,4 @@
-<!-- translated from docs/DEVELOPING.md @ 0055eb8d2996 -->
+<!-- translated from docs/DEVELOPING.md @ 9804c9abc13f -->
 # GS Map Editor の開発
 
 *これは英語版 [DEVELOPING.md](../DEVELOPING.md) の翻訳です。内容が異なる場合は英語版が最新です。*
@@ -41,7 +41,7 @@ python3 packaging/sign_and_notarize.py --identity "Developer ID Application: …
 
 ### Linux と Windows（WSL）
 
-Linux ではエディターはソースから実行され、ブラウザーで開きます。`python3 desktop.py`（`python3-pil` が必要）は同じセットアップのチェックリストを表示し、Homebrew の代わりに alchemy の INSTALL.md にある apt パッケージを使います。それらのインストールには `sudo` が必要なので、チェックリストはコマンドを実行せずに表示します。設定は `~/.config/gs-map-editor`、ビルドキャッシュは `~/.cache/gs-map-editor`、ゲームのソースと書き出したファイルは `~/GSMapEditor` に置かれます。システムによって異なる部分（フォルダー、リンクを開く方法、mGBA、ファイルの表示）は `gsmap/host.py` にあります。
+Linux ではエディターはソースから実行され、ブラウザーで開きます。`python3 desktop.py`（`python3-pil` が必要）は同じセットアップのチェックリストを表示し、Homebrew の代わりに alchemy の INSTALL.md にある apt パッケージを使います。それらのインストールには `sudo` が必要なので、チェックリストはコマンドを実行せずに表示します。設定は `~/.config/gs-map-editor`、ビルドキャッシュは `~/.cache/gs-map-editor`、ゲームのソースと書き出したファイルは `~/GSMapEditor` に置かれます。Windows（WSL）では、書き出したファイルとパッチを当てたゲームは代わりに Windows の「ドキュメント\\GSMapEditor」に置かれ、**すでにコピーを持っている** は PowerShell を通じて Windows のフォルダー選択ダイアログを開きます。ほかの Linux では、zenity がインストールされていればそれを使い、なければパスの入力を求めます。システムによって異なる部分（フォルダー、リンクを開く方法、mGBA、ファイルの表示）は `gsmap/host.py` にあります。
 
 Windows では同じ Linux 版エディターを WSL の中で動かします。WSL は alchemy を Windows でビルドする唯一の方法でもあります。
 - `windows/Install-GS-Map-Editor.cmd`（リリースにはタグが埋め込まれた状態で同梱）は、必要なら WSL を有効にして Ubuntu をインストールし（管理者権限が必要で、再起動が必要になることもあります）、Ubuntu の中でそのタグの `windows/setup-in-wsl.sh` を実行し、`wsl.exe … gs-map-editor` へのスタートメニューとデスクトップのショートカットを追加します。

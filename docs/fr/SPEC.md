@@ -1,4 +1,4 @@
-<!-- translated from docs/SPEC.md @ a658d8254020 -->
+<!-- translated from docs/SPEC.md @ cc811df51f27 -->
 # gs-mapedit : spécification de l'éditeur et plan de construction
 
 *Ceci est une traduction du document anglais [SPEC.md](../SPEC.md) ; en cas de différence, c'est la version anglaise qui fait foi.*
@@ -110,7 +110,7 @@ Mises en garde :
 | **2. Peinture locale** ✅ sauf le compositeur de nouveaux blocs | Palette de blocs depuis l'atlas ; peinture par calque ; pinceaux de collision/hauteur ; compositeur de nouveaux blocs (choisir 4 tuiles) ; annuler/rétablir ; enregistrement avec l'encodeur d'emplacements réservés | Enregistrement non modifié identique à l'octet près ; enregistrement modifié qui compile (`make tbs-en`) ; démarre dans mGBA |
 | **3. Marqueurs + tables de scène** ✅ ajout, remplissage, déplacement et suppression de coffres ; portes reliées par un clic (redirection, ajout, suppression, portes scriptées comprises) ; événements en mots avec nouvelles répliques, panneaux, messages de passage, personnages et conditions ; zones de sortie ; déplacement des pierres ; entrées, PNJ, sorties | Placement de coffres/pierres (marqueur + collision + événement) ; modification des entrées/sorties/placements ; navigation dans le graphe des sorties entre cartes | Aller-retour des tables identique à l'octet près sur les 201 scènes ; compilation ; test en jeu d'un changement de sortie |
 | **4. Visionneuse du monde extérieur** ✅ | Monde vu de dessus avec les jeux A/B, calque de surcouche, praticabilité, surcouche des types de terrain/rencontres, icônes de villes et liens de sortie | Porter le prototype de recherche ; comparer à `world_mixed_small.png` |
-| **5. Édition du monde extérieur** ✅ blocs du sol/de la surcouche, régions, déplacements et liens des icônes ; codes de passage, zones de rencontres et nouvelles icônes encore à faire | Peindre les cases (bloc, type de terrain, code de passage) ; modifier les icônes, sorties, entrées ; zones de rencontres | Aller-retour de `blocks.tsv` et des tables ; compilation ; test en jeu |
+| **5. Édition du monde extérieur** ✅ blocs du sol/de la surcouche, régions et leurs zones de rencontres, déplacements, liens et nouvelles icônes, cases de passage | Peindre les cases (bloc, type de terrain, code de passage) ; modifier les icônes, sorties, entrées ; zones de rencontres | Aller-retour de `blocks.tsv` et des tables ; compilation ; test en jeu |
 | **6. Nouvelles cartes / scènes** | Assistant pour la liste de contrôle des nouvelles cartes ; jauge du budget ROM | Compilation ; test en jeu |
 
 Les étapes 2–3 rendent l'éditeur local vraiment utile. 4–5 ajoutent le monde extérieur. 6 est la plus risquée, car elle dépend de l'espace en ROM.

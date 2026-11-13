@@ -1,4 +1,4 @@
-<!-- translated from docs/SPEC.md @ a658d8254020 -->
+<!-- translated from docs/SPEC.md @ cc811df51f27 -->
 # gs-mapedit: specifica dell'editor e piano di sviluppo
 
 *Questa è una traduzione del file inglese [SPEC.md](../SPEC.md); se i due differiscono, vale quello inglese.*
@@ -110,7 +110,7 @@ Avvertenze:
 | **2. Pittura locale** ✅ tranne il compositore di nuovi blocchi | Palette di blocchi dall'atlante; pittura per livello; pennelli di collisione/altezza; compositore di nuovi blocchi (scegli 4 tile); annulla/ripeti; salvataggio con il codificatore dei segnaposto | Salvataggio non modificato identico byte per byte; salvataggio modificato che compila (`make tbs-en`); si avvia in mGBA |
 | **3. Marcatori + tabelle delle scene** ✅ aggiunta, riempimento, spostamento e rimozione dei forzieri; porte collegate con un clic (ricollegamento, aggiunta, rimozione, porte con script incluse); eventi a parole con nuove battute, cartelli, messaggi al passaggio, persone e condizioni; aree di uscita; spostamento delle pietre; ingressi, PNG, uscite | Posizionamento di forzieri/pietre (marcatore + collisione + evento); modifica di ingressi/uscite/posizionamenti; navigazione del grafo delle uscite tra le mappe | Andata e ritorno delle tabelle identica byte per byte su tutte le 201 scene; build; prova di gioco di una modifica a un'uscita |
 | **4. Visualizzatore del mondo esterno** ✅ | Mondo dall'alto con set A/B, livello di sovrapposizione, calpestabilità, sovrapposizione tipo di terreno/incontri, icone delle città e link delle uscite | Portare il prototipo di ricerca; confronto con `world_mixed_small.png` |
-| **5. Modifica del mondo esterno** ✅ blocchi di terreno/sovrapposizione, regioni, spostamento e collegamento delle icone; codici di passo, zone degli incontri e nuove icone ancora da fare | Dipingere celle (blocco, tipo di terreno, codice di passo); modificare icone, uscite, ingressi; zone degli incontri | Andata e ritorno di `blocks.tsv` e delle tabelle; build; prova di gioco |
+| **5. Modifica del mondo esterno** ✅ blocchi di terreno/sovrapposizione, regioni e le loro zone degli incontri, spostamento, collegamento e aggiunta di icone, punti di passaggio | Dipingere celle (blocco, tipo di terreno, codice di passo); modificare icone, uscite, ingressi; zone degli incontri | Andata e ritorno di `blocks.tsv` e delle tabelle; build; prova di gioco |
 | **6. Nuove mappe / scene** | Procedura guidata per la lista di controllo delle nuove mappe; indicatore del budget della ROM | Build; prova di gioco |
 
 Le fasi 2–3 rendono l'editor locale davvero utile. Le 4–5 aggiungono il mondo esterno. La 6 è la più rischiosa, perché dipende dallo spazio nella ROM.

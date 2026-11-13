@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 74d539debb27 -->
+<!-- translated from README.md @ c43e7b4c4d74 -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · [Deutsch](README.de.md) · **Français** · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -31,6 +31,7 @@ L'éditeur s'appuie sur [alchemy](https://github.com/PascalPixel/alchemy), un pr
 - [Importer vos propres images](#importer-vos-propres-images)
 - [Tables d'histoire et de scène](#tables-dhistoire-et-de-scène)
 - [Connexions](#connexions)
+- [Atlas : tous les lieux d'un coup](#atlas--tous-les-lieux-dun-coup)
 - [La carte du monde](#la-carte-du-monde)
 - [Vérifier : trouver les problèmes](#vérifier--trouver-les-problèmes)
 - [Jouer à votre jeu](#jouer-à-votre-jeu)
@@ -86,7 +87,7 @@ L'éditeur tourne dans WSL, le Linux intégré à Windows, car c'est la seule fa
 
 Ouvrez **GS Map Editor**. Une petite fenêtre apparaît ; gardez-la ouverte pendant que vous utilisez l'éditeur, car la fermer arrête l'éditeur. L'éditeur s'ouvre dans votre navigateur. Relancer l'installateur met l'éditeur à jour vers la version fournie avec celui-ci.
 
-Sous Windows, les raccourcis clavier utilisent Ctrl là où ce guide indique ⌘, et Alt là où il indique ⌥. Votre travail se trouve dans Ubuntu, dans `GSMapEditor` de votre dossier personnel Ubuntu ; l'Explorateur de fichiers l'affiche sous **Linux → Ubuntu → home**.
+Sous Windows, les raccourcis clavier utilisent Ctrl là où ce guide indique ⌘, et Alt là où il indique ⌥. Les patchs exportés et les jeux patchés vont dans **Documents\\GSMapEditor**, comme sur Mac. La source du jeu et ses compilations restent dans Ubuntu, dans `GSMapEditor` de votre dossier personnel Ubuntu, car la compilation y est beaucoup plus rapide ; l'Explorateur de fichiers l'affiche sous **Linux → Ubuntu → home**.
 
 ### Installation au premier lancement
 
@@ -94,7 +95,7 @@ La première fois, l'éditeur s'ouvre sur une liste d'étapes. Cela prend enviro
 
 1. **Les outils de développement d'Apple** (Mac uniquement) : ouvre l'installateur d'Apple.
 2. **Les outils pour compiler le jeu :** déjà inclus dans l'application sur Mac, et mis en place par l'installateur sous Windows.
-3. **La source du jeu :** télécharge alchemy dans `~/Documents/GSMapEditor/` (sous Windows, `GSMapEditor` dans votre dossier personnel Ubuntu). Si vous en avez déjà une copie, choisissez **J'en ai déjà une copie…** (sous Windows, tapez son chemin).
+3. **La source du jeu :** télécharge alchemy dans `~/Documents/GSMapEditor/` (sous Windows, `GSMapEditor` dans votre dossier personnel Ubuntu). Si vous en avez déjà une copie, choisissez **J'en ai déjà une copie…** et sélectionnez son dossier.
 4. **Préparation de la compilation :** installe les compilateurs du jeu, une seule fois.
 5. **Une première compilation du jeu :** compile le jeu une fois.
 
@@ -167,6 +168,8 @@ Appuyez sur **Peindre** (B).
 3. Cliquez ou faites glisser sur la carte.
 4. Enregistrez.
 
+Cochez **Remplir** dans la barre du haut (ou appuyez sur F) : un clic remplit alors toute la zone d'un seul tenant qui a le même bloc que la case cliquée, sur ce calque. Remplir fonctionne aussi dans **Praticabilité** et **Hauteur**, en suivant alors la même praticabilité ou la même hauteur. Annuler défait un remplissage entier d'un coup.
+
 Chaque lieu a son propre jeu de blocs, donc le panneau change d'un lieu à l'autre.
 
 ## Praticabilité : où l'on peut marcher
@@ -206,7 +209,7 @@ L'éditeur s'occupe du reste, y compris du drapeau qui retient qu'un coffre a é
 
 ## Événements : personnages, panneaux et messages
 
-Appuyez sur **Événements** (E). Le panneau liste en toutes lettres tout ce qui se passe dans ce lieu : ce que disent les personnages, les pensées lues avec Mind Read, les panneaux, les messages de passage, les fouilles et les zones de sortie.
+Appuyez sur **Événements** (E). Le panneau liste en toutes lettres tout ce qui se passe dans ce lieu : ce que disent les personnages, les pensées lues avec Mind Read, les panneaux, les messages de passage, les fouilles et les zones de sortie. Les personnages apparaissent sur la carte tels qu'ils sont ; survolez quelqu'un pour voir ce qu'il dit.
 
 L'**Étape de l'histoire** en haut est importante. Beaucoup de lieux changent au fil de l'histoire, et chaque étape a ses propres personnages et événements. Choisissez l'étape que vous voulez modifier.
 
@@ -217,6 +220,8 @@ Cliquez sur un emplacement de la carte, puis choisissez :
 - **Ajouter un panneau (lu avec A)…** pour un panneau ou quelque chose à examiner.
 - **Ajouter un message de passage…** pour un message qui s'affiche quand vous marchez à cet endroit. Il ne se répète pas tant que vous y restez, il ne peut donc pas bloquer le joueur, et il s'affiche à nouveau si vous partez puis revenez.
 - **Ajouter un personnage ici…** pour choisir qui c'est, avec un aperçu de son image, et s'il **se promène**. L'éditeur vérifie d'abord l'emplacement (voir ci-dessous).
+
+Pour retirer un personnage que vous avez ajouté, cliquez dessus et appuyez sur **Supprimer ce personnage** : ce qu'il dit disparaît aussi. Les personnages d'origine du jeu ne peuvent pas être supprimés, car l'histoire les déplace et leur parle, mais vous pouvez les déplacer.
 
 ### Là où les personnages peuvent se tenir
 
@@ -269,6 +274,7 @@ Appuyez sur **Portes** (D). Chaque porte apparaît sur la carte avec sa destinat
 - **Changer une porte :** cliquez dessus, appuyez sur **Changer la destination…**, choisissez un lieu, puis cliquez là où le groupe doit arriver sur la carte de ce lieu.
 - **Créer une porte :** cliquez sur n'importe quel autre emplacement et appuyez sur **Créer une porte ici…**. Elle peut mener n'importe où dans le jeu.
 - **Supprimer une porte :** cliquez dessus et appuyez sur **Supprimer la porte**. Ses cases redeviennent du sol.
+- **Suivre une porte :** cliquez dessus et appuyez sur **Y aller →**. Le lieu vers lequel elle mène s'ouvre avec son point d'arrivée marqué, et **← Retour à …** vous ramène à la porte.
 
 Une porte change dans toutes les étapes de l'histoire du lieu. Les portes ouvertes par des scripts de scène sont trouvées aussi : vous pouvez changer leur destination, mais le script lui-même reste le même.
 
@@ -314,6 +320,15 @@ Le panneau **Histoire et scène** montre les scènes qui utilisent cette carte e
 
 Appuyez sur **Connexions** pour voir n'importe quel lieu au milieu, avec à gauche tous les lieux qui y mènent et à droite tous ceux vers lesquels il mène. Cliquez sur un lieu pour vous y déplacer, ou appuyez sur **Ouvrir** pour aller à cette porte dans l'éditeur. Utilisez la case de recherche pour trouver un lieu.
 
+## Atlas : tous les lieux d'un coup
+
+Appuyez sur **Atlas** pour voir tous les lieux sur une même toile, reliés par des lignes pour leurs portes et leurs sorties. Les lieux de Golden Sun ne se touchent pas bord à bord, donc l'atlas les dispose lui-même : chaque ville ou donjon se place près de son emplacement sur la carte du monde, avec ses maisons et ses salles à côté, en partant de l'entrée.
+
+- Faites glisser le fond pour vous déplacer, et faites défiler pour zoomer. **Ajuster** affiche tout.
+- Survolez un lieu pour mettre en évidence ses portes et les lieux vers lesquels elles mènent.
+- Cliquez sur un lieu pour l'ouvrir dans l'éditeur. Faites-en glisser un pour le déplacer : l'atlas retient où vous l'avez mis, et **Réinitialiser la disposition** remet tout en place. La position des lieux dans l'atlas ne concerne que vous ; elle ne change pas le jeu.
+- Les lignes pleines partent d'une porte ; les lignes en pointillés sont des sorties qu'utilise une scène ou un script de l'histoire.
+
 ## La carte du monde
 
 Choisissez la carte du monde en haut de la liste des lieux. Appuyez sur **← Lieux** pour revenir.
@@ -323,13 +338,14 @@ Choisissez la carte du monde en haut de la liste des lieux. Appuyez sur **← Li
 | **Regarder** | V | Survolez pour voir la région d'un emplacement et ce qu'il fait. Cliquez sur une ville, un donjon ou une case de passage bleue pour voir où elle mène. |
 | **Sol** | G | Peindre les blocs du sol. ⌥-clic prend un bloc, et les blocs récents restent à portée de main. |
 | **Surcouche** | O | Peindre les montagnes, les arbres et les côtes. La marche dépend des tuiles des deux calques. |
-| **Régions** | R | Peindre les régions de rencontres. Chacune a ses propres combats aléatoires, et chacune porte le nom des villes qu'elle contient. |
-| **Villes** | T | Faites glisser une ville ou un donjon pour le déplacer. Cliquez dessus pour changer sa destination. |
+| **Régions** | R | Peindre les régions de rencontres. Chacune a ses propres combats aléatoires, et chacune porte le nom des villes qu'elle contient. Sous **Combats ici**, changez la fréquence des combats et les groupes d'ennemis qui apparaissent, en terrain découvert et en forêt. |
+| **Villes** | T | Faites glisser une ville ou un donjon pour le déplacer. Cliquez dessus pour changer sa destination. **Placer une nouvelle icône…** en ajoute une, avec une image qu'utilisent les villes du jeu lui-même ; les icônes que vous avez ajoutées peuvent être supprimées. |
+| **Cases de passage** | P | Les cases bleues mènent quelque part quand on marche dessus. Cliquez sur l'une d'elles pour changer sa destination ou la supprimer, ou cliquez sur n'importe quelle autre case pour en créer une nouvelle. |
 
 - Cochez **Praticabilité**, **Régions de rencontres** ou **Lieux** pour les afficher sur la carte.
 - Quand vous déplacez une ville, **déplacer aussi ses points d'arrivée** fait que vous réapparaissez à côté d'elle en la quittant. C'est activé par défaut.
 - Les modifications sont enregistrées pendant que vous peignez. **Annuler** défait le dernier trait, et **Rétablir** le remet.
-- La carte de l'écran de pause est une image séparée : elle ne suivra pas vos modifications.
+- La carte de l'écran de pause est une image séparée : elle ne suivra pas vos modifications, et les nouvelles icônes n'y ont pas de repère.
 
 ## Vérifier : trouver les problèmes
 
@@ -350,7 +366,7 @@ Le jeu d'origine a ses propres bizarreries, et elles sont masquées sauf si vous
 Appuyez sur **▶ Jouer**. Cela enregistre, vérifie, compile et ouvre votre jeu dans mGBA, en commençant dans le lieu que vous modifiez. Depuis la page de la carte du monde, cela compile et démarre sur la carte du monde, sans la vérification.
 
 - Chaque partie lancée avec Jouer est une **nouvelle partie** : Isaac seul, sans progression dans l'histoire, donc un lieu peut ressembler à sa version du début du jeu.
-- Vous apparaissez au premier point d'arrivée du lieu qui ne semble pas emmuré, pas à l'endroit que vous regardez. C'est une estimation : quelques lieux vous font encore démarrer coincé ou au milieu d'une scène de l'histoire. Si cela arrive, choisissez un autre point d'arrivée dans **Départ**, à côté de ▶ Jouer, et appuyez de nouveau sur Jouer.
+- Vous apparaissez au premier point d'arrivée du lieu depuis lequel le groupe peut continuer à marcher, selon les règles de déplacement du jeu, pas à l'endroit que vous regardez. Les scènes de l'histoire ne sont pas suivies, donc quelques lieux peuvent encore vous faire démarrer au milieu de l'une d'elles. Si cela arrive, choisissez un autre point d'arrivée dans **Départ**, à côté de ▶ Jouer, et appuyez de nouveau sur Jouer.
 - Une compilation après une modification de carte prend environ 20 secondes.
 - Le point de départ n'existe que dans une copie jetable du jeu : votre mod exporté démarre donc normalement depuis l'écran titre.
 
@@ -361,7 +377,7 @@ Appuyez sur **Exporter le mod…**.
 1. Remplissez un **Nom**, et éventuellement votre nom et ce que le mod change.
 2. Appuyez sur **Exporter**.
 
-Vous obtenez un petit patch `.bps` et un fichier lisez-moi pour les joueurs dans `~/Documents/GSMapEditor/Exports/`. Appuyez sur **Afficher dans le Finder** pour les voir. L'export lance d'abord Vérifier, et teste chaque patch une fois pour confirmer qu'il reproduit exactement votre compilation.
+Vous obtenez un petit patch `.bps` et un fichier lisez-moi pour les joueurs dans `~/Documents/GSMapEditor/Exports/`. Appuyez sur **Afficher dans le Finder** pour les voir. Si vous exportez de nouveau sous le même nom, l'éditeur demande s'il faut remplacer le patch précédent ou le garder et numéroter le nouveau. L'export lance d'abord Vérifier, et teste chaque patch une fois pour confirmer qu'il reproduit exactement votre compilation.
 
 Cochez **Enregistrer aussi un .ips** si vos joueurs utilisent d'anciens patcheurs. Il est beaucoup plus gros, car IPS ne sait pas noter les données déplacées.
 
@@ -406,7 +422,8 @@ Sous Windows et Linux, utilisez Ctrl pour ⌘ et Alt pour ⌥.
 | D | Portes | |
 | P | Déplacer les personnages | |
 | S | Tampon | |
-| G / O / R / T | | Sol / Surcouche / Régions / Villes |
+| F | Activer ou désactiver Remplir, dans Peindre, Praticabilité et Hauteur | |
+| G / O / R / T / P | | Sol / Surcouche / Régions / Villes / Cases de passage |
 | ⌘Z | Annuler | Annuler |
 | ⇧⌘Z | Rétablir | Rétablir |
 | ⌘S | Enregistrer | |
@@ -419,7 +436,7 @@ Sous Windows et Linux, utilisez Ctrl pour ⌘ et Alt pour ⌥.
 - **The Lost Age**, et les éditions autres que l'anglaise.
 - **Windows ou Linux** en tant qu'application empaquetée.
 - **Des lieux entièrement nouveaux :** il n'y a pas de bouton pour en ajouter un.
-- **Les combats et les données du jeu :** les monstres, les tables de rencontres, les objets, les boutiques et la musique ne peuvent pas être modifiés, mais vous pouvez peindre la région de rencontres à laquelle appartient un emplacement de la carte du monde.
+- **Les combats et les données du jeu :** les monstres, les objets, les boutiques et la musique ne peuvent pas être modifiés, pas plus que les combats à l'intérieur des lieux. Sur la carte du monde, vous pouvez choisir les groupes d'ennemis de chaque région et leur fréquence, parmi les groupes que le jeu possède.
 - **Les scripts de l'histoire :** vous pouvez changer ce que disent les personnages et quand, et ajouter des événements simples, mais pas écrire de cinématiques.
 - **La carte de l'écran de pause.**
 

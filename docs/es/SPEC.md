@@ -1,4 +1,4 @@
-<!-- translated from docs/SPEC.md @ a658d8254020 -->
+<!-- translated from docs/SPEC.md @ cc811df51f27 -->
 # gs-mapedit: especificación del editor y plan de construcción
 
 *Esta es una traducción del documento en inglés [SPEC.md](../SPEC.md); si los dos difieren, el inglés es el actualizado.*
@@ -110,7 +110,7 @@ Salvedades:
 | **2. Pintado local** ✅ salvo el compositor de bloques nuevos | Paleta de bloques a partir del atlas; pintar por capa; pinceles de colisión/altura; compositor de bloques nuevos (elegir 4 tiles); deshacer/rehacer; guardar con el codificador de marcadores de posición | Guardado sin editar idéntico byte a byte; guardado editado que compila (`make tbs-en`); arranca en mGBA |
 | **3. Marcadores + tablas de escena** ✅ añadir, rellenar, mover y quitar cofres; puertas enlazadas con un clic (reenlazar, añadir, quitar, puertas con script incluidas); eventos en palabras con líneas nuevas, letreros, mensajes al pisar, personas y condiciones; zonas de salida; mover piedras; entradas, PNJ, salidas | Colocación de cofres/piedras (marcador + colisión + evento); edición de entradas/salidas/colocaciones; navegación del grafo de salidas entre mapas | Ida y vuelta de tablas idéntica byte a byte en las 201 escenas; compilación; probar en juego un cambio de salida |
 | **4. Visor del mapa del mundo** ✅ | Mundo visto desde arriba con los conjuntos A/B, capa superpuesta, zonas de paso, capa de tipo de terreno/encuentros, iconos de pueblos y enlaces de salida | Portar el prototipo de investigación; comparar con `world_mixed_small.png` |
-| **5. Edición del mapa del mundo** ✅ bloques de suelo/capa superpuesta, regiones, mover iconos y enlaces; códigos de paso, zonas de encuentros e iconos nuevos todavía pendientes | Pintar celdas (bloque, tipo de terreno, código de paso); editar iconos, salidas, entradas; zonas de encuentros | Ida y vuelta de `blocks.tsv` y de las tablas; compilación; prueba de juego |
+| **5. Edición del mapa del mundo** ✅ bloques de suelo/capa superpuesta, regiones y sus zonas de encuentros, mover iconos, enlaces e iconos nuevos, puntos de paso | Pintar celdas (bloque, tipo de terreno, código de paso); editar iconos, salidas, entradas; zonas de encuentros | Ida y vuelta de `blocks.tsv` y de las tablas; compilación; prueba de juego |
 | **6. Mapas / escenas nuevos** | Asistente para la lista de comprobación de mapas nuevos; medidor del espacio en la ROM | Compilación; prueba de juego |
 
 Las etapas 2–3 hacen que el editor local sea realmente útil. Las 4–5 añaden el mapa del mundo. La 6 es la más arriesgada, porque depende del espacio en la ROM.

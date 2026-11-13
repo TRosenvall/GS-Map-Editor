@@ -1,4 +1,4 @@
-<!-- translated from docs/SPEC.md @ a658d8254020 -->
+<!-- translated from docs/SPEC.md @ cc811df51f27 -->
 # gs-mapedit: Editor-Spezifikation und Bauplan
 
 *Dies ist eine Übersetzung der englischen [SPEC.md](../SPEC.md). Wenn sich die beiden unterscheiden, ist die englische Fassung aktuell.*
@@ -110,7 +110,7 @@ Einschränkungen:
 | **2. Lokales Malen** ✅ außer dem Editor für neue Blöcke | Blockpalette aus dem Atlas; Malen pro Ebene; Kollisions-/Höhenpinsel; Editor für neue Blöcke (4 Kacheln wählen); Rückgängig/Wiederholen; Speichern mit dem Platzhalter-Encoder | Unbearbeitetes Speichern byte-identisch; bearbeitetes Speichern baut (`make tbs-en`); startet in mGBA |
 | **3. Markierungen + Szenentabellen** ✅ Truhen hinzufügen, füllen, verschieben und entfernen; Türen per Klick verknüpft (neu verknüpfen, hinzufügen, entfernen, Skript-Türen eingeschlossen); Ereignisse in Worten mit neuen Zeilen, Schildern, Tritt-Nachrichten, Personen und Bedingungen; Ausgangsbereiche; Steine verschieben; Eingänge, NPCs, Ausgänge | Platzierung von Truhen/Steinen (Markierung + Kollision + Ereignis); Bearbeitung von Eingängen/Ausgängen/Platzierungen; Navigation im Ausgangsgraphen zwischen Karten | Tabellen-Round-Trip byte-identisch über alle 201 Szenen; Build; Testspiel einer Ausgangsänderung |
 | **4. Oberwelt-Betrachter** ✅ | Welt von oben mit Satz A/B, Overlay-Ebene, Begehbarkeit, Overlay für Geländeart/Kämpfe, Stadtsymbole und Ausgangslinks | Den Forschungsprototyp portieren; mit `world_mixed_small.png` vergleichen |
-| **5. Oberwelt-Bearbeitung** ✅ Boden-/Overlay-Blöcke, Regionen, Verschieben und Verknüpfen von Symbolen; Tritt-Codes, Kampfzonen und neue Symbole noch offen | Felder malen (Block, Geländeart, Tritt-Code); Symbole, Ausgänge, Eingänge bearbeiten; Kampfzonen | Round Trip von `blocks.tsv` und Tabellen; Build; Testspiel |
+| **5. Oberwelt-Bearbeitung** ✅ Boden-/Overlay-Blöcke, Regionen und ihre Kampfzonen, Verschieben und Verknüpfen von Symbolen sowie neue Symbole, Trittstellen | Felder malen (Block, Geländeart, Tritt-Code); Symbole, Ausgänge, Eingänge bearbeiten; Kampfzonen | Round Trip von `blocks.tsv` und Tabellen; Build; Testspiel |
 | **6. Neue Karten / Szenen** | Assistent für die Checkliste neuer Karten; Anzeige des ROM-Budgets | Build; Testspiel |
 
 Die Stufen 2–3 machen den lokalen Editor wirklich nützlich. 4–5 fügen die Oberwelt hinzu. 6 ist die riskanteste, weil sie vom ROM-Platz abhängt.

@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 74d539debb27 -->
+<!-- translated from README.md @ c43e7b4c4d74 -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · **Deutsch** · [Français](README.fr.md) · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -31,6 +31,7 @@ Der Editor arbeitet mit [alchemy](https://github.com/PascalPixel/alchemy), einem
 - [Eigene Bilder importieren](#eigene-bilder-importieren)
 - [Tabellen für Story und Szene](#tabellen-für-story-und-szene)
 - [Verbindungen](#verbindungen)
+- [Atlas: alle Orte auf einmal](#atlas-alle-orte-auf-einmal)
 - [Die Weltkarte](#die-weltkarte)
 - [Prüfen: Probleme finden](#prüfen-probleme-finden)
 - [Dein Spiel spielen](#dein-spiel-spielen)
@@ -86,7 +87,7 @@ Der Editor läuft in WSL, dem in Windows eingebauten Linux, weil sich der Quellc
 
 Öffne **GS Map Editor**. Ein kleines Fenster erscheint; lass es offen, solange du den Editor benutzt, denn wenn du es schließt, wird der Editor beendet. Der Editor öffnet sich in deinem Browser. Wenn du das Installationsprogramm erneut ausführst, wird der Editor auf die Version aktualisiert, die es mitgebracht hat.
 
-Unter Windows verwenden Tastenkürzel Strg, wo diese Anleitung ⌘ sagt, und Alt, wo sie ⌥ sagt. Deine Arbeit liegt in Ubuntu, in `GSMapEditor` in deinem Ubuntu-Benutzerordner; der Datei-Explorer zeigt sie unter **Linux → Ubuntu → home**.
+Unter Windows verwenden Tastenkürzel Strg, wo diese Anleitung ⌘ sagt, und Alt, wo sie ⌥ sagt. Exportierte Patches und gepatchte Spiele landen wie auf dem Mac in **Documents\\GSMapEditor**. Der Quellcode des Spiels und seine Builds bleiben in Ubuntu, in `GSMapEditor` in deinem Ubuntu-Benutzerordner, weil das Bauen dort viel schneller geht; der Datei-Explorer zeigt sie unter **Linux → Ubuntu → home**.
 
 ### Einrichtung beim ersten Start
 
@@ -94,7 +95,7 @@ Der Editor öffnet sich beim ersten Mal mit einer Checkliste. Das dauert etwa 15
 
 1. **Apples Entwicklerwerkzeuge** (nur Mac): öffnet Apples Installationsprogramm.
 2. **Die Werkzeuge zum Bauen des Spiels:** auf dem Mac schon in der App enthalten, unter Windows vom Installationsprogramm bereitgestellt.
-3. **Der Quellcode des Spiels:** lädt alchemy nach `~/Documents/GSMapEditor/` herunter (unter Windows nach `GSMapEditor` in deinem Ubuntu-Benutzerordner). Wenn du schon eine Kopie hast, wähl **Ich habe schon eine Kopie …** (unter Windows gib ihren Pfad ein).
+3. **Der Quellcode des Spiels:** lädt alchemy nach `~/Documents/GSMapEditor/` herunter (unter Windows nach `GSMapEditor` in deinem Ubuntu-Benutzerordner). Wenn du schon eine Kopie hast, wähl **Ich habe schon eine Kopie …** und such ihren Ordner aus.
 4. **Build wird vorbereitet:** richtet einmalig die Compiler des Spiels ein.
 5. **Ein erster Build des Spiels:** baut das Spiel einmal.
 
@@ -167,6 +168,8 @@ Drück auf **Malen** (B).
 3. Klick oder zieh auf der Karte.
 4. Speichere.
 
+Setz in der oberen Leiste das Häkchen bei **Füllen** (oder drück F), dann füllt ein Klick die ganze zusammenhängende Fläche, die denselben Block hat wie das angeklickte Feld, auf dieser Ebene. Füllen funktioniert auch bei **Begehbarkeit** und **Höhe**; dann zählt gleiche Begehbarkeit oder gleiche Höhe. Rückgängig nimmt eine ganze Füllung auf einmal zurück.
+
 Jeder Ort hat seinen eigenen Satz Blöcke, deshalb ändert sich der Bereich von Ort zu Ort.
 
 ## Begehbarkeit: wo man laufen kann
@@ -206,7 +209,7 @@ Den Rest erledigt der Editor, auch das Flag, das sich merkt, dass eine Truhe ge�
 
 ## Ereignisse: Personen, Schilder und Nachrichten
 
-Drück auf **Ereignisse** (E). Der Bereich listet in Worten alles auf, was an diesem Ort passiert: was Personen sagen, Gedanken für Mind Read, Schilder, Tritt-Nachrichten, Dinge zum Untersuchen und Ausgangsbereiche.
+Drück auf **Ereignisse** (E). Der Bereich listet in Worten alles auf, was an diesem Ort passiert: was Personen sagen, Gedanken für Mind Read, Schilder, Tritt-Nachrichten, Dinge zum Untersuchen und Ausgangsbereiche. Personen erscheinen auf der Karte als sie selbst; fahr mit der Maus über jemanden, um zu sehen, was er sagt.
 
 Der **Story-Abschnitt** oben ist wichtig. Viele Orte verändern sich im Lauf der Story, und jeder Abschnitt hat seine eigenen Personen und Ereignisse. Wähl den Abschnitt, den du bearbeiten willst.
 
@@ -217,6 +220,8 @@ Klick auf eine Stelle auf der Karte und wähl dann:
 - **Schild hinzufügen (mit A lesen) …** für ein Schild oder etwas zum Untersuchen.
 - **Tritt-Nachricht hinzufügen …** für eine Nachricht, die erscheint, wenn du auf die Stelle trittst. Sie wiederholt sich nicht, solange du dort stehst, kann den Spieler also nicht festhalten, und sie erscheint wieder, wenn du heruntergehst und zurückkommst.
 - **Hier eine Person hinzufügen …**, um mit einer Bildvorschau auszuwählen, wer es ist und ob die Person herumläuft (**Läuft herum**). Der Editor prüft die Stelle vorher (siehe unten).
+
+Um eine Person zu entfernen, die du hinzugefügt hast, klick auf sie und drück auf **Diese Person entfernen**: Was sie sagt, verschwindet mit. Die Personen des Spiels selbst lassen sich nicht entfernen, weil die Story sie bewegt und mit ihnen spricht, aber du kannst sie verschieben.
 
 ### Wo Personen stehen können
 
@@ -269,6 +274,7 @@ Drück auf **Türen** (D). Jede Tür wird auf der Karte mit ihrem Ziel angezeigt
 - **Eine Tür ändern:** Klick darauf, drück auf **Ändern, wohin es führt …**, wähl einen Ort und klick dann auf der Karte dieses Orts dorthin, wo die Gruppe ankommen soll.
 - **Eine Tür machen:** Klick auf irgendeine andere Stelle und drück auf **Hier eine Tür machen …**. Sie kann überallhin im Spiel führen.
 - **Eine Tür entfernen:** Klick darauf und drück auf **Tür entfernen**. Ihre Zellen werden wieder zu Boden.
+- **Einer Tür folgen:** Klick darauf und drück auf **Dorthin gehen →**. Der Ort, zu dem sie führt, öffnet sich mit markiertem Ankunftspunkt, und **← Zurück nach …** bringt dich zur Tür zurück.
 
 Eine Tür ändert sich in jedem Story-Abschnitt des Orts. Auch Türen, die von Szenenskripten geöffnet werden, werden gefunden: Du kannst ändern, wohin sie führen, aber das Skript selbst bleibt gleich.
 
@@ -314,6 +320,15 @@ Der Bereich **Story und Szene** zeigt die Szenen, die diese Karte nutzen, und di
 
 Drück auf **Verbindungen**, um einen beliebigen Ort in der Mitte zu sehen, mit allen Orten, die zu ihm führen, links und allen, zu denen er führt, rechts. Klick auf einen Ort, um dorthin zu wechseln, oder drück auf **Öffnen**, um im Editor zu dieser Tür zu springen. Nutze das Suchfeld, um einen Ort zu finden.
 
+## Atlas: alle Orte auf einmal
+
+Drück auf **Atlas**, um alle Orte auf einer Fläche zu sehen, verbunden durch Linien für ihre Türen und Ausgänge. Die Orte in Golden Sun schließen nicht Kante an Kante aneinander an, deshalb ordnet der Atlas sie selbst an: Jede Stadt und jeder Dungeon liegt nahe an seiner Stelle auf der Weltkarte, mit seinen Häusern und Räumen daneben, beginnend beim Eingang.
+
+- Zieh den Hintergrund, um dich umzusehen, und scrolle zum Zoomen. **Alles zeigen** holt alles ins Bild.
+- Fahr mit der Maus über einen Ort, um seine Türen und die Orte, zu denen sie führen, hervorzuheben.
+- Klick auf einen Ort, um ihn im Editor zu öffnen. Zieh einen, um ihn zu verschieben: Der Atlas merkt sich, wo du ihn hingelegt hast, und **Anordnung zurücksetzen** stellt alles wieder her. Wo die Orte im Atlas liegen, ist nur für dich; das Spiel ändert sich dadurch nicht.
+- Durchgezogene Linien beginnen an einer Tür; gestrichelte sind Ausgänge, die eine Story-Szene oder ein Skript benutzt.
+
 ## Die Weltkarte
 
 Wähl die Weltkarte ganz oben in der Ortsliste. Drück auf **← Orte**, um zurückzugehen.
@@ -323,13 +338,14 @@ Wähl die Weltkarte ganz oben in der Ortsliste. Drück auf **← Orte**, um zur�
 | **Ansicht** | V | Fahr mit der Maus über eine Stelle, um ihre Region zu sehen und was sie tut. Klick auf eine Stadt, einen Dungeon oder eine blaue Trittstelle, um zu sehen, wohin sie führt. |
 | **Boden** | G | Bodenblöcke malen. ⌥-Klick nimmt einen Block auf, und zuletzt benutzte Blöcke bleiben griffbereit. |
 | **Overlay** | O | Berge, Bäume und Küsten malen. Ob man laufen kann, hängt von den Kacheln beider Ebenen ab. |
-| **Regionen** | R | Kampfregionen malen. Jede hat ihre eigenen Zufallskämpfe und ist nach den Städten in ihr benannt. |
-| **Städte** | T | Eine Stadt oder einen Dungeon ziehen, um sie zu verschieben. Auf eine klicken, um zu ändern, wohin sie führt. |
+| **Regionen** | R | Kampfregionen malen. Jede hat ihre eigenen Zufallskämpfe und ist nach den Städten in ihr benannt. Unter **Kämpfe hier** änderst du, wie oft Kämpfe kommen und welche Gegnergruppen auftauchen, auf offenem Gelände und in Wäldern. |
+| **Städte** | T | Eine Stadt oder einen Dungeon ziehen, um sie zu verschieben. Auf eine klicken, um zu ändern, wohin sie führt. **Neues Symbol platzieren …** fügt eines hinzu, mit einem Bild, das die Städte des Spiels selbst benutzen; selbst hinzugefügte Symbole lassen sich entfernen. |
+| **Trittstellen** | P | Blaue Felder führen irgendwohin, wenn man auf sie tritt. Auf eines klicken, um zu ändern, wohin es führt, oder um es zu entfernen, oder auf ein anderes Feld klicken, um ein neues zu machen. |
 
 - Setz das Häkchen bei **Begehbarkeit**, **Kampfregionen** oder **Orte**, um diese auf der Karte anzuzeigen.
 - Wenn du eine Stadt verschiebst, sorgt **auch die Ankunftspunkte mitnehmen** dafür, dass du beim Verlassen neben ihr erscheinst. Es ist standardmäßig eingeschaltet.
 - Änderungen werden beim Malen gespeichert. **Rückgängig** nimmt den letzten Pinselstrich zurück, und **Wiederholen** stellt ihn wieder her.
-- Die Karte im Pausenbildschirm ist ein eigenes Bild und folgt deinen Änderungen deshalb nicht.
+- Die Karte im Pausenbildschirm ist ein eigenes Bild und folgt deinen Änderungen deshalb nicht; neue Symbole bekommen dort keine Markierung.
 
 ## Prüfen: Probleme finden
 
@@ -350,7 +366,7 @@ Das Originalspiel hat seine eigenen Eigenheiten, und die bleiben verborgen, auß
 Drück auf **▶ Spielen**. Das speichert, prüft, baut und öffnet dein Spiel in mGBA, beginnend an dem Ort, den du bearbeitest. Von der Weltkartenseite aus baut es das Spiel und startet auf der Weltkarte, ohne die Prüfung.
 
 - Jedes Spielen ist ein **neues Spiel**: Isaac allein, ohne Story-Fortschritt, deshalb kann ein Ort wie seine Version vom Anfang des Spiels aussehen.
-- Du erscheinst am ersten Ankunftspunkt des Orts, der nicht eingemauert wirkt, nicht an der Stelle, die du gerade ansiehst. Das ist eine bestmögliche Schätzung: Bei ein paar Orten steckst du trotzdem fest oder landest mitten in einer Story-Szene. Wenn das passiert, wähl bei **Starten bei** neben ▶ Spielen einen anderen Ankunftspunkt und drück noch einmal auf Spielen.
+- Du erscheinst am ersten Ankunftspunkt des Orts, von dem aus die Gruppe nach den Laufregeln des Spiels weiterlaufen kann, nicht an der Stelle, die du gerade ansiehst. Story-Szenen werden nicht berücksichtigt, deshalb landest du bei ein paar Orten vielleicht trotzdem mitten in einer. Wenn das passiert, wähl bei **Starten bei** neben ▶ Spielen einen anderen Ankunftspunkt und drück noch einmal auf Spielen.
 - Ein Build nach einer Kartenänderung dauert etwa 20 Sekunden.
 - Den Startpunkt gibt es nur in einer Wegwerfkopie des Spiels, deine exportierte Mod startet also ganz normal vom Titelbildschirm.
 
@@ -361,7 +377,7 @@ Drück auf **Mod exportieren …**.
 1. Füll einen **Namen** aus und, wenn du willst, deinen Namen und was die Mod ändert.
 2. Drück auf **Exportieren**.
 
-Du bekommst einen kleinen `.bps`-Patch und eine Anleitung für Spieler in `~/Documents/GSMapEditor/Exports/`. Drück auf **Im Finder zeigen**, um sie zu sehen. Exportieren führt vorher Prüfen aus und testet jeden Patch einmal, um zu bestätigen, dass er deinen Build genau nachbildet.
+Du bekommst einen kleinen `.bps`-Patch und eine Anleitung für Spieler in `~/Documents/GSMapEditor/Exports/`. Drück auf **Im Finder zeigen**, um sie zu sehen. Wenn du noch einmal unter demselben Namen exportierst, fragt der Editor, ob er den früheren Patch ersetzen oder behalten und den neuen nummerieren soll. Exportieren führt vorher Prüfen aus und testet jeden Patch einmal, um zu bestätigen, dass er deinen Build genau nachbildet.
 
 Setz das Häkchen bei **Zusätzlich eine .ips für ältere Patcher speichern**, wenn deine Spieler ältere Patcher benutzen. Sie ist viel größer, weil IPS verschobene Daten nicht erfassen kann.
 
@@ -406,7 +422,8 @@ Unter Windows und Linux nimmst du Strg statt ⌘ und Alt statt ⌥.
 | D | Türen | |
 | P | Personen verschieben | |
 | S | Stempel | |
-| G / O / R / T | | Boden / Overlay / Regionen / Städte |
+| F | Füllen ein oder aus, bei Malen, Begehbarkeit und Höhe | |
+| G / O / R / T / P | | Boden / Overlay / Regionen / Städte / Trittstellen |
 | ⌘Z | Rückgängig | Rückgängig |
 | ⇧⌘Z | Wiederholen | Wiederholen |
 | ⌘S | Speichern | |
@@ -419,7 +436,7 @@ Unter Windows und Linux nimmst du Strg statt ⌘ und Alt statt ⌥.
 - **The Lost Age** und andere Ausgaben als die englische.
 - **Windows oder Linux** als fertig gepackte App.
 - **Ganz neue Orte:** Es gibt keinen Knopf, um einen hinzuzufügen.
-- **Kämpfe und Spieldaten:** Monster, Kampftabellen, Gegenstände, Läden und Musik lassen sich nicht bearbeiten, du kannst aber malen, zu welcher Kampfregion eine Stelle auf der Weltkarte gehört.
+- **Kämpfe und Spieldaten:** Monster, Gegenstände, Läden und Musik lassen sich nicht bearbeiten, ebenso wenig die Kämpfe innerhalb von Orten. Auf der Weltkarte kannst du für jede Region aus den Gruppen, die das Spiel hat, die Gegnergruppen wählen und wie oft sie kommen.
 - **Story-Skripte:** Du kannst ändern, was Personen sagen und wann, und einfache Ereignisse hinzufügen, aber keine Zwischensequenzen schreiben.
 - **Die Karte im Pausenbildschirm.**
 

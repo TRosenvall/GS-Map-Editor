@@ -1,4 +1,4 @@
-<!-- translated from docs/PRODUCT.md @ e6b4dbb6d85f -->
+<!-- translated from docs/PRODUCT.md @ 34e70fd313ab -->
 # gs-mapedit para jugadores: plan de producto
 
 *Esta es una traducción del documento en inglés [PRODUCT.md](../PRODUCT.md); si los dos difieren, el inglés es el actualizado.*
@@ -21,15 +21,15 @@ La capa del motor que existe hoy sigue siendo la base. Eso abarca los formatos d
 
 | Recorrido | Pantalla / interacción | Piezas del motor (¿existen?) |
 |---|---|---|
-| Explorar los lugares del juego | **Vista del mundo:** el mapa del mundo más cada pueblo/mazmorra, con las conexiones dibujadas | Renderizador ✅, vista de Conexiones ✅ (lugar por lugar), renderizador del mapa del mundo (prototipo de investigación) |
-| Repintar parte de un mapa | **Pintar:** paleta de tiles por tema, pinceles, relleno, copiar/pegar zonas | Pintado de bloques ✅; relleno/copia/zonas ❌ |
+| Explorar los lugares del juego | **Vista del mundo:** el mapa del mundo más cada pueblo/mazmorra, con las conexiones dibujadas | Renderizador ✅, vista de Conexiones ✅ (lugar por lugar), Atlas ✅ (todos los lugares a la vez), Ir allí ✅ (seguir una puerta), mapa del mundo ✅ |
+| Repintar parte de un mapa | **Pintar:** paleta de tiles por tema, pinceles, relleno, copiar/pegar zonas | Pintado de bloques ✅; Rellenar ✅; copiar y pegar (Sello) ✅ |
 | Cambiar por dónde se puede caminar | **Pincel de zonas de paso:** transitable / bloqueado / saliente / escalera / agua, mostrado como una capa limpia | Pintado de colisión ✅; **códigos con nombre ❌ (investigación)** |
 | Mover una puerta / cambiar adónde lleva | Haz clic en una puerta y elige el destino haciendo clic en el mapa de destino | ✅ herramienta Puertas |
 | Añadir/mover un cofre o una Piedra de Psinergía | Suelta un cofre; elige el contenido (selector de objetos con iconos, monedas, mímico) | ✅ herramienta de cofres (objetos, monedas); las piedras solo se mueven |
-| Colocar/mover personas | Arrastra PNJ con vistas previas de sus sprites; ve y edita lo que dicen | Posiciones ✅; **vistas previas de sprites ❌, búsqueda de diálogos ❌** |
+| Colocar/mover personas | Arrastra PNJ con vistas previas de sus sprites; ve y edita lo que dicen | Posiciones ✅; vistas previas de sprites ✅; lo que dicen al pasar el cursor ✅; añadir y quitar ✅ |
 | Probarlo | **Jugar:** compilar y abrir el emulador en ese mapa | Jugar con un clic ✅ (guarda, revisa, compila y abre en el lugar que se está editando) |
 | Compartirlo | **Exportar mod:** un archivo de parche más una descripción | ✅ BPS de la compilación original a la compilación del mod |
-| Deshacer errores / empezar de nuevo | Panel de historial; "restaurar este mapa" | Deshacer ✅ (solo en la sesión); historial persistente ❌ |
+| Deshacer errores / empezar de nuevo | Panel de historial; "restaurar este mapa" | Deshacer y Rehacer ✅ (las últimas 30 acciones guardadas, conservadas entre sesiones); Restaurar lugar ✅ |
 
 ## Capa de nombres (necesita investigación, sobre todo consultas)
 
@@ -65,9 +65,9 @@ La capa del motor que existe hoy sigue siendo la base. Eso abarca los formatos d
    - validación en lenguaje sencillo;
    - la vista del mundo/conexiones.
 2. **Prueba de empaquetado (macOS):** ✅ paquete de la aplicación e instalación del primer arranque (descarga alchemy, compila una vez). ✅ toolchain incluido (sin Homebrew). Pendiente: firma/notarización (necesita un Developer ID), compilación nativa para Apple Silicon, una prueba en un Mac realmente nuevo. Éxito = un Mac nuevo pasa de cero a "Jugar" sin terminal.
-3. **Exportar parches** ✅ (BPS, comprobado con rom.sha1). Importar (aplicar parches de otros en la aplicación) sigue pendiente.
-4. **Edición del mapa del mundo** (etapas 4–5 de SPEC.md) en la interfaz para jugadores.
-5. **Empaquetado para Windows y Linux.**
+3. **Exportar parches** ✅ (BPS, comprobado con rom.sha1). Aplicar parches de otros ✅ (el Parcheador).
+4. **Edición del mapa del mundo** ✅ (etapas 4–5 de SPEC.md): suelo, capa superpuesta, regiones y sus combates, iconos de pueblos (movidos, enlazados, añadidos), puntos de paso.
+5. **Empaquetado para Windows y Linux.** Windows funciona mediante WSL con un script de instalación (prueba inicial); Linux se ejecuta desde el código fuente.
 
 ## Riesgos
 

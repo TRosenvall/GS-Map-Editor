@@ -1,4 +1,4 @@
-<!-- translated from docs/DEVELOPING.md @ 0055eb8d2996 -->
+<!-- translated from docs/DEVELOPING.md @ 9804c9abc13f -->
 # Développer GS Map Editor
 
 *Ceci est une traduction du document anglais [DEVELOPING.md](../DEVELOPING.md) ; en cas de différence, c'est la version anglaise qui fait foi.*
@@ -41,7 +41,7 @@ Ensuite, l'application s'ouvre directement sur l'éditeur. Les réglages se trou
 
 ### Linux et Windows (WSL)
 
-Sous Linux, l'éditeur tourne depuis les sources et s'ouvre dans le navigateur : `python3 desktop.py` (nécessite `python3-pil`) affiche la même liste de contrôle d'installation, avec les paquets apt de l'INSTALL.md d'alchemy à la place de Homebrew. Les installer nécessite `sudo`, donc la liste affiche la commande au lieu de l'exécuter. Les réglages vont dans `~/.config/gs-map-editor`, le cache de compilation dans `~/.cache/gs-map-editor`, et la source du jeu et les exports dans `~/GSMapEditor`. Ce qui diffère selon le système (dossiers, ouverture d'un lien, mGBA, affichage d'un fichier) se trouve dans `gsmap/host.py`.
+Sous Linux, l'éditeur tourne depuis les sources et s'ouvre dans le navigateur : `python3 desktop.py` (nécessite `python3-pil`) affiche la même liste de contrôle d'installation, avec les paquets apt de l'INSTALL.md d'alchemy à la place de Homebrew. Les installer nécessite `sudo`, donc la liste affiche la commande au lieu de l'exécuter. Les réglages vont dans `~/.config/gs-map-editor`, le cache de compilation dans `~/.cache/gs-map-editor`, et la source du jeu et les exports dans `~/GSMapEditor`. Sous Windows (WSL), les exports et les jeux patchés vont plutôt dans Documents\\GSMapEditor de Windows, et **J'en ai déjà une copie** ouvre la fenêtre de choix de dossier de Windows via PowerShell ; sous les autres Linux, il utilise zenity s'il est installé, et demande sinon de taper un chemin. Ce qui diffère selon le système (dossiers, ouverture d'un lien, mGBA, affichage d'un fichier) se trouve dans `gsmap/host.py`.
 
 Windows exécute le même éditeur Linux dans WSL, qui est aussi la seule façon de compiler alchemy sous Windows :
 - `windows/Install-GS-Map-Editor.cmd`, qu'une version publiée fournit avec son tag renseigné, active WSL et installe Ubuntu si nécessaire (droits d'administrateur, peut-être un redémarrage), exécute `windows/setup-in-wsl.sh` dans Ubuntu à ce tag, et ajoute des raccourcis dans le menu Démarrer et sur le bureau vers `wsl.exe … gs-map-editor`.

@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 74d539debb27 -->
+<!-- translated from README.md @ c43e7b4c4d74 -->
 # GS Map Editor
 
 [English](README.md) · **Español** · [Deutsch](README.de.md) · [Français](README.fr.md) · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -31,6 +31,7 @@ El editor funciona sobre [alchemy](https://github.com/PascalPixel/alchemy), un p
 - [Importar tus propias imágenes](#importar-tus-propias-imágenes)
 - [Tablas de historia y escena](#tablas-de-historia-y-escena)
 - [Conexiones](#conexiones)
+- [Atlas: todos los lugares a la vez](#atlas-todos-los-lugares-a-la-vez)
 - [El mapa del mundo](#el-mapa-del-mundo)
 - [Revisar: encontrar problemas](#revisar-encontrar-problemas)
 - [Jugar a tu juego](#jugar-a-tu-juego)
@@ -86,7 +87,7 @@ El editor se ejecuta dentro de WSL, el Linux integrado en Windows, porque es la 
 
 Abre **GS Map Editor**. Aparece una ventana pequeña; déjala abierta mientras usas el editor, ya que al cerrarla se detiene el editor. El editor se abre en tu navegador. Ejecutar el instalador otra vez actualiza el editor a la versión con la que venía.
 
-En Windows, los atajos de teclado usan Ctrl donde esta guía dice ⌘, y Alt donde dice ⌥. Tu trabajo se guarda dentro de Ubuntu, en `GSMapEditor` en tu carpeta personal de Ubuntu; el Explorador de archivos lo muestra en **Linux → Ubuntu → home**.
+En Windows, los atajos de teclado usan Ctrl donde esta guía dice ⌘, y Alt donde dice ⌥. Los parches exportados y los juegos parcheados van a **Documents\\GSMapEditor**, como en un Mac. El código fuente del juego y sus compilaciones se quedan dentro de Ubuntu, en `GSMapEditor` en tu carpeta personal de Ubuntu, porque compilar ahí es mucho más rápido; el Explorador de archivos lo muestra en **Linux → Ubuntu → home**.
 
 ### Instalación inicial
 
@@ -94,7 +95,7 @@ La primera vez, el editor se abre en una lista de pasos. Tarda unos 15 minutos, 
 
 1. **Las herramientas para desarrolladores de Apple** (solo Mac): abre el instalador de Apple.
 2. **Las herramientas para compilar el juego:** ya vienen incluidas con la app en un Mac, y el instalador las pone en su sitio en Windows.
-3. **El código fuente del juego:** descarga alchemy en `~/Documents/GSMapEditor/` (en Windows, `GSMapEditor` en tu carpeta personal de Ubuntu). Si ya tienes una copia, elige **Ya tengo una copia…** (en Windows, escribe su ruta).
+3. **El código fuente del juego:** descarga alchemy en `~/Documents/GSMapEditor/` (en Windows, `GSMapEditor` en tu carpeta personal de Ubuntu). Si ya tienes una copia, elige **Ya tengo una copia…** y escoge su carpeta.
 4. **Preparando la compilación:** prepara los compiladores del juego, una sola vez.
 5. **Una primera compilación del juego:** compila el juego una vez.
 
@@ -167,6 +168,8 @@ Pulsa **Pintar** (B).
 3. Haz clic o arrastra sobre el mapa.
 4. Guarda.
 
+Marca **Rellenar** en la barra superior (o pulsa F) y un clic rellena toda la zona conectada que tiene el mismo bloque que la casilla en la que haces clic, en esa capa. Rellenar también funciona en **Zonas de paso** y **Altura**, y entonces busca la misma zona de paso o la misma altura. Deshacer quita un relleno entero de una vez.
+
 Cada lugar tiene su propio conjunto de bloques, así que el panel cambia de un lugar a otro.
 
 ## Zonas de paso: por dónde se puede caminar
@@ -206,7 +209,7 @@ El editor se ocupa del resto, incluida la marca que recuerda que un cofre se ha 
 
 ## Eventos: personas, letreros y mensajes
 
-Pulsa **Eventos** (E). El panel muestra, en palabras, todo lo que pasa en este lugar: lo que dice la gente, los pensamientos de Mind Read, letreros, mensajes al pisar, cosas que examinar y zonas de salida.
+Pulsa **Eventos** (E). El panel muestra, en palabras, todo lo que pasa en este lugar: lo que dice la gente, los pensamientos de Mind Read, letreros, mensajes al pisar, cosas que examinar y zonas de salida. Las personas se ven en el mapa tal como son; pasa el cursor sobre alguien para ver lo que dice.
 
 La **Etapa de la historia** de arriba importa. Muchos lugares cambian a medida que avanza la historia, y cada etapa tiene sus propias personas y eventos. Elige la etapa que quieras editar.
 
@@ -217,6 +220,8 @@ Haz clic en un sitio del mapa y luego elige:
 - **Añadir un letrero (se lee con A)…** para un letrero o algo que examinar.
 - **Añadir un mensaje al pisar…** para un mensaje que aparece cuando pisas ahí. No se repite mientras sigas ahí, así que no puede atrapar al jugador, y vuelve a aparecer si sales y regresas.
 - **Añadir una persona aquí…** para elegir quién es, con una vista previa de su imagen, y si **camina por ahí**. Antes, el editor comprueba el sitio (ver más abajo).
+
+Para quitar a alguien que añadiste, haz clic en esa persona y pulsa **Quitar a esta persona**: lo que dice se va también. Las personas propias del juego no se pueden quitar, porque la historia las mueve y habla con ellas, pero sí puedes moverlas.
 
 ### Dónde pueden estar las personas
 
@@ -269,6 +274,7 @@ Pulsa **Puertas** (D). Cada puerta se ve en el mapa con el sitio adonde lleva. L
 - **Cambiar una puerta:** haz clic en ella, pulsa **Cambiar adónde lleva…**, elige un lugar y luego haz clic donde debe llegar el grupo en el mapa de ese lugar.
 - **Crear una puerta:** haz clic en cualquier otro sitio y pulsa **Crear una puerta aquí…**. Puede llevar a cualquier parte del juego.
 - **Quitar una puerta:** haz clic en ella y pulsa **Quitar puerta**. Sus celdas vuelven a ser suelo.
+- **Seguir una puerta:** haz clic en ella y pulsa **Ir allí →**. Se abre el lugar al que lleva, con su punto de llegada marcado, y **← Volver a …** te devuelve a la puerta.
 
 Una puerta cambia en todas las etapas de la historia del lugar. También se encuentran las puertas que abren los scripts de escena: puedes cambiar adónde llevan, pero el script en sí sigue igual.
 
@@ -314,6 +320,15 @@ El panel **Historia y escena** muestra las escenas que usan este mapa y las tabl
 
 Pulsa **Conexiones** para ver cualquier lugar en el centro, con todos los lugares que llevan a él a la izquierda y todos los sitios adonde lleva a la derecha. Haz clic en un lugar para ir allí, o pulsa **Abrir** para saltar a esa puerta en el editor. Usa la casilla de búsqueda para encontrar un lugar.
 
+## Atlas: todos los lugares a la vez
+
+Pulsa **Atlas** para ver todos los lugares en un mismo lienzo, unidos por líneas que representan sus puertas y salidas. Los lugares de Golden Sun no se unen borde con borde, así que el atlas los coloca por su cuenta: cada pueblo o mazmorra queda cerca de su sitio en el mapa del mundo, con sus casas y salas al lado, empezando por la entrada.
+
+- Arrastra el fondo para moverte y usa la rueda para hacer zoom. **Ajustar** lo muestra todo.
+- Pasa el cursor sobre un lugar para resaltar sus puertas y los lugares adonde llevan.
+- Haz clic en un lugar para abrirlo en el editor. Arrastra uno para moverlo: el atlas recuerda dónde lo pusiste, y **Restablecer disposición** lo devuelve todo a su sitio. La posición de los lugares en el atlas es solo para ti; no cambia el juego.
+- Las líneas continuas salen de una puerta; las discontinuas son salidas que usa una escena o un script de la historia.
+
 ## El mapa del mundo
 
 Elige el mapa del mundo arriba del todo de la lista de lugares. Pulsa **← Lugares** para volver.
@@ -323,13 +338,14 @@ Elige el mapa del mundo arriba del todo de la lista de lugares. Pulsa **← Luga
 | **Ver** | V | Pasa el cursor para ver la región de un sitio y lo que hace. Haz clic en un pueblo, una mazmorra o un sitio de paso azul para ver adónde lleva. |
 | **Suelo** | G | Pinta bloques de suelo. ⌥-clic toma un bloque, y los bloques recientes quedan a mano. |
 | **Capa superpuesta** | O | Pinta montañas, árboles y costa. Por dónde se puede caminar depende de los tiles de ambas capas. |
-| **Regiones** | R | Pinta regiones de encuentros. Cada una tiene sus propios combates aleatorios, y cada una lleva el nombre de los pueblos que contiene. |
-| **Pueblos** | T | Arrastra un pueblo o una mazmorra para moverlo. Haz clic en uno para cambiar adónde lleva. |
+| **Regiones** | R | Pinta regiones de encuentros. Cada una tiene sus propios combates aleatorios, y cada una lleva el nombre de los pueblos que contiene. En **Combates aquí**, cambia con qué frecuencia hay combates y qué grupos de enemigos aparecen, en terreno abierto y en bosques. |
+| **Pueblos** | T | Arrastra un pueblo o una mazmorra para moverlo. Haz clic en uno para cambiar adónde lleva. **Colocar un icono nuevo…** añade uno, con una imagen que usan los propios pueblos del juego; los iconos que añadiste se pueden quitar. |
+| **Puntos de paso** | P | Las casillas azules llevan a algún sitio al pisarlas. Haz clic en una para cambiar adónde lleva o quitarla, o haz clic en cualquier otra casilla para crear una nueva. |
 
 - Marca **Zonas de paso**, **Regiones de encuentros** o **Lugares** para verlos en el mapa.
 - Cuando mueves un pueblo, **mover también sus puntos de llegada** hace que sigas apareciendo junto a él al salir. Está activado por defecto.
 - Los cambios se guardan mientras pintas. **Deshacer** quita el último trazo, y **Rehacer** lo devuelve.
-- El mapa de la pantalla de pausa es una imagen aparte, así que no seguirá tus cambios.
+- El mapa de la pantalla de pausa es una imagen aparte, así que no seguirá tus cambios, y los iconos nuevos no tienen marca en él.
 
 ## Revisar: encontrar problemas
 
@@ -350,7 +366,7 @@ El juego original tiene sus propias rarezas, y están ocultas salvo que marques 
 Pulsa **▶ Jugar**. Guarda, revisa, compila y abre tu juego en mGBA, empezando en el lugar que estás editando. Desde la página del mapa del mundo, compila y empieza en el mapa del mundo, sin la revisión.
 
 - Cada vez que pulsas Jugar es una **partida nueva**: Isaac solo, sin avance en la historia, así que un lugar puede verse como su versión del principio del juego.
-- Apareces en el primer punto de llegada del lugar que no parece encerrado, no en el sitio que estás viendo. Es una suposición: en algunos lugares todavía empiezas atascado o dentro de una escena de la historia. Si pasa, elige otro punto de llegada en **Empezar en**, junto a ▶ Jugar, y vuelve a pulsar Jugar.
+- Apareces en el primer punto de llegada del lugar desde el que el grupo puede seguir caminando, según las reglas de movimiento del juego, no en el sitio que estás viendo. Las escenas de la historia no se tienen en cuenta, así que en algunos lugares todavía puedes empezar dentro de una. Si pasa, elige otro punto de llegada en **Empezar en**, junto a ▶ Jugar, y vuelve a pulsar Jugar.
 - Una compilación después de cambiar un mapa tarda unos 20 segundos.
 - El punto de inicio solo existe en una copia desechable del juego, así que tu mod exportado sigue arrancando con normalidad desde la pantalla de título.
 
@@ -361,7 +377,7 @@ Pulsa **Exportar mod…**.
 1. Rellena un **Nombre** y, si quieres, tu nombre y lo que cambia.
 2. Pulsa **Exportar**.
 
-Obtienes un pequeño parche `.bps` y un léame para los jugadores en `~/Documents/GSMapEditor/Exports/`. Pulsa **Mostrar en Finder** para verlos. Exportar ejecuta Revisar primero, y prueba cada parche una vez para confirmar que reproduce tu compilación exactamente.
+Obtienes un pequeño parche `.bps` y un léame para los jugadores en `~/Documents/GSMapEditor/Exports/`. Pulsa **Mostrar en Finder** para verlos. Si vuelves a exportar con el mismo nombre, el editor pregunta si quieres sustituir el parche anterior o conservarlo y numerar el nuevo. Exportar ejecuta Revisar primero, y prueba cada parche una vez para confirmar que reproduce tu compilación exactamente.
 
 Marca **Guardar también un .ips** si tus jugadores usan parcheadores antiguos. Es mucho más grande, porque IPS no puede registrar datos movidos.
 
@@ -406,7 +422,8 @@ En Windows y Linux, usa Ctrl en lugar de ⌘ y Alt en lugar de ⌥.
 | D | Puertas | |
 | P | Mover personas | |
 | S | Sello | |
-| G / O / R / T | | Suelo / Capa superpuesta / Regiones / Pueblos |
+| F | Activar o desactivar Rellenar, en Pintar, Zonas de paso y Altura | |
+| G / O / R / T / P | | Suelo / Capa superpuesta / Regiones / Pueblos / Puntos de paso |
 | ⌘Z | Deshacer | Deshacer |
 | ⇧⌘Z | Rehacer | Rehacer |
 | ⌘S | Guardar | |
@@ -419,7 +436,7 @@ En Windows y Linux, usa Ctrl en lugar de ⌘ y Alt en lugar de ⌥.
 - **The Lost Age**, ni ediciones que no sean la inglesa.
 - **Windows o Linux** como app empaquetada.
 - **Lugares totalmente nuevos:** no hay ningún botón para añadir uno.
-- **Combates y datos del juego:** no se pueden editar los monstruos, las tablas de encuentros, los objetos, las tiendas ni la música, aunque puedes pintar a qué región de encuentros pertenece un sitio del mapa del mundo.
+- **Combates y datos del juego:** no se pueden editar los monstruos, los objetos, las tiendas ni la música, ni los combates dentro de los lugares. En el mapa del mundo puedes elegir los grupos de enemigos de cada región y con qué frecuencia aparecen, entre los grupos que tiene el juego.
 - **Scripts de la historia:** puedes cambiar lo que dice la gente y cuándo, y añadir eventos sencillos, pero no escribir escenas cinemáticas.
 - **El mapa de la pantalla de pausa.**
 

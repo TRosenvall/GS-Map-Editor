@@ -1,4 +1,4 @@
-<!-- translated from docs/PRODUCT.md @ e6b4dbb6d85f -->
+<!-- translated from docs/PRODUCT.md @ 34e70fd313ab -->
 # gs-mapedit pour les joueurs : plan produit
 
 *Ceci est une traduction du document anglais [PRODUCT.md](../PRODUCT.md) ; en cas de différence, c'est la version anglaise qui fait foi.*
@@ -21,15 +21,15 @@ La couche moteur qui existe aujourd'hui reste la fondation. Elle couvre les form
 
 | Parcours | Écran / interaction | Briques du moteur (existent ?) |
 |---|---|---|
-| Explorer les lieux du jeu | **Vue du monde :** le monde extérieur plus chaque ville/donjon, avec les connexions dessinées | Moteur de rendu ✅, vue Connexions ✅ (lieu par lieu), rendu du monde extérieur (prototype de recherche) |
-| Repeindre une partie d'une carte | **Peindre :** palette de tuiles par thème, pinceaux, remplissage, copier/coller de zones | Peinture de blocs ✅ ; remplissage/copie/zones ❌ |
+| Explorer les lieux du jeu | **Vue du monde :** le monde extérieur plus chaque ville/donjon, avec les connexions dessinées | Moteur de rendu ✅, vue Connexions ✅ (lieu par lieu), Atlas ✅ (tous les lieux d'un coup), Y aller ✅ (suivre une porte), monde extérieur ✅ |
+| Repeindre une partie d'une carte | **Peindre :** palette de tuiles par thème, pinceaux, remplissage, copier/coller de zones | Peinture de blocs ✅ ; Remplir ✅ ; copier-coller (Tampon) ✅ |
 | Changer où l'on peut marcher | **Pinceau de praticabilité :** praticable / bloqué / rebord / échelle / eau, montré comme une surcouche nette | Peinture de collision ✅ ; **codes nommés ❌ (recherche)** |
 | Déplacer une porte / changer sa destination | Cliquer sur une porte, puis choisir la destination en cliquant sur la carte cible | ✅ outil Portes |
 | Ajouter/déplacer un coffre ou une Pierre de Psynergie | Poser un coffre ; choisir son contenu (sélecteur d'objets avec icônes, pièces, mimique) | ✅ outil Coffre (objets, pièces) ; les pierres se déplacent seulement |
-| Placer/déplacer des personnages | Faire glisser les PNJ avec aperçus de sprites ; voir et modifier ce qu'ils disent | Positions ✅ ; **aperçus de sprites ❌, recherche des dialogues ❌** |
+| Placer/déplacer des personnages | Faire glisser les PNJ avec aperçus de sprites ; voir et modifier ce qu'ils disent | Positions ✅ ; aperçus de sprites ✅ ; ce qu'ils disent au survol ✅ ; ajout et suppression ✅ |
 | Essayer | **Jouer :** compiler puis ouvrir l'émulateur sur cette carte | Jouer en un clic ✅ (enregistre, vérifie, compile, ouvre au lieu en cours de modification) |
 | Partager | **Exporter le mod :** un fichier patch plus une description | ✅ BPS de la version d'origine à la version moddée |
-| Annuler les erreurs / tout recommencer | Panneau d'historique ; « réinitialiser cette carte » | Annuler ✅ (session seulement) ; historique persistant ❌ |
+| Annuler les erreurs / tout recommencer | Panneau d'historique ; « réinitialiser cette carte » | Annuler et Rétablir ✅ (les 30 dernières actions enregistrées, conservées d'une session à l'autre) ; Réinitialiser le lieu ✅ |
 
 ## Couche de noms (recherche nécessaire, surtout des consultations)
 
@@ -65,9 +65,9 @@ La couche moteur qui existe aujourd'hui reste la fondation. Elle couvre les form
    - la validation en termes simples ;
    - la vue du monde/des connexions.
 2. **Essai d'empaquetage (macOS) :** ✅ paquet d'application et installation au premier lancement (télécharge alchemy, compile une fois). ✅ chaîne d'outils embarquée (sans Homebrew). Reste à faire : signature/notarisation (nécessite un Developer ID), compilation native Apple Silicon, un test sur un Mac vraiment neuf. Réussite = un Mac neuf passe de zéro à « Jouer » sans terminal.
-3. **Export de patch** ✅ (BPS, vérifié par rapport à rom.sha1). L'import (appliquer les patchs des autres dans l'application) reste à faire.
-4. **Édition du monde extérieur** (étapes 4–5 de SPEC.md) dans l'interface pour les joueurs.
-5. **Empaquetage Windows et Linux.**
+3. **Export de patch** ✅ (BPS, vérifié par rapport à rom.sha1). Appliquer les patchs des autres ✅ (le Patcheur).
+4. **Édition du monde extérieur** ✅ (étapes 4–5 de SPEC.md) : sol, surcouche, régions et leurs combats, icônes de villes (déplacées, reliées, ajoutées), cases de passage.
+5. **Empaquetage Windows et Linux.** Windows fonctionne via WSL avec un script d'installation (premiers tests) ; Linux tourne depuis les sources.
 
 ## Risques
 

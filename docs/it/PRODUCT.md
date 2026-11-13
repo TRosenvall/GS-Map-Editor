@@ -1,4 +1,4 @@
-<!-- translated from docs/PRODUCT.md @ e6b4dbb6d85f -->
+<!-- translated from docs/PRODUCT.md @ 34e70fd313ab -->
 # gs-mapedit per i giocatori: piano di prodotto
 
 *Questa è una traduzione del file inglese [PRODUCT.md](../PRODUCT.md); se i due differiscono, vale quello inglese.*
@@ -21,15 +21,15 @@ Il livello del motore che esiste oggi resta la base. Questo comprende i formati 
 
 | Percorso | Schermata / interazione | Parti del motore (esistono?) |
 |---|---|---|
-| Esplorare i luoghi del gioco | **Vista del mondo:** il mondo esterno più ogni città/dungeon, con i collegamenti disegnati | Renderer ✅, vista Collegamenti ✅ (luogo per luogo), renderer del mondo esterno (prototipo di ricerca) |
-| Ridipingere parte di una mappa | **Dipingi:** palette di tile per tema, pennelli, riempimento, copia/incolla di regioni | Pittura di blocchi ✅; riempimento/copia/regioni ❌ |
+| Esplorare i luoghi del gioco | **Vista del mondo:** il mondo esterno più ogni città/dungeon, con i collegamenti disegnati | Renderer ✅, vista Collegamenti ✅ (luogo per luogo), Atlante ✅ (tutti i luoghi insieme), Vai lì ✅ (seguire una porta), mondo esterno ✅ |
+| Ridipingere parte di una mappa | **Dipingi:** palette di tile per tema, pennelli, riempimento, copia/incolla di regioni | Pittura di blocchi ✅; Riempi ✅; copia e incolla (Timbro) ✅ |
 | Cambiare dove si può camminare | **Pennello di calpestabilità:** calpestabile / bloccato / sporgenza / scala / acqua, mostrato come una sovrapposizione pulita | Pittura della collisione ✅; **codici con nome ❌ (ricerca)** |
 | Spostare una porta / cambiare dove porta | Clicca una porta, poi scegli la destinazione cliccando sulla mappa di arrivo | ✅ Strumento Porte |
 | Aggiungere/spostare un forziere o una Psynergy Stone | Piazza un forziere; scegli il contenuto (selettore di oggetti con icone, monete, mimic) | ✅ Strumento Forziere (oggetti, monete); le pietre si possono solo spostare |
-| Piazzare/spostare persone | Trascina i PNG con anteprime degli sprite; guarda e modifica ciò che dicono | Posizioni ✅; **anteprime degli sprite ❌, ricerca dei dialoghi ❌** |
+| Piazzare/spostare persone | Trascina i PNG con anteprime degli sprite; guarda e modifica ciò che dicono | Posizioni ✅; anteprime degli sprite ✅; ciò che dicono al passaggio del mouse ✅; aggiunta e rimozione ✅ |
 | Provarlo | **Gioca:** build più apertura dell'emulatore su quella mappa | Gioca con un clic ✅ (salva, controlla, compila, apre nel luogo che si sta modificando) |
 | Condividerlo | **Esporta mod:** un file di patch più una descrizione | ✅ BPS dalla build originale alla build della mod |
-| Annullare errori / ricominciare | Pannello della cronologia; "ripristina questa mappa" | Annulla ✅ (solo nella sessione); cronologia persistente ❌ |
+| Annullare errori / ricominciare | Pannello della cronologia; "ripristina questa mappa" | Annulla e Ripeti ✅ (ultime 30 azioni salvate, conservate tra una sessione e l'altra); Ripristina luogo ✅ |
 
 ## Livello dei nomi (serve ricerca, per lo più consultazioni)
 
@@ -65,9 +65,9 @@ Il livello del motore che esiste oggi resta la base. Questo comprende i formati 
    - la validazione in linguaggio semplice;
    - la vista del mondo/dei collegamenti.
 2. **Prova di impacchettamento (macOS):** ✅ bundle dell'app e configurazione al primo avvio (scarica alchemy, compila una volta). ✅ toolchain inclusa (senza Homebrew). Restano: firma/notarizzazione (serve un Developer ID), build nativa per Apple Silicon, un test su un Mac davvero nuovo. Successo = un Mac nuovo passa da zero a "Gioca" senza un terminale.
-3. **Esportazione delle patch** ✅ (BPS, verificata con rom.sha1). L'importazione (applicare le patch degli altri nell'app) è ancora da fare.
-4. **Modifica del mondo esterno** (fasi 4–5 di SPEC.md) nell'interfaccia per i giocatori.
-5. **Pacchetti per Windows e Linux.**
+3. **Esportazione delle patch** ✅ (BPS, verificata con rom.sha1). Applicare le patch degli altri ✅ (Applica patch).
+4. **Modifica del mondo esterno** ✅ (fasi 4–5 di SPEC.md): terreno, sovrapposizione, regioni e le loro battaglie, icone delle città (spostate, collegate, aggiunte), punti di passaggio.
+5. **Pacchetti per Windows e Linux.** Windows funziona tramite WSL da uno script di installazione (primo test); Linux gira dai sorgenti.
 
 ## Rischi
 

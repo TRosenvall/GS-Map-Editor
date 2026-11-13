@@ -1,4 +1,4 @@
-<!-- translated from docs/PRODUCT.md @ e6b4dbb6d85f -->
+<!-- translated from docs/PRODUCT.md @ 34e70fd313ab -->
 # gs-mapedit für Spieler: Produktplan
 
 *Dies ist eine Übersetzung der englischen [PRODUCT.md](../PRODUCT.md). Wenn sich die beiden unterscheiden, ist die englische Fassung aktuell.*
@@ -21,15 +21,15 @@ Die Engine-Schicht, die es heute gibt, bleibt das Fundament. Dazu gehören die D
 
 | Ablauf | Bildschirm / Interaktion | Engine-Teile (vorhanden?) |
 |---|---|---|
-| Die Orte des Spiels erkunden | **Weltansicht:** Oberwelt plus jede Stadt und jeder Dungeon, mit eingezeichneten Verbindungen | Renderer ✅, Ansicht Verbindungen ✅ (Ort für Ort), Oberwelt-Renderer (Forschungsprototyp) |
-| Einen Teil einer Karte neu malen | **Malen:** Kachelpalette nach Thema, Pinsel, Füllen, Bereiche kopieren/einfügen | Blöcke malen ✅; Füllen/Kopieren/Bereiche ❌ |
+| Die Orte des Spiels erkunden | **Weltansicht:** Oberwelt plus jede Stadt und jeder Dungeon, mit eingezeichneten Verbindungen | Renderer ✅, Ansicht Verbindungen ✅ (Ort für Ort), Atlas ✅ (alle Orte auf einmal), Dorthin gehen ✅ (einer Tür folgen), Oberwelt ✅ |
+| Einen Teil einer Karte neu malen | **Malen:** Kachelpalette nach Thema, Pinsel, Füllen, Bereiche kopieren/einfügen | Blöcke malen ✅; Füllen ✅; Kopieren und Einfügen (Stempel) ✅ |
 | Ändern, wo man laufen kann | **Begehbarkeits-Pinsel:** begehbar / gesperrt / Absatz / Leiter / Wasser, als klares Overlay gezeigt | Kollision malen ✅; **benannte Codes ❌ (Forschung)** |
 | Eine Tür verschieben / ändern, wohin sie führt | Auf eine Tür klicken, dann das Ziel durch Klick auf die Zielkarte wählen | ✅ Werkzeug Türen |
 | Eine Truhe oder einen Psynergie-Stein hinzufügen/verschieben | Eine Truhe absetzen; Inhalt wählen (Gegenstandsauswahl mit Symbolen, Münzen, Mimic) | ✅ Werkzeug Truhe (Gegenstände, Münzen); Steine nur verschieben |
-| Personen platzieren/verschieben | NPCs mit Sprite-Vorschauen ziehen; sehen und bearbeiten, was sie sagen | Positionen ✅; **Sprite-Vorschauen ❌, Dialog-Nachschlagen ❌** |
+| Personen platzieren/verschieben | NPCs mit Sprite-Vorschauen ziehen; sehen und bearbeiten, was sie sagen | Positionen ✅; Sprite-Vorschauen ✅; was sie sagen, beim Überfahren mit der Maus ✅; Hinzufügen und Entfernen ✅ |
 | Ausprobieren | **Spielen:** Build plus Emulator an dieser Karte öffnen | Spielen mit einem Klick ✅ (speichert, prüft, baut, öffnet am gerade bearbeiteten Ort) |
 | Teilen | **Mod exportieren:** eine Patch-Datei plus eine Beschreibung | ✅ BPS vom Original-Build zum Mod-Build |
-| Fehler rückgängig machen / neu anfangen | Verlaufsbereich; „diese Karte zurücksetzen“ | Rückgängig ✅ (nur in der Sitzung); dauerhafter Verlauf ❌ |
+| Fehler rückgängig machen / neu anfangen | Verlaufsbereich; „diese Karte zurücksetzen“ | Rückgängig und Wiederholen ✅ (die letzten 30 gespeicherten Aktionen, über Sitzungen hinweg erhalten); Ort zurücksetzen ✅ |
 
 ## Namensschicht (Forschung nötig, meist Nachschlagen)
 
@@ -65,9 +65,9 @@ Die Engine-Schicht, die es heute gibt, bleibt das Fundament. Dazu gehören die D
    - Prüfung in einfacher Sprache;
    - die Welt-/Verbindungsansicht.
 2. **Paketierungs-Spike (macOS):** ✅ App-Bundle und Ersteinrichtung (lädt alchemy herunter, baut einmal). ✅ mitgelieferte Toolchain (kein Homebrew). Offen: Signieren/Notarisieren (braucht eine Developer ID), nativer Build für Apple Silicon, ein Test auf einem wirklich frischen Mac. Erfolg = ein frischer Mac kommt ohne Terminal von null bis „Spielen“.
-3. **Patch-Export** ✅ (BPS, gegen rom.sha1 geprüft). Import (Patches anderer in der App anwenden) steht noch aus.
-4. **Oberwelt-Bearbeitung** (Stufen 4–5 von SPEC.md) in der Spieleroberfläche.
-5. **Paketierung für Windows und Linux.**
+3. **Patch-Export** ✅ (BPS, gegen rom.sha1 geprüft). Patches anderer anwenden ✅ (der Patcher).
+4. **Oberwelt-Bearbeitung** ✅ (Stufen 4–5 von SPEC.md): Boden, Overlay, Regionen und ihre Kämpfe, Stadtsymbole (verschoben, verknüpft, hinzugefügt), Trittstellen.
+5. **Paketierung für Windows und Linux.** Windows läuft über WSL mit einem Installationsskript (früher Test); Linux läuft aus dem Quellcode.
 
 ## Risiken
 
