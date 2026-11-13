@@ -190,7 +190,7 @@ The Chest, Doors and Events tools set the special codes they need themselves, so
 
 ## Height: how high the ground is
 
-Press **Height** (H). At the top of the panel you make the kind of square you want to paint: pick **Flat**, **Ramp**, **Steps** (half a square at one level, half at the next) or **Diagonal** (two levels split corner to corner, as at the edge of a cliff), then the direction it rises with the arrows, then its levels. A small picture shows the square from above, and a line says whether the party can walk across it. Any level works, not only the ones the place already has: a height the place doesn't have yet is added when you save. ⌥-click a square on the map to copy its exact height, including the curved and shaped ones the buttons don't make. Under that, **Levels in this place** counts the squares at each level, darkest blue for the highest; on the map, darker blue means higher ground, and the lowest ground has no blue at all, so a harbour or beach at the bottom of the map shows none. **Advanced** also lists every height in the place's table.
+Press **Height** (H). At the top of the panel you make the kind of square you want to paint: pick **Flat**, **Ramp**, **Steps** (half a square at one level, half at the next) or **Diagonal** (two levels split corner to corner, as at the edge of a cliff), then the direction it rises with the arrows, then its levels. A small picture shows the square from above, and a line says whether the party can walk across it. Any level works, not only the ones the place already has: a height the place doesn't have yet is added when you save. A place holds up to 256 different heights; a few places share one set (the title screen's, for example), and then they share that limit too. ⌥-click a square on the map to copy its exact height, including the curved and shaped ones the buttons don't make. Under that, **Levels in this place** counts the squares at each level, darkest blue for the highest; on the map, darker blue means higher ground, and the lowest ground has no blue at all, so a harbour or beach at the bottom of the map shows none. **Advanced** also lists every height in the place's table.
 
 Heights are counted in levels, the game's own unit (a level is 8 pixels, half a square). Height affects walking as well as looks. People stand at the height of the ground they're on, and the party can walk up or down one level at a time: two levels or more acts as a wall. Ramps join levels, and one square of ramp can climb two, so stairs and hillsides are ramps laid end to end. Steps climb the same: one level each half. To lay a staircase, pick **Ramp** or **Steps**, tick **Stairs**, and drag in the rising direction: each square climbs on from the last.
 
@@ -429,7 +429,7 @@ On Windows and Linux, use Ctrl for ⌘ and Alt for ⌥.
 | ⌘Z | Undo | Undo |
 | ⇧⌘Z | Redo | Redo |
 | ⌘S | Save | |
-| ⌥-click | Pick up a block | Pick up a block or region |
+| ⌥-click | Pick up a block, or in Walkability and Height the square's brush or height | Pick up a block or region |
 | ⇧ while dropping | Snap people to the nearest 8 pixels | |
 | Esc | Close a dialog, or go back to copying in Stamp | Close a dialog |
 

@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 7239c3b9c115 -->
+<!-- translated from README.md @ a64019bed749 -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · [Deutsch](README.de.md) · **Français** · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -193,7 +193,7 @@ Les outils Coffre, Portes et Événements placent eux-mêmes les codes spéciaux
 
 ## Hauteur : la hauteur du sol
 
-Appuyez sur **Hauteur** (H). En haut du panneau, vous composez le type de case à peindre : choisissez **Plat**, **Rampe**, **Marches** (une demi-case à un niveau, l'autre au suivant) ou **Diagonale** (deux niveaux partagés d'un coin à l'autre, comme au bord d'une falaise), puis avec les flèches le sens de la montée, puis ses niveaux. Une petite image montre la case vue de dessus, et une ligne dit si le groupe peut la traverser à pied. N'importe quel niveau convient, pas seulement ceux que le lieu a déjà : une hauteur que le lieu n'a pas encore est ajoutée à l'enregistrement. ⌥-cliquez sur une case de la carte pour copier sa hauteur exacte, y compris les courbes et les formes que les boutons ne font pas. En dessous, **Niveaux de ce lieu** compte les cases de chaque niveau, le bleu le plus foncé pour le plus haut ; sur la carte, un bleu plus foncé signifie un sol plus haut, et le sol le plus bas n'a pas de bleu du tout : un port ou une plage en bas de la carte n'en montre donc pas. **Avancé** liste aussi toutes les hauteurs de la table du lieu.
+Appuyez sur **Hauteur** (H). En haut du panneau, vous composez le type de case à peindre : choisissez **Plat**, **Rampe**, **Marches** (une demi-case à un niveau, l'autre au suivant) ou **Diagonale** (deux niveaux partagés d'un coin à l'autre, comme au bord d'une falaise), puis avec les flèches le sens de la montée, puis ses niveaux. Une petite image montre la case vue de dessus, et une ligne dit si le groupe peut la traverser à pied. N'importe quel niveau convient, pas seulement ceux que le lieu a déjà : une hauteur que le lieu n'a pas encore est ajoutée à l'enregistrement. Un lieu peut avoir jusqu'à 256 hauteurs différentes ; quelques lieux partagent un même ensemble (celui de l'écran titre, par exemple) et partagent alors aussi cette limite. ⌥-cliquez sur une case de la carte pour copier sa hauteur exacte, y compris les courbes et les formes que les boutons ne font pas. En dessous, **Niveaux de ce lieu** compte les cases de chaque niveau, le bleu le plus foncé pour le plus haut ; sur la carte, un bleu plus foncé signifie un sol plus haut, et le sol le plus bas n'a pas de bleu du tout : un port ou une plage en bas de la carte n'en montre donc pas. **Avancé** liste aussi toutes les hauteurs de la table du lieu.
 
 Les hauteurs se comptent en niveaux, l'unité propre au jeu (un niveau fait 8 pixels, une demi-case). La hauteur influe sur la marche autant que sur l'apparence. Les personnages se tiennent à la hauteur du sol sur lequel ils sont, et le groupe peut monter ou descendre d'un niveau à la fois : deux niveaux ou plus agissent comme un mur. Les rampes relient les niveaux, et une case de rampe peut en gravir deux : escaliers et pentes sont des rampes mises bout à bout. Les marches montent de même : un niveau par moitié. Pour poser un escalier, choisissez **Rampe** ou **Marches**, cochez **Escalier** et faites glisser dans le sens de la montée : chaque case monte à partir de la précédente.
 
@@ -432,7 +432,7 @@ Sous Windows et Linux, utilisez Ctrl pour ⌘ et Alt pour ⌥.
 | ⌘Z | Annuler | Annuler |
 | ⇧⌘Z | Rétablir | Rétablir |
 | ⌘S | Enregistrer | |
-| ⌥-clic | Prendre un bloc | Prendre un bloc ou une région |
+| ⌥-clic | Prendre un bloc, ou dans Praticabilité et Hauteur le pinceau ou la hauteur de la case | Prendre un bloc ou une région |
 | ⇧ en relâchant | Aligner les personnages sur les 8 pixels les plus proches | |
 | Échap | Fermer une fenêtre, ou revenir à la copie dans Tampon | Fermer une fenêtre |
 

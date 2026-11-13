@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 7239c3b9c115 -->
+<!-- translated from README.md @ a64019bed749 -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · [Deutsch](README.de.md) · [Français](README.fr.md) · **Italiano** · [日本語](README.ja.md)
@@ -193,7 +193,7 @@ Gli strumenti Forziere, Porte ed Eventi impostano da soli i codici speciali di c
 
 ## Altezza: quanto è alto il terreno
 
-Premi **Altezza** (H). In cima al pannello componi il tipo di casella da dipingere: scegli **Piana**, **Rampa**, **Gradini** (mezza casella a un livello, mezza al successivo) o **Diagonale** (due livelli divisi da angolo ad angolo, come sul bordo di una scogliera), poi con le frecce la direzione in cui sale, poi i suoi livelli. Una piccola immagine mostra la casella dall'alto, e una riga dice se il gruppo può attraversarla a piedi. Va bene qualsiasi livello, non solo quelli che il luogo ha già: un'altezza che il luogo non ha ancora viene aggiunta quando salvi. ⌥-clic su una casella della mappa per copiarne l'altezza esatta, comprese quelle curve e sagomate che i pulsanti non fanno. Sotto, **Livelli di questo luogo** conta le caselle di ogni livello, il blu più scuro per il più alto; sulla mappa, un blu più scuro indica un terreno più alto, e il terreno più basso non ha blu, quindi un porto o una spiaggia in fondo alla mappa non ne mostra. **Avanzate** elenca anche tutte le altezze della tabella del luogo.
+Premi **Altezza** (H). In cima al pannello componi il tipo di casella da dipingere: scegli **Piana**, **Rampa**, **Gradini** (mezza casella a un livello, mezza al successivo) o **Diagonale** (due livelli divisi da angolo ad angolo, come sul bordo di una scogliera), poi con le frecce la direzione in cui sale, poi i suoi livelli. Una piccola immagine mostra la casella dall'alto, e una riga dice se il gruppo può attraversarla a piedi. Va bene qualsiasi livello, non solo quelli che il luogo ha già: un'altezza che il luogo non ha ancora viene aggiunta quando salvi. Un luogo può avere fino a 256 altezze diverse; alcuni luoghi condividono lo stesso insieme (quello della schermata del titolo, per esempio) e allora condividono anche questo limite. ⌥-clic su una casella della mappa per copiarne l'altezza esatta, comprese quelle curve e sagomate che i pulsanti non fanno. Sotto, **Livelli di questo luogo** conta le caselle di ogni livello, il blu più scuro per il più alto; sulla mappa, un blu più scuro indica un terreno più alto, e il terreno più basso non ha blu, quindi un porto o una spiaggia in fondo alla mappa non ne mostra. **Avanzate** elenca anche tutte le altezze della tabella del luogo.
 
 Le altezze si contano in livelli, l'unità propria del gioco (un livello è 8 pixel, mezza casella). L'altezza influisce sul camminare oltre che sull'aspetto. Le persone stanno all'altezza del terreno su cui si trovano, e il gruppo può salire o scendere di un livello alla volta: due livelli o più fanno da muro. Le rampe collegano i livelli, e una casella di rampa può salirne due, quindi scale e pendii sono rampe messe una dopo l'altra. I gradini salgono allo stesso modo: un livello per metà. Per posare una scala, scegli **Rampa** o **Gradini**, spunta **Scala** e trascina nella direzione della salita: ogni casella sale dalla precedente.
 
@@ -432,7 +432,7 @@ Su Windows e Linux, usa Ctrl al posto di ⌘ e Alt al posto di ⌥.
 | ⌘Z | Annulla | Annulla |
 | ⇧⌘Z | Ripeti | Ripeti |
 | ⌘S | Salva | |
-| ⌥-clic | Prendi un blocco | Prendi un blocco o una regione |
+| ⌥-clic | Prendi un blocco, oppure in Calpestabilità e Altezza il pennello o l'altezza della casella | Prendi un blocco o una regione |
 | ⇧ mentre lasci | Aggancia le persone agli 8 pixel più vicini | |
 | Esc | Chiudi una finestra di dialogo, o torna a copiare nel Timbro | Chiudi una finestra di dialogo |
 

@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 7239c3b9c115 -->
+<!-- translated from README.md @ a64019bed749 -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · **Deutsch** · [Français](README.fr.md) · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -193,7 +193,7 @@ Die Werkzeuge Truhe, Türen und Ereignisse setzen die besonderen Codes, die sie 
 
 ## Höhe: wie hoch der Boden ist
 
-Drück auf **Höhe** (H). Oben im Bereich stellst du die Art Feld zusammen, die du malen willst: Wähl **Flach**, **Rampe**, **Stufen** (ein halbes Feld auf einer Ebene, eines auf der nächsten) oder **Diagonal** (zwei Ebenen, von Ecke zu Ecke geteilt, wie am Rand einer Klippe), dann mit den Pfeilen die Richtung, in die es ansteigt, dann seine Ebenen. Ein kleines Bild zeigt das Feld von oben, und eine Zeile sagt, ob die Gruppe darüber laufen kann. Jede Ebene geht, nicht nur die, die der Ort schon hat: Eine Höhe, die der Ort noch nicht hat, wird beim Speichern hinzugefügt. ⌥-klick auf ein Feld der Karte übernimmt seine Höhe genau, auch die gebogenen und geformten, die die Knöpfe nicht machen. Darunter zählt **Ebenen an diesem Ort** die Felder auf jeder Ebene, das dunkelste Blau für die höchste; auf der Karte bedeutet dunkleres Blau höheren Boden, und der niedrigste Boden hat gar kein Blau, ein Hafen oder Strand ganz unten zeigt also keins. **Erweitert** listet außerdem jede Höhe in der Tabelle des Ortes auf.
+Drück auf **Höhe** (H). Oben im Bereich stellst du die Art Feld zusammen, die du malen willst: Wähl **Flach**, **Rampe**, **Stufen** (ein halbes Feld auf einer Ebene, eines auf der nächsten) oder **Diagonal** (zwei Ebenen, von Ecke zu Ecke geteilt, wie am Rand einer Klippe), dann mit den Pfeilen die Richtung, in die es ansteigt, dann seine Ebenen. Ein kleines Bild zeigt das Feld von oben, und eine Zeile sagt, ob die Gruppe darüber laufen kann. Jede Ebene geht, nicht nur die, die der Ort schon hat: Eine Höhe, die der Ort noch nicht hat, wird beim Speichern hinzugefügt. Ein Ort kann bis zu 256 verschiedene Höhen haben; einige Orte teilen sich einen Satz (etwa den des Titelbildschirms) und damit auch diese Grenze. ⌥-klick auf ein Feld der Karte übernimmt seine Höhe genau, auch die gebogenen und geformten, die die Knöpfe nicht machen. Darunter zählt **Ebenen an diesem Ort** die Felder auf jeder Ebene, das dunkelste Blau für die höchste; auf der Karte bedeutet dunkleres Blau höheren Boden, und der niedrigste Boden hat gar kein Blau, ein Hafen oder Strand ganz unten zeigt also keins. **Erweitert** listet außerdem jede Höhe in der Tabelle des Ortes auf.
 
 Höhen werden in Ebenen gezählt, der eigenen Einheit des Spiels (eine Ebene sind 8 Pixel, ein halbes Feld). Die Höhe beeinflusst nicht nur das Aussehen, sondern auch das Laufen. Personen stehen auf der Höhe des Bodens unter ihnen, und die Gruppe kann immer nur eine Ebene hinauf- oder hinabgehen: Zwei Ebenen oder mehr wirken wie eine Wand. Rampen verbinden Ebenen, und ein Feld Rampe schafft zwei, also sind Treppen und Hänge aneinandergereihte Rampen. Stufen steigen genauso: eine Ebene pro Hälfte. Für eine Treppe wähl **Rampe** oder **Stufen**, kreuz **Treppe** an und zieh in Steigrichtung: Jedes Feld steigt vom letzten weiter.
 
@@ -432,7 +432,7 @@ Unter Windows und Linux nimmst du Strg statt ⌘ und Alt statt ⌥.
 | ⌘Z | Rückgängig | Rückgängig |
 | ⇧⌘Z | Wiederholen | Wiederholen |
 | ⌘S | Speichern | |
-| ⌥-Klick | Einen Block aufnehmen | Einen Block oder eine Region aufnehmen |
+| ⌥-Klick | Einen Block aufnehmen, oder in Begehbarkeit und Höhe den Pinsel oder die Höhe des Feldes | Einen Block oder eine Region aufnehmen |
 | ⇧ beim Ablegen | Personen auf die nächsten 8 Pixel einrasten | |
 | Esc | Einen Dialog schließen oder im Stempel zurück zum Kopieren | Einen Dialog schließen |
 

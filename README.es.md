@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 7239c3b9c115 -->
+<!-- translated from README.md @ a64019bed749 -->
 # GS Map Editor
 
 [English](README.md) · **Español** · [Deutsch](README.de.md) · [Français](README.fr.md) · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -193,7 +193,7 @@ Las herramientas Cofre, Puertas y Eventos ponen ellas mismas los códigos especi
 
 ## Altura: lo alto que está el suelo
 
-Pulsa **Altura** (H). Arriba del panel creas el tipo de casilla que quieres pintar: elige **Plana**, **Rampa**, **Escalones** (media casilla a un nivel y media al siguiente) o **Diagonal** (dos niveles divididos de esquina a esquina, como en el borde de un acantilado), luego con las flechas la dirección en que sube y luego sus niveles. Un pequeño dibujo muestra la casilla desde arriba, y una línea dice si el grupo puede cruzarla caminando. Sirve cualquier nivel, no solo los que ya tiene el lugar: una altura que el lugar aún no tiene se añade al guardar. Haz ⌥-clic en una casilla del mapa para copiar su altura exacta, incluidas las curvas y con forma que los botones no hacen. Debajo, **Niveles de este lugar** cuenta las casillas de cada nivel, con el azul más oscuro para el más alto; en el mapa, un azul más oscuro significa suelo más alto, y el suelo más bajo no tiene azul, así que un puerto o una playa al pie del mapa no muestra ninguno. **Avanzado** también muestra todas las alturas de la tabla del lugar.
+Pulsa **Altura** (H). Arriba del panel creas el tipo de casilla que quieres pintar: elige **Plana**, **Rampa**, **Escalones** (media casilla a un nivel y media al siguiente) o **Diagonal** (dos niveles divididos de esquina a esquina, como en el borde de un acantilado), luego con las flechas la dirección en que sube y luego sus niveles. Un pequeño dibujo muestra la casilla desde arriba, y una línea dice si el grupo puede cruzarla caminando. Sirve cualquier nivel, no solo los que ya tiene el lugar: una altura que el lugar aún no tiene se añade al guardar. Un lugar admite hasta 256 alturas distintas; algunos lugares comparten un mismo conjunto (el de la pantalla de título, por ejemplo) y entonces comparten también ese límite. Haz ⌥-clic en una casilla del mapa para copiar su altura exacta, incluidas las curvas y con forma que los botones no hacen. Debajo, **Niveles de este lugar** cuenta las casillas de cada nivel, con el azul más oscuro para el más alto; en el mapa, un azul más oscuro significa suelo más alto, y el suelo más bajo no tiene azul, así que un puerto o una playa al pie del mapa no muestra ninguno. **Avanzado** también muestra todas las alturas de la tabla del lugar.
 
 Las alturas se cuentan en niveles, la unidad propia del juego (un nivel son 8 píxeles, media casilla). La altura afecta a por dónde se camina además de a cómo se ve. Las personas están a la altura del suelo que pisan, y el grupo puede subir o bajar un nivel cada vez: dos niveles o más actúan como una pared. Las rampas unen niveles, y una casilla de rampa puede subir dos, así que las escaleras y las laderas son rampas puestas una tras otra. Los escalones suben igual: un nivel por mitad. Para hacer una escalera, elige **Rampa** o **Escalones**, marca **Escalera** y arrastra en la dirección en que sube: cada casilla sigue subiendo desde la anterior.
 
@@ -432,7 +432,7 @@ En Windows y Linux, usa Ctrl en lugar de ⌘ y Alt en lugar de ⌥.
 | ⌘Z | Deshacer | Deshacer |
 | ⇧⌘Z | Rehacer | Rehacer |
 | ⌘S | Guardar | |
-| ⌥-clic | Tomar un bloque | Tomar un bloque o una región |
+| ⌥-clic | Tomar un bloque, o en Zonas de paso y Altura el pincel o la altura de la casilla | Tomar un bloque o una región |
 | ⇧ al soltar | Ajustar personas a los 8 píxeles más cercanos | |
 | Esc | Cerrar un cuadro de diálogo, o volver a copiar en Sello | Cerrar un cuadro de diálogo |
 
