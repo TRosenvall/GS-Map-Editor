@@ -37,6 +37,9 @@ from . import table as tablemod
 
 EDITION = "TBS_EDITION_EN"
 EMPTY = 0xFFF
+# A cell's shape is one byte, and the game reads the table as four bytes a row
+# into Ram_MapGridShapes, with the tileset animation 0x1000 bytes on (map_grid.c).
+SHAPE_MAX = 256
 # Every value a cell holding a placeholder can have (cells are 16 bits): a
 # quick test of whether a grid row holds any.
 _PLACEHOLDERS = frozenset((top << 12) | EMPTY for top in range(16))
@@ -509,15 +512,46 @@ class Project:
             return []
         return [tuple(r[:3]) for r in t.rows if tuple(r[:3]) != (0xFF, 0xFF, 0xFF)]
 
-    def apply_edits(self, info, edits, marker_ops=None):
+    def apply_edits(self, info, edits, marker_ops=None, new_shapes=None):
         """Apply cell edits and save the grid TSVs.
 
         edits: [{"plane": "block"|"collision"|"shape", "x": gx, "y": gy,
         "value": int}] in 128x128 grid coordinates; block values are
         resolved block numbers with flags in the top nibble.
-        Returns {"saved": [paths], "warnings": [...]}. Raises ValueError,
-        with nothing written, when an invariant would break.
+        new_shapes: heights made in the editor and not yet in shapes.tsv, as
+        [kind, h0, h1, h2] (signed levels); a shape edit's value past the end of
+        the table names one of them, in order. Only those painted are added,
+        each reusing an identical row if the table has one.
+        Returns {"saved": [paths], "warnings": [...], "shapes": rows,
+        "remap": {editor value: saved value}}. Raises ValueError, with nothing
+        written, when an invariant would break.
         """
+        shape_path = info.source("SHAPES", "shapes.tsv")
+        shape_table, remap = None, {}
+        if new_shapes and any(e.get("plane") == "shape" for e in edits):
+            shape_table = tablemod.load(shape_path)
+            base = len(shape_table.rows)
+            for e in edits:
+                v = int(e["value"]) if e.get("plane") == "shape" else -1
+                if v < base or v in remap:
+                    continue
+                if v - base >= len(new_shapes):
+                    raise ValueError(tr("This place has no such height. Pick one from the Height panel."))
+                row = [int(n) & 0xFF for n in new_shapes[v - base][:4]]
+                if len(row) != 4 or not 0 <= row[0] <= 15:
+                    raise ValueError(f"shape {new_shapes[v - base]!r} isn't one the game can read")
+                if row in shape_table.rows:
+                    remap[v] = shape_table.rows.index(row)
+                else:
+                    if len(shape_table.rows) >= SHAPE_MAX:
+                        raise ValueError(tr("This place already has {n} heights, the most the game can hold. "
+                                            "Reuse one of them.", n=SHAPE_MAX))
+                    shape_table.append(row)
+                    remap[v] = len(shape_table.rows) - 1
+            edits = [dict(e, value=remap[int(e["value"])]) if e.get("plane") == "shape" and int(e["value"]) in remap
+                     else e for e in edits]
+            if len(shape_table.rows) == base:
+                shape_table = None  # every new height matched one already there
         grid = gridmod.load(info.grid_path())
         planes = {p: grid.plane(p) for p in gridmod.PLANES}
         blocks = self.resolve_placeholders(planes["metatile"].cells)
@@ -538,7 +572,7 @@ class Project:
                 g = planes[e["plane"]]
                 if not 0 <= v <= g.max_value:
                     raise ValueError(f"{e['plane']} value {v:#x} out of range")
-                if e["plane"] == "shape" and v >= len(self.shape_rows(info)):
+                if e["plane"] == "shape" and v >= (len(shape_table.rows) if shape_table else len(self.shape_rows(info))):
                     raise ValueError(tr("This place has no such height. Pick one from the Height panel."))
                 g.cells[y][x] = v
                 touched.add(e["plane"])
@@ -598,7 +632,15 @@ class Project:
         if "markers" in touched:
             marker_table.save()
             saved.append(marker_path)
-        return {"saved": saved, "warnings": warnings}
+        if shape_table is not None:
+            atomic_write(shape_path, shape_table.to_text())
+            self._parse_cache.pop(shape_path, None)
+            saved.append(shape_path)
+        out = {"saved": saved, "warnings": warnings}
+        if new_shapes:
+            out["shapes"] = self.shape_rows(info)
+            out["remap"] = remap
+        return out
 
     def shape_rows(self, info):
         """[kind, h0, h1, h2] per shape id, heights signed, in 8-px units

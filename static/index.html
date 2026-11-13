@@ -65,8 +65,21 @@
   #brushes button { display: flex; gap: 5px; align-items: center; padding: 3px 7px; font-size: 12px; }
   #brushes button.on { border-color: var(--accent); color: var(--accent); background: var(--sel); }
   #brushes i { width: 12px; height: 12px; border-radius: 2px; display: inline-block; border: 1px solid #0006; }
-  #heightPanel button { display: flex; gap: 6px; align-items: center; }
+  #heightPanel { padding: 0 10px 8px; display: flex; flex-direction: column; gap: 6px; }
+  #heightPanel .note { color: var(--muted); font-size: 12px; }
+  #heightPanel .muted { color: var(--muted); font-size: 12px; }
+  #heightPanel h3 { font-size: 12px; margin: 6px 0 0; color: var(--muted); font-weight: 600; }
+  .hb-row { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+  label.hb-row { flex-wrap: nowrap; align-items: flex-start; }
+  .hb-row button { padding: 3px 8px; font-size: 12px; }
+  .hb-row button.on, #hbAll button.on { border-color: var(--accent); color: var(--accent); background: var(--sel); }
+  .hb-row input[type=number] { width: 52px; }
+  #hbPreview { flex: none; width: 48px; height: 48px; image-rendering: pixelated; border: 1px solid #fff3; }
+  .hb-list { display: flex; flex-direction: column; gap: 2px; max-height: 220px; overflow: auto; }
+  .hb-tally { display: flex; gap: 6px; align-items: center; font-size: 12px; }
+  .hb-tally span { margin-left: auto; color: var(--muted); }
   #heightPanel i { flex: none; width: 12px; height: 12px; border-radius: 2px; border: 1px solid #fff3; }
+  #hbAll button { text-align: left; font-size: 12px; }
   body:not(.advanced) .adv { display: none !important; }
   .map .t { grid-column: 1 / 3; }
   #stampPanel, #chestPanel, #doorPanel { padding: 0 10px 10px; display: none; }

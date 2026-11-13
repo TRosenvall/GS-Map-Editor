@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 2037a84ce1a0 -->
+<!-- translated from README.md @ 7239c3b9c115 -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · **Deutsch** · [Français](README.fr.md) · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -193,9 +193,9 @@ Die Werkzeuge Truhe, Türen und Ereignisse setzen die besonderen Codes, die sie 
 
 ## Höhe: wie hoch der Boden ist
 
-Drück auf **Höhe** (H). Der Bereich listet die Höhen auf, die dieser Ort schon nutzt, die höchste zuerst, eine pro Ebene („Ebene 3“), und wenn du mit der Maus über eine fährst, siehst du, wie viele Felder sie nutzen. Rampen und geteilte Felder (halb eine Ebene, halb eine andere, wo eine Kante schräg verläuft) sind unter **Rampen und geteilte Felder** eingeklappt; mehrere können gleich klingen, zeigen aber in andere Richtungen, also ⌥-klick auf eins auf der Karte, um es genau zu übernehmen. **Erweitert** listet jede Höhe einzeln auf. Wähl eine aus und male. Auf der Karte bedeutet dunkleres Blau höheren Boden, und jede Höhe in der Liste zeigt ihren Farbton. Der niedrigste Boden des Ortes hat gar kein Blau, ein Hafen oder Strand ganz unten zeigt also keins.
+Drück auf **Höhe** (H). Oben im Bereich stellst du die Art Feld zusammen, die du malen willst: Wähl **Flach**, **Rampe**, **Stufen** (ein halbes Feld auf einer Ebene, eines auf der nächsten) oder **Diagonal** (zwei Ebenen, von Ecke zu Ecke geteilt, wie am Rand einer Klippe), dann mit den Pfeilen die Richtung, in die es ansteigt, dann seine Ebenen. Ein kleines Bild zeigt das Feld von oben, und eine Zeile sagt, ob die Gruppe darüber laufen kann. Jede Ebene geht, nicht nur die, die der Ort schon hat: Eine Höhe, die der Ort noch nicht hat, wird beim Speichern hinzugefügt. ⌥-klick auf ein Feld der Karte übernimmt seine Höhe genau, auch die gebogenen und geformten, die die Knöpfe nicht machen. Darunter zählt **Ebenen an diesem Ort** die Felder auf jeder Ebene, das dunkelste Blau für die höchste; auf der Karte bedeutet dunkleres Blau höheren Boden, und der niedrigste Boden hat gar kein Blau, ein Hafen oder Strand ganz unten zeigt also keins. **Erweitert** listet außerdem jede Höhe in der Tabelle des Ortes auf.
 
-Höhen werden in Ebenen gezählt, der eigenen Einheit des Spiels (eine Ebene sind 8 Pixel, ein halbes Feld). Die Höhe beeinflusst nicht nur das Aussehen, sondern auch das Laufen. Personen stehen auf der Höhe des Bodens unter ihnen, und die Gruppe kann immer nur eine Ebene hinauf- oder hinabgehen: Zwei Ebenen oder mehr wirken wie eine Wand. Rampen verbinden Ebenen, und ein Feld Rampe schafft zwei, also sind Treppen und Hänge aneinandergereihte Rampen.
+Höhen werden in Ebenen gezählt, der eigenen Einheit des Spiels (eine Ebene sind 8 Pixel, ein halbes Feld). Die Höhe beeinflusst nicht nur das Aussehen, sondern auch das Laufen. Personen stehen auf der Höhe des Bodens unter ihnen, und die Gruppe kann immer nur eine Ebene hinauf- oder hinabgehen: Zwei Ebenen oder mehr wirken wie eine Wand. Rampen verbinden Ebenen, und ein Feld Rampe schafft zwei, also sind Treppen und Hänge aneinandergereihte Rampen. Stufen steigen genauso: eine Ebene pro Hälfte. Für eine Treppe wähl **Rampe** oder **Stufen**, kreuz **Treppe** an und zieh in Steigrichtung: Jedes Feld steigt vom letzten weiter.
 
 ## Truhen
 

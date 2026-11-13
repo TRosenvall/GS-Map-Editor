@@ -48,4 +48,27 @@ with tempfile.TemporaryDirectory() as tmp:
         check(f"map {number}: walkability saved", p.load_grid(again, "collision").cells[y][x + 1] == 255)
         check(f"map {number}: collision under the block untouched", p.load_grid(again, "collision").cells[y][x] == col)
 
+    # New heights: only the painted ones are added, an identical row is reused,
+    # and painted squares are renumbered to the rows saved.
+    info = p.maps["002"]
+    rows = p.shape_rows(info)
+    base = len(rows)
+    x, y = info.bounds[0] // 2 + 5, info.bounds[1] // 2 + 5
+    out = p.apply_edits(info, [
+        {"plane": "shape", "x": x, "y": y, "value": base + 1},
+        {"plane": "shape", "x": x + 1, "y": y, "value": base + 2},
+    ], new_shapes=[[0, 99, 0, 0], [1, 60, 62, 0], list(rows[0])])
+    again = Project(tmp).maps["002"]
+    saved = p.shape_rows(again)
+    grid = p.load_grid(again, "shape").cells
+    check("new height: only the painted one is added", len(saved) == base + 1 and saved[base] == [1, 60, 62, 0])
+    check("new height: the square points at it", grid[y][x] == base)
+    check("new height: an identical row is reused", grid[y][x + 1] == 0)
+    check("new height: the editor is told the renumbering", out.get("remap") == {base + 1: base, base + 2: 0})
+    try:
+        p.apply_edits(info, [{"plane": "shape", "x": x, "y": y, "value": base + 9}], new_shapes=[[0, 1, 0, 0]])
+        check("a height that was never made is refused", False)
+    except ValueError:
+        check("a height that was never made is refused", True)
+
 sys.exit(1 if failed else 0)

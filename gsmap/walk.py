@@ -153,9 +153,11 @@ class Walk:
     placements stand on: Event_SpawnActorPlacements reads its height).
 
     Positions are map pixels, as actor placements and entrances store them.
-    `edits` is a list of {plane, x, y, value} grid edits not yet saved."""
+    `edits` is a list of {plane, x, y, value} grid edits not yet saved, and
+    `shapes` the heights made in the editor but not yet saved, as
+    [kind, h0, h1, h2] after the table's own (shape edits name them by index)."""
 
-    def __init__(self, project, info, events, entrances, edits=()):
+    def __init__(self, project, info, events, entrances, edits=(), shapes=()):
         self.info = info
         self.ox, self.oz = project.layer_origin(info, 0)
         self.x0, self.z0 = info.bounds[0] * 8, info.bounds[1] * 8
@@ -167,6 +169,7 @@ class Walk:
             if grid is not None:
                 grid[int(e["y"])][int(e["x"])] = int(e["value"])
         self.rows = [[v + 256 if v < 0 else v for v in r] for r in project.shape_rows(info)]
+        self.rows += [[int(v) & 0xFF for v in r[:4]] for r in shapes or ()]
         self.lerp, self.index = _tables(project.root)
         self.events = events
         self.entrances = entrances

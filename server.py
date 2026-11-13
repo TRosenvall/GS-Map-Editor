@@ -163,13 +163,13 @@ def make_handler(project, token=None, local_only=True):
                 state["warming"] = False
         threading.Thread(target=work, daemon=True).start()
 
-    def walk_for(n, sid, table=None, edits=()):
+    def walk_for(n, sid, table=None, edits=(), shapes=()):
         """The walking graph of map n for scene sid, kept until a save changes
         anything (or built afresh around unsaved edits)."""
         def make():
             info = project.maps[n]
             events = EventEditor(project, scenes(), names).describe(info, sid, table)["events"]
-            return Walk(project, info, events, DoorEditor(project, scenes(), names).entrances(sid), edits)
+            return Walk(project, info, events, DoorEditor(project, scenes(), names).entrances(sid), edits, shapes)
         if edits:
             return make()
         return cache.get(("walk", n, sid, table, i18n.current()), make)  # its words are in one language
@@ -660,13 +660,15 @@ def make_handler(project, token=None, local_only=True):
                     with writing(N_("moving a chest") if body.get("markers") and not body.get("edits") else N_("your painting"), n):
                         try:
                             result = project.apply_edits(
-                                project.maps[n], body.get("edits", []), body.get("markers", [])
+                                project.maps[n], body.get("edits", []), body.get("markers", []), body.get("shapes")
                             )
                         except ValueError as e:
                             fsio.abort()
                             return self.send_json({"error": str(e)}, 409)
+                        here = project.maps[n]
                         same = {o.number for o in project.maps.values()
-                                if o.grid_path() == project.maps[n].grid_path()}
+                                if o.grid_path() == here.grid_path()
+                                or o.source("SHAPES", "shapes.tsv") == here.source("SHAPES", "shapes.tsv")}
                         cache.drop(lambda k: k[1] in same and k[0] != "atlas")  # tiles are unchanged
                     result["saved"] = [os.path.relpath(s, project.root) for s in result["saved"]]
                     return self.send_json(result)
@@ -725,7 +727,7 @@ def make_handler(project, token=None, local_only=True):
                 if m and m.group(1) in project.maps:
                     n = m.group(1)
                     try:
-                        w = walk_for(n, int(body["scene"]), body.get("table"), body.get("edits") or ())
+                        w = walk_for(n, int(body["scene"]), body.get("table"), body.get("edits") or (), body.get("shapes") or ())
                     except (KeyError, ValueError, StopIteration) as e:
                         return self.send_json({"error": tr("Can't work out where people can walk here: {why}", why=e)}, 409)
                     if not m.group(2):

@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 2037a84ce1a0 -->
+<!-- translated from README.md @ 7239c3b9c115 -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · [Deutsch](README.de.md) · [Français](README.fr.md) · **Italiano** · [日本語](README.ja.md)
@@ -193,9 +193,9 @@ Gli strumenti Forziere, Porte ed Eventi impostano da soli i codici speciali di c
 
 ## Altezza: quanto è alto il terreno
 
-Premi **Altezza** (H). Il pannello elenca le altezze che questo luogo usa già, dalla più alta, una per livello ("Livello 3"), e passandoci sopra con il mouse vedi quante caselle la usano. Le rampe e le caselle divise (metà di un livello e metà di un altro, dove un bordo corre in diagonale) sono raccolte sotto **Rampe e caselle divise**; diverse possono leggersi uguali ma essere girate in altro modo, quindi ⌥-clic su una nella mappa per copiarla esattamente. **Avanzate** elenca ogni altezza a sé. Scegline una e dipingi. Sulla mappa, un blu più scuro indica un terreno più alto, e ogni altezza dell'elenco mostra la sua tonalità. Il terreno più basso del luogo non ha blu, quindi un porto o una spiaggia in fondo alla mappa non ne mostra.
+Premi **Altezza** (H). In cima al pannello componi il tipo di casella da dipingere: scegli **Piana**, **Rampa**, **Gradini** (mezza casella a un livello, mezza al successivo) o **Diagonale** (due livelli divisi da angolo ad angolo, come sul bordo di una scogliera), poi con le frecce la direzione in cui sale, poi i suoi livelli. Una piccola immagine mostra la casella dall'alto, e una riga dice se il gruppo può attraversarla a piedi. Va bene qualsiasi livello, non solo quelli che il luogo ha già: un'altezza che il luogo non ha ancora viene aggiunta quando salvi. ⌥-clic su una casella della mappa per copiarne l'altezza esatta, comprese quelle curve e sagomate che i pulsanti non fanno. Sotto, **Livelli di questo luogo** conta le caselle di ogni livello, il blu più scuro per il più alto; sulla mappa, un blu più scuro indica un terreno più alto, e il terreno più basso non ha blu, quindi un porto o una spiaggia in fondo alla mappa non ne mostra. **Avanzate** elenca anche tutte le altezze della tabella del luogo.
 
-Le altezze si contano in livelli, l'unità propria del gioco (un livello è 8 pixel, mezza casella). L'altezza influisce sul camminare oltre che sull'aspetto. Le persone stanno all'altezza del terreno su cui si trovano, e il gruppo può salire o scendere di un livello alla volta: due livelli o più fanno da muro. Le rampe collegano i livelli, e una casella di rampa può salirne due, quindi scale e pendii sono rampe messe una dopo l'altra.
+Le altezze si contano in livelli, l'unità propria del gioco (un livello è 8 pixel, mezza casella). L'altezza influisce sul camminare oltre che sull'aspetto. Le persone stanno all'altezza del terreno su cui si trovano, e il gruppo può salire o scendere di un livello alla volta: due livelli o più fanno da muro. Le rampe collegano i livelli, e una casella di rampa può salirne due, quindi scale e pendii sono rampe messe una dopo l'altra. I gradini salgono allo stesso modo: un livello per metà. Per posare una scala, scegli **Rampa** o **Gradini**, spunta **Scala** e trascina nella direzione della salita: ogni casella sale dalla precedente.
 
 ## Forzieri
 

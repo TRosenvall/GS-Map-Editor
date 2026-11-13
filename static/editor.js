@@ -90,6 +90,7 @@ async function openMap(n) {
   if (!S.map || S.map.number !== n) forgetPlace();
   S.failed = null;
   S.map = map; save('map', n);
+  map.shapesSaved = map.shapes.length;  // heights past this are new, added on Save
   if (S.block != null && (S.block >= map.metatile_count || map.retired?.includes(S.block))) S.block = null;
   S.pending.clear(); S.markerMoves.clear(); S.tableEdits.clear(); S.undo = []; S.redo = [];
   const bases = [...new Set(map.layers.filter(l => l.priority).map(l => l.char_base))];
@@ -171,64 +172,189 @@ function collisionColor(v) {
   return `hsla(${(v * 47) % 360},80%,55%,0.45)`;
 }
 
-// Heights as the map uses them, tallest first; ⌥-click copies one from the map.
-// The list shows each level once: the place's table can hold several rows that
-// read the same (one per kind of flat, or a split facing another way), so each
-// button stands for a group and paints its most-used row. Ramps and split
-// squares sit in a folded section; Advanced lists every row on its own.
+// ---- height: square types, levels and stairs ----------------------------------
+// A square's height is a row of the place's shape table: a kind (the pattern)
+// and up to three samples, each a level (8 pixels, the game's unit and the most
+// the party can step up). The panel builds a square type from a pattern,
+// a direction and levels; painting finds that row in the table or makes it,
+// and Save adds the rows made here (project.apply_edits). ⌥-click copies a
+// square's exact row. The list below the builder is only a tally.
+const HB_ROWS = {  // pattern -> direction -> [kind, which sample is low first]
+  ramp: { right: [1, true], left: [1, false], down: [2, true], up: [2, false] },
+  steps: { right: [8, true], left: [8, false], down: [9, true], up: [9, false] },
+  diagonal: { se: [3, true], nw: [3, false], sw: [4, true], ne: [4, false] },
+};
+const HB_FLAT = new Set([0, 14, 15]);
+const lvSigned = v => (v > 127 ? v - 256 : v);
+function hbRow(hb, lift = 0) {
+  const lo = hb.low + lift, hi = hb.high + lift;
+  if (hb.pattern === 'flat') return [0, lo, 0, 0];
+  const [kind, lowFirst] = HB_ROWS[hb.pattern][hb.dir];
+  return lowFirst ? [kind, lo, hi, 0] : [kind, hi, lo, 0];
+}
+// The builder's reading of a table row, or 'copied' for patterns it can't make.
+function hbFromRow(r) {
+  const k = r[0] & 15, a = lvSigned(r[1]), b = lvSigned(r[2]);
+  if (HB_FLAT.has(k)) return { pattern: 'flat', dir: 'right', low: a, high: a + 2 };
+  for (const [pattern, dirs] of Object.entries(HB_ROWS))
+    for (const [dir, [kind, lowFirst]] of Object.entries(dirs))
+      if (kind === k && (lowFirst ? a <= b : a > b)) return { pattern, dir, low: Math.min(a, b), high: Math.max(a, b) };
+  return { pattern: 'copied', dir: 'right', low: Math.min(a, b), high: Math.max(a, b) };
+}
+// The table row for a square type: the first identical one, else a new one
+// kept with the place until Save adds it (or until the place is reloaded).
+function findShape(row) {
+  return S.map.shapes.findIndex(r => r && r[0] === row[0] && r[1] === row[1] && r[2] === row[2] && (r[3] ?? 0) === (row[3] ?? 0));
+}
+function shapeIndex(row) {
+  const m = S.map, i = findShape(row);
+  if (i >= 0) return i;
+  if (m.shapes.length >= 256) return null;  // the game reads one byte per square
+  m.shapes.push(row.slice());
+  return m.shapes.length - 1;
+}
+function pendingShapes() { const m = S.map; return m ? m.shapes.slice(m.shapesSaved) : []; }
+function describeShape(r) {
+  if (!r) return T('Unknown height');
+  const k = r[0] & 15, a = lvSigned(r[1]), b = lvSigned(r[2]);
+  if (HB_FLAT.has(k)) return T('Level {n}', { n: a });
+  if (k === 1) return T('Ramp, level {a} to {b}, left to right', { a, b });
+  if (k === 2) return T('Ramp, level {a} to {b}, top to bottom', { a, b });
+  if (k === 8) return T('Steps, left half level {a}, right half level {b}', { a, b });
+  if (k === 9) return T('Steps, top half level {a}, bottom half level {b}', { a, b });
+  if (k === 3) return T('Diagonal, top-left level {a}, bottom-right level {b}', { a, b });
+  if (k === 4) return T('Diagonal, top-right level {a}, bottom-left level {b}', { a, b });
+  const ls = (k === 7 ? r.slice(1, 3) : r.slice(1, 4)).map(lvSigned);
+  return T('Shaped, levels {a} to {b}', { a: Math.min(...ls), b: Math.max(...ls) });
+}
+// Height in levels at pixel (x, y) of a square, for the builder's picture
+// (walk.py's height_at for the kinds the builder makes; others read flat).
+function shapeLevelAt(r, x, y) {
+  const k = r[0] & 15, a = lvSigned(r[1]), b = lvSigned(r[2]);
+  if (k === 1) return a + (b - a) * x / 15;
+  if (k === 2) return a + (b - a) * y / 15;
+  if (k === 8) return x < 8 ? a : b;
+  if (k === 9) return y < 8 ? a : b;
+  if (k === 3) return x + y === 15 ? Math.max(a, b) : x + y < 15 ? a : b;
+  if (k === 4) return y - x === 0 ? Math.max(a, b) : y < x ? a : b;
+  return HB_FLAT.has(k) ? a : Math.max(a, b);
+}
+// Whether the party can cross a square of this type: one level a step, and
+// the game looks a step (half a square) ahead, so a ramp climbs two a square.
+function hbWalkable(hb) {
+  const d = Math.abs(hb.high - hb.low);
+  return hb.pattern === 'flat' || (hb.pattern === 'ramp' ? d <= 2 : d <= 1);
+}
+// Levels one square of stairs climbs: a ramp's whole rise, steps' two halves.
+function hbClimb(hb) { return hb.pattern === 'ramp' ? hb.high - hb.low : 2 * (hb.high - hb.low); }
+
+// The brush's row for square (gx, gy): with Stairs on, each square further
+// along the rising direction from where the stroke began is a flight higher.
+function shapeBrushAt(gx, gy) {
+  const hb = S.hb;
+  if (!hb || !hb.stairs || !['ramp', 'steps'].includes(hb.pattern) || hb.exact != null) return parseInt($('#value').value, 16);
+  if (!S.climbFrom) S.climbFrom = [gx, gy];
+  const dx = gx - S.climbFrom[0], dy = gy - S.climbFrom[1];
+  const k = { right: dx, left: -dx, down: dy, up: -dy }[hb.dir], lift = k * hbClimb(hb);
+  if (Math.max(hb.low, hb.high) + lift > 127 || Math.min(hb.low, hb.high) + lift < -128) return undefined;  // past the game's levels
+  return shapeIndex(hbRow(hb, lift));
+}
+
+function setHeightBrush(change) {
+  const hb = S.hb, m = S.map;
+  Object.assign(hb, change, { exact: null });
+  if (hb.pattern === 'copied') hb.pattern = 'flat';
+  if (hb.pattern === 'diagonal' && !HB_ROWS.diagonal[hb.dir]) hb.dir = 'se';
+  if (hb.pattern !== 'diagonal' && hb.pattern !== 'flat' && !HB_ROWS.ramp[hb.dir]) hb.dir = 'right';
+  hb.low = Math.max(-128, Math.min(127, Math.round(hb.low) || 0));
+  hb.high = Math.max(-128, Math.min(127, Math.round(hb.high) || 0));
+  const v = shapeIndex(hbRow(hb));
+  if (v == null) { status(`<span class="err">${T('This place already has {n} heights, the most the game can hold. Reuse one of them.', { n: 256 })}</span>`); return; }
+  $('#value').value = hex(v);
+  buildHeightPanel();
+}
+
 function buildHeightPanel() {
   const box = $('#heightPanel'), m = S.map; if (!m) return;
+  let current = parseInt($('#value').value, 16);
+  if (!(current < m.shapes.length)) { $('#value').value = ''; current = NaN; }  // another place's height
   const used = new Map();
   for (const row of m.grids.shape || []) for (const v of row) used.set(v, (used.get(v) || 0) + 1);
-  // A level is the game's own height unit, 8 pixels (a shape row's signed
-  // samples), and also the most the party can step up (walk.py's STEP_UP).
-  const lv = v => (v > 127 ? v - 256 : v);
-  const FLAT = new Set([0, 14, 15]), TWO = new Set([3, 4, 7, 8, 9]);  // kinds; TWO read two samples
-  const describe = v => {
-    const r = m.shapes?.[v]; if (!r) return [T('Height {v}', { v }), false];
-    const k = r[0] & 15;
-    if (FLAT.has(k)) return [T('Level {n}', { n: lv(r[1]) }), true];
-    if (k === 1) return [T('Ramp, level {a} to {b}, left to right', { a: lv(r[1]), b: lv(r[2]) }), false];
-    if (k === 2) return [T('Ramp, level {a} to {b}, top to bottom', { a: lv(r[1]), b: lv(r[2]) }), false];
-    const ls = (TWO.has(k) ? r.slice(1, 3) : r.slice(1, 4)).map(lv);
-    return [T('Split, levels {a} and {b}', { a: Math.max(...ls), b: Math.min(...ls) }), false];
-  };
+  if (isNaN(current)) {  // start from this place's commonest flat ground
+    const flat = [...used].filter(([v]) => m.shapes[v] && HB_FLAT.has(m.shapes[v][0] & 15)).sort((a, b) => b[1] - a[1])[0];
+    if (flat) { current = flat[0]; $('#value').value = hex(current); }
+  }
+  S.hb ||= { pattern: 'flat', dir: 'right', low: 0, high: 2, stairs: false, exact: null };
+  const hb = S.hb;
+  // A value set from outside the builder (⌥-click, Advanced) is read back exactly.
+  if (!isNaN(current) && hb.exact !== current) {
+    const same = hb.exact == null && findShape(hbRow(hb)) === current;
+    if (!same) Object.assign(hb, hbFromRow(m.shapes[current]), { exact: current });
+  }
   const shade = heightShade(m);
-  const order = [...used.keys()].sort((a, b) => cellHeightPx(m.shapes?.[b]) - cellHeightPx(m.shapes?.[a]) || used.get(b) - used.get(a));
-  const groups = new Map();  // label -> {flat, rows}, rows most-used first among equals
-  for (const v of order) {
-    const [d, flat] = S.advanced ? [`${describe(v)[0]} [${hex(v)}]`, describe(v)[1]] : describe(v);
-    if (!groups.has(d)) groups.set(d, { flat, rows: [] });
-    groups.get(d).rows.push(v);
+  const choice = (group, value, label, title) =>
+    `<button data-${group}="${value}" title="${esc(title || '')}" class="${hb[group] === value ? 'on' : ''}">${label}</button>`;
+  const PATTERNS = [['flat', T('Flat')], ['ramp', T('Ramp')], ['steps', T('Steps')], ['diagonal', T('Diagonal')]];
+  const DIRS = hb.pattern === 'diagonal'
+    ? [['se', '↘', T('High corner bottom-right')], ['sw', '↙', T('High corner bottom-left')], ['ne', '↗', T('High corner top-right')], ['nw', '↖', T('High corner top-left')]]
+    : [['right', '→', T('Rising to the right')], ['left', '←', T('Rising to the left')], ['down', '↓', T('Rising downwards')], ['up', '↑', T('Rising upwards')]];
+  const num = (key, value) => `<input type="number" data-level="${key}" value="${value}" min="-128" max="127" step="1">`;
+  const levels = hb.pattern === 'flat' || hb.pattern === 'copied'
+    ? `<label>${T('Level')} ${num('low', hb.low)}</label>`
+    : `<label>${T('From level')} ${num('low', hb.low)}</label> <label>${T('to')} ${num('high', hb.high)}</label>`;
+  const row = isNaN(current) ? null : m.shapes[current];
+  const isNew = !isNaN(current) && current >= m.shapesSaved;
+  const walkable = hbWalkable(hb);
+  const canStairs = ['ramp', 'steps'].includes(hb.pattern) && hb.exact == null;
+  const html = [
+    `<div class="note">${T('Pick a square type, then paint, or ⌥-click the map to copy one. The party can walk up or down one level at a time; two levels or more is a wall. Ramps join levels: one square of ramp can climb two.')} ${T('On the map, darker blue is higher ground; the lowest ground here has none.')}</div>`,
+    `<div class="hb-row">${PATTERNS.map(([v, t]) => choice('pattern', v, esc(t))).join('')}</div>`,
+    hb.pattern === 'flat' || hb.pattern === 'copied' ? '' : `<div class="hb-row">${DIRS.map(([v, a, t]) => choice('dir', v, a, t)).join('')}</div>`,
+    hb.pattern === 'copied' ? `<div class="note">${esc(T('Copied from the map: {what}', { what: describeShape(row) }))}</div>` : `<div class="hb-row">${levels}</div>`,
+    `<div class="hb-row"><canvas id="hbPreview" width="48" height="48"></canvas><div>
+       <div>${esc(row ? describeShape(row) : T('Pick a square type'))}${S.advanced && row ? ` [${hex(current)}]` : ''}</div>
+       <div class="${walkable ? 'ok' : 'warn'}">${walkable ? T('The party can walk across it.') : T('Too steep to walk: it works as a wall.')}</div>
+       ${isNew ? `<div class="muted">${T('New height: added to this place when you save.')}</div>` : ''}
+     </div></div>`,
+    canStairs ? `<label class="hb-row" title="${esc(T('Drag in the rising direction: each square climbs on from the last, so one drag paints a whole staircase.'))}"><input type="checkbox" id="hbStairs" ${hb.stairs ? 'checked' : ''}><span style="flex:1;min-width:0">${T('Stairs: keep climbing as I drag ({n} levels a square)', { n: hbClimb(hb) })}</span></label>` : '',
+  ];
+  // The tally: squares per level, flat ground only; everything else in one line.
+  const tally = new Map(); let shaped = 0;
+  for (const [v, n] of used) {
+    const r = m.shapes[v];
+    if (r && HB_FLAT.has(r[0] & 15)) { const l = lvSigned(r[1]); const t = tally.get(l) || { n: 0, v }; t.n += n; tally.set(l, t); }
+    else shaped += n;
   }
-  for (const g of groups.values()) g.rows.sort((a, b) => used.get(b) - used.get(a));
-  let current = parseInt($('#value').value, 16);
-  if (current >= (m.shapes?.length ?? Infinity)) { $('#value').value = ''; current = NaN; }  // another place's height
-  box.innerHTML = localWords(`<div class="note" style="padding:0 10px 6px;color:var(--muted);font-size:12px">${T('Pick a height, then paint, or ⌥-click the map to copy one. The party can walk up or down one level at a time; two levels or more is a wall. Ramps join levels: one square of ramp can climb two.')} ${T('On the map, darker blue is higher ground; the lowest ground here has none.')}</div>`);
-  const column = 'display:flex;flex-direction:column;gap:3px';
-  const button = (d, g) => {
-    const b = document.createElement('button'), n = g.rows.reduce((t, v) => t + used.get(v), 0);
-    b.innerHTML = `<i style="background:${shade(g.rows[0]) || 'transparent'}"></i>`; b.append(d);
-    b.title = n === 1 ? T('1 square here uses this height.') : T('{n} squares here use this height.', { n });
-    b.style.textAlign = 'left';
-    if (g.rows.includes(current)) b.style.borderColor = 'var(--accent)';
-    b.onclick = () => { $('#value').value = hex(g.rows[0]); buildHeightPanel(); };
-    return b;
-  };
-  const list = document.createElement('div'); list.style.cssText = column + ';padding:0 10px 8px;max-height:280px;overflow:auto';
-  const more = document.createElement('details'), inner = document.createElement('div');
-  inner.style.cssText = column + ';margin-top:4px';
-  for (const [d, g] of groups) (g.flat ? list : inner).appendChild(button(d, g));
-  if (inner.children.length) {
-    more.open = !!S.heightMoreOpen || [...groups.values()].some(g => !g.flat && g.rows.includes(current));
-    more.ontoggle = () => { S.heightMoreOpen = more.open; };
-    more.innerHTML = `<summary style="cursor:pointer;color:var(--muted);margin-top:4px">${esc(T('Ramps and split squares ({n})', { n: inner.children.length }))}</summary>`;
-    const note = document.createElement('div');
-    note.style.cssText = 'color:var(--muted);font-size:12px;margin:4px 0';
-    note.textContent = T('These join levels. Several can read the same but face other ways: ⌥-click one on the map to copy it exactly.');
-    more.append(note, inner); list.appendChild(more);
+  const lines = [...tally].sort((a, b) => b[0] - a[0]).map(([l, t]) =>
+    `<div class="hb-tally"><i style="background:${shade(t.v) || 'transparent'}"></i>${esc(T('Level {n}', { n: l }))}<span>${t.n === 1 ? T('1 square') : T('{n} squares', { n: t.n })}</span></div>`);
+  if (shaped) lines.push(`<div class="hb-tally"><i></i>${esc(T('Ramps, steps and other shapes'))}<span>${shaped === 1 ? T('1 square') : T('{n} squares', { n: shaped })}</span></div>`);
+  html.push(`<h3>${T('Levels in this place')}</h3><div class="hb-list">${lines.join('')}</div>`);
+  if (S.advanced) {
+    const all = [...m.shapes.keys()].map(v => `<button data-row="${v}" class="${v === current ? 'on' : ''}" title="${esc(T('{n} squares here use this height.', { n: used.get(v) || 0 }))}">[${hex(v)}] ${esc(describeShape(m.shapes[v]))}</button>`);
+    html.push(`<details id="hbAll" ${S.heightMoreOpen ? 'open' : ''}><summary>${T('Every height in the table ({n})', { n: m.shapes.length })}</summary><div class="hb-list">${all.join('')}</div></details>`);
   }
-  box.appendChild(list);
+  box.innerHTML = localWords(html.join(''));
+  box.querySelectorAll('[data-pattern]').forEach(b => b.onclick = () => {
+    const p = b.dataset.pattern, base = hb.pattern === 'flat' || hb.pattern === 'copied' ? hb.low : Math.min(hb.low, hb.high);
+    setHeightBrush({ pattern: p, low: base, high: base + (p === 'ramp' ? 2 : 1) });
+  });
+  box.querySelectorAll('[data-dir]').forEach(b => b.onclick = () => setHeightBrush({ dir: b.dataset.dir }));
+  box.querySelectorAll('[data-level]').forEach(inp => inp.onchange = () => {
+    const v = +inp.value, ch = { [inp.dataset.level]: v };
+    if (inp.dataset.level === 'low') ch.high = hb.pattern === 'flat' || hb.pattern === 'copied' ? v + 2 : hb.high + (v - hb.low);  // keep the rise
+    setHeightBrush(ch);
+  });
+  box.querySelectorAll('[data-row]').forEach(b => b.onclick = () => { $('#value').value = hex(+b.dataset.row); buildHeightPanel(); });
+  const st = $('#hbStairs'); if (st) st.onchange = () => { hb.stairs = st.checked; };
+  const all = $('#hbAll'); if (all) all.ontoggle = () => { S.heightMoreOpen = all.open; };
+  // The picture: the square seen from above, lighter where it's lower.
+  const cv = $('#hbPreview'), g = cv.getContext('2d');
+  g.fillStyle = '#000'; g.fillRect(0, 0, 48, 48);
+  if (row) {
+    const ls = [...Array(256).keys()].map(i => shapeLevelAt(row, i % 16, i >> 4));
+    const lo = Math.min(...ls), span = Math.max(...ls) - lo || 1;
+    ls.forEach((l, i) => { g.fillStyle = `rgba(80,160,255,${(0.2 + 0.8 * (l - lo) / span).toFixed(2)})`; g.fillRect((i % 16) * 3, (i >> 4) * 3, 3, 3); });
+  }
 }
 // Height's blue grows with the ground's real height, from this place's lowest
 // ground (no blue) to its highest; the height numbers themselves are only table rows.
@@ -497,7 +623,10 @@ function paintAt(x, y) {
     if ($('#value').value.trim() === '') return status(`<span class="warn">${S.tool === 'shape' ? T('Pick a height on the right first.') : T('Pick a brush on the right first.')}</span>`);
     if (isNaN(v) || v < 0 || v > 0xff) return status(`<span class="err">${T('That value should be 0 to ff.')}</span>`);
     if (S.tool === 'collision' && m.markers?.some(k => k.x === gx && k.z === gy)) return status(`<span class="warn">${T('That square holds a chest or stone. Move or remove it first.')}</span>`);
-    setValue(S.tool, gx, gy, v);
+    const value = S.tool === 'shape' ? shapeBrushAt(gx, gy) : v;
+    if (value === undefined) return status(`<span class="warn">${T('The stairs have reached the highest or lowest level the game can hold.')}</span>`);
+    if (value == null) return status(`<span class="err">${T('This place already has {n} heights, the most the game can hold. Reuse one of them.', { n: 256 })}</span>`);
+    setValue(S.tool, gx, gy, value);
   }
   redrawCells([[x, y]]);
 }
@@ -666,7 +795,7 @@ $('#cv').addEventListener('mousedown', e => {
     return;
   }
   if ($('#fill').checked && ['block', 'collision', 'shape'].includes(S.tool)) { S.stroke = []; fillAt(x, y); finishStroke(); return; }
-  painting = true; S.stroke = []; lastCell = `${x},${y}`; paintAt(x, y);
+  painting = true; S.stroke = []; S.climbFrom = null; lastCell = `${x},${y}`; paintAt(x, y);
 });
 window.addEventListener('mouseup', e => {
   if (painting) { painting = false; finishStroke(); }
@@ -1090,7 +1219,7 @@ function stampUp() {
   const layers = m.layers.map(l => l.priority ? l : null);
   const testers = layers.map((l, i) => l && i > 0 ? objectTester(l) : null);
   const clip = { w, h, from: (S.maps.find(o => o.number === m.number) || {}).label || T('map {n}', { n: m.number }), map: m.number,
-    hash: m.metatiles_hash, family: m.family, familySize: m.family_size, layers: [], object: [] };
+    hash: m.metatiles_hash, family: m.family, familySize: m.family_size, layers: [], object: [], shapeRows: m.shapes.slice() };
   for (let li = 0; li < layers.length; li++) {
     const l = layers[li];
     clip.layers.push(l ? { block: [], collision: [], shape: [] } : null);
@@ -1162,6 +1291,8 @@ function pasteStamp(x, y) {
   const bad = c.layers.filter(Boolean).some(L => L.block.flat().some(v => v != null && retired.has(v & 0xfff)));
   if (bad) return status(`<span class="err">${T('This stamp uses blocks this map retired to make room for custom tiles, so they would draw the wrong art here.')}</span>`);
   const objOnly = $('#stampObjects').checked, walk = $('#stampWalk').checked;
+  // A height is a row number in each place's own table: pasted elsewhere, find or make the same row.
+  const heightHere = v => c.map === m.number || !c.shapeRows?.[v] ? v : shapeIndex(c.shapeRows[v]);
   S.stroke = [];
   const cells = [];
   for (let j = 0; j < c.h; j++) for (let i = 0; i < c.w; i++) {
@@ -1173,7 +1304,7 @@ function pasteStamp(x, y) {
       if (L.block[j][i] == null) return;
       const [gx, gy] = gridXY(m.layers[li], tx, ty);
       setValue('block', gx, gy, L.block[j][i]);
-      if (walk && L.collision) { setValue('collision', gx, gy, L.collision[j][i]); setValue('shape', gx, gy, L.shape[j][i]); }
+      if (walk && L.collision) { setValue('collision', gx, gy, L.collision[j][i]); const h = heightHere(L.shape[j][i]); if (h != null) setValue('shape', gx, gy, h); }
     });
     cells.push([tx, ty]);
   }
@@ -1454,10 +1585,10 @@ async function loadStand() {
   const sc = scene();
   $('#standLegend').style.display = $('#ovStand').checked ? '' : 'none';
   if (!S.map || !sc || !$('#ovStand').checked) { WK.cells = null; return; }
-  const edits = walkEdits(), key = `${S.map.number}:${sc.id}:${EV.stage}:${JSON.stringify(edits)}`;
+  const edits = walkEdits(), shapes = pendingShapes(), key = `${S.map.number}:${sc.id}:${EV.stage}:${JSON.stringify(edits)}:${JSON.stringify(shapes)}`;
   if (key === WK.key && WK.cells) return;
   WK.key = key;
-  const r = await api(`/api/map/${S.map.number}/walk`, { scene: sc.id, table: EV.stage, edits });
+  const r = await api(`/api/map/${S.map.number}/walk`, { scene: sc.id, table: EV.stage, edits, shapes });
   if (WK.key !== key) return;
   if (r.error) { WK.cells = null; status(`<span class="err">${esc(r.error)}</span>`); drawAll(); return; }
   WK.cells = r.cells; WK.size = r.size;
@@ -1481,7 +1612,7 @@ function drawStand(ctx) {
   for (const [, p, c] of cells) { ctx.fillStyle = c; ctx.fillRect(p[0] * s, p[1] * s, s, s); }
 }
 function checkSpot(x, z, actor) {
-  return api(`/api/map/${S.map.number}/walk/check`, { scene: scene().id, table: EV.stage, x, z, actor, edits: walkEdits() });
+  return api(`/api/map/${S.map.number}/walk/check`, { scene: scene().id, table: EV.stage, x, z, actor, edits: walkEdits(), shapes: pendingShapes() });
 }
 function problemList(r) {
   return `<ul style="margin:4px 0 6px 18px;padding:0">${r.problems.map(p => `<li>${esc(p.text)}</li>`).join('')}</ul>`;
@@ -1925,8 +2056,10 @@ async function doSave() {
     updateButtons(); drawAll();
     status(`<span class="ok">${T('Saved.')}</span> ${T('Press ▶ Play to try it.')}`); refreshUndoSave(); return;
   }
-  const r = await api(`/api/map/${S.map.number}/edits`, { edits: sent, markers });
+  const newShapes = pendingShapes();
+  const r = await api(`/api/map/${S.map.number}/edits`, newShapes.length ? { edits: sent, markers, shapes: newShapes } : { edits: sent, markers });
   if (r.error) { S.saveError = r.error; status(`<span class="err">${T('Not saved: {error}', { error: esc(r.error) })}</span>`); updateButtons(); return; }
+  if (r.shapes) settleShapes(r.shapes, r.remap || {});
   const movedChests = S.markerMoves.size;
   S.pending.clear(); S.markerMoves.clear();
   for (const mk of S.map.markers) delete mk.orig;
@@ -1937,6 +2070,18 @@ async function doSave() {
   if (S.advanced) log(T('Saved {files}', { files: r.saved.join(', ') }));
   refreshUndoSave();
   status(`<span class="ok">${T('Saved.')}</span> ${T('Press ▶ Play to try it.')}`);
+}
+
+// After a save that added heights: the table as the file now holds it, and
+// squares painted with an unsaved height renumbered to its saved row.
+function settleShapes(rows, remap) {
+  const m = S.map, saved = m.shapesSaved ?? m.shapes.length, old = m.shapes;
+  const to = v => remap[v] ?? rows.findIndex(r => r.every((x, i) => x === (old[v][i] ?? 0)));
+  for (const line of m.grids.shape) for (let x = 0; x < line.length; x++) if (line[x] >= saved) line[x] = to(line[x]);
+  const cur = parseInt($('#value').value, 16);
+  m.shapes = rows; m.shapesSaved = rows.length;
+  if (cur >= saved) { const v = old[cur] ? to(cur) : -1; $('#value').value = v >= 0 ? hex(v) : ''; if (S.hb) S.hb.exact = null; }
+  if (S.tool === 'shape') buildHeightPanel();
 }
 
 // ---- connections: one place in the middle, what leads in and where it leads -----
