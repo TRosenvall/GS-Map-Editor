@@ -34,7 +34,7 @@ app = BUNDLE(
     icon=os.path.join(SPECPATH, "icon.icns"),
     bundle_identifier="io.github.gsmapedit",
     info_plist={
-        "CFBundleShortVersionString": "0.3.0",
+        "CFBundleShortVersionString": "0.4.0",
         "NSDocumentsFolderUsageDescription": "Your mod and the game's source are kept in Documents/GSMapEditor.",
         "NSHighResolutionCapable": True,
         "LSMinimumSystemVersion": "11.0",
