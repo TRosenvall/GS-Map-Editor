@@ -99,6 +99,14 @@ class Checker:
                         tr("Open it and use Reset place, or Undo."), "read")
 
         out += self._flag_issues(chests, add, stock)
+        try:
+            self._world_issues(add, arrival_numbers, stock)
+        except Exception as e:  # noqa: BLE001  a world map that can't be read mustn't hide the rest
+            if not stock:
+                add("error", "world-unreadable", None,
+                    tr("The world map's files can't be read, so it can't be checked ({detail}).",
+                       detail=type(e).__name__),
+                    tr("Open the world map and use Reset world map, or Undo."), "read", place=tr("World map"))
         if not stock:
             out += self._override_issues(add)
         return out
@@ -239,6 +247,30 @@ class Checker:
                 tr("Remove the newer chest and add it again: the Chest tool picks a fresh flag."),
                 f"{flag:#x}", place=joined)
         return []
+
+    def _world_issues(self, add, arrival_numbers, stock):
+        """Step spots and town icons on the world map that lead nowhere, or to an
+        arrival point their place doesn't have."""
+        from . import world as worldmod
+        w = worldmod.World(self.project.root)
+        places = worldmod.world_places(w, self.project, self.scenes, self.names, stock=stock)
+        where = tr("World map")
+        things = [(tr("A step spot at {x},{y}", x=s["gx"], y=s["gy"]), s["lead"], f"step:{s['code']}") for s in places["steps"]]
+        things += [(tr("The icon for {place}", place=ic["lead"]["label"]) if ic["lead"] and ic["lead"]["label"]
+                    else tr("A town icon"), ic["lead"], f"icon:{ic['actor']}") for ic in places["icons"] if ic["x"] or ic["z"]]
+        for what, lead, key in things:
+            if not lead or lead.get("scripted"):
+                continue  # a scene script decides where it leads
+            if lead["scene"] is None:
+                add("warning", "world-nowhere", None,
+                    tr("{what} on the world map leads nowhere: touching it does nothing.", what=what),
+                    tr("Link it to a place with the Towns or Step spots tool, or remove it."), key, tool="world", place=where)
+            elif lead["entrance"] not in arrival_numbers(lead["scene"]) and arrival_numbers(lead["scene"]):
+                add("warning", "world-no-arrival", None,
+                    tr("{what} on the world map leads to {target}, arrival point {n}, which doesn't exist there: "
+                       "the party appears at that place's first arrival point instead.",
+                       what=what, target=lead["label"], n=lead["entrance"]),
+                    tr("Pick an arrival point that exists with the Towns or Step spots tool."), key, tool="world", place=where)
 
     def _override_issues(self, add):
         """Edits kept for scene tables that no longer exist or changed shape."""

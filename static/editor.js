@@ -1995,7 +1995,7 @@ function renderChecks() {
       const idx = r.indexOf(i);
       html += `<div class="issue${i.original ? ' orig' : ''}"><span class="ico">${i.severity === 'error' ? '⛔' : '⚠️'}</span>
         <div>${esc(i.message)}${i.original ? ` <i style="color:var(--muted)">${T('(in the original game)')}</i>` : ''}<div class="fix">${esc(i.fix)}</div></div>
-        ${i.map ? `<button data-i="${idx}">${T('Show')}</button>` : '<span></span>'}</div>`;
+        ${i.map || i.tool === 'world' ? `<button data-i="${idx}">${T('Show')}</button>` : '<span></span>'}</div>`;
     }
   }
   $('#ckList').innerHTML = html;
@@ -2012,6 +2012,7 @@ $('#ckOrig').onchange = renderChecks;
 $('#ckList').onclick = async e => {
   const b = e.target.closest('[data-i]'); if (!b) return;
   const i = checkResult[+b.dataset.i];
+  if (i.tool === 'world') { if (await saveFirst()) location.href = '/world.html'; return; }
   $('#checks').style.display = 'none';
   if (!S.map || S.map.number !== i.map) await openMap(i.map);
   if (!S.map || S.map.number !== i.map) return;

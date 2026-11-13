@@ -218,11 +218,12 @@ WORLD_SCENE = 2
 ICON_TRIGGER = 100  # touching actor N raises trigger 100 + N
 
 
-def world_places(world, project, scenes, names):
+def world_places(world, project, scenes, names, stock=False):
     """Icons (placements) and step-code cells with where they lead, and the
-    arrival points, from the world map scene's tables as the mod sees them."""
+    arrival points, from the world map scene's tables as the mod sees them
+    (with stock, as the original game has them)."""
     from .doors import DoorEditor
-    de = DoorEditor(project, scenes, names)
+    de = DoorEditor(project, scenes, names, stock=stock)
     sc = next(s for s in scenes.scenes if s["id"] == WORLD_SCENE)
     o = scenes.overlay(sc["overlay"])
     ov = de._read_overrides()

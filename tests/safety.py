@@ -488,6 +488,12 @@ with tempfile.TemporaryDirectory() as tmp:
         check("a square that's already a spot is refused", False)
     except ValueError:
         check("a square that's already a spot is refused", True)
+    # Check notices a spot whose arrival point is gone
+    from gsmap.checks import Checker
+    found = []
+    Checker(p, s, n)._world_issues(lambda *a, **k: found.append((a[1], a[5])), lambda sid: {7} if sid == vale else set(), False)
+    check("Check says when a world spot leads to an arrival point that isn't there",
+          ("world-no-arrival", f"step:{made['code']}") in found, found)
     worldmod.remove_step(w, p, s, n, spot[0], spot[1])
     check("removing it puts the world back", read(w.blocks_path) == before_world)
     check("and the scene tables", read(os.path.join(tmp, "games/tbs/src/mod/overrides.json")) == before_ov)
