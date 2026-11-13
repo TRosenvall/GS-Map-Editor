@@ -137,6 +137,26 @@ with tempfile.TemporaryDirectory() as tmp:
     except ValueError:
         check("the party can't be added as people", True)
 
+    # ---- an added person can be removed, with their lines; the game's own can't
+    second = events.add_person(vale, described["symbol"], 101, 80, 64, "Second.")
+    events.remove_person(vale, described["symbol"], added["actor"])
+    after = events.describe(vale_map, vale)
+    mine = [x for x in after["people"] if x["added"]]
+    check("removing an added person leaves the others", [x["sprite"] for x in mine] == [101], mine)
+    check("a later person moves up a number", mine and mine[0]["actor"] == added["actor"])
+    lines = [e for e in after["events"] if e["actor"] == added["actor"]]
+    check("and keeps their own line", len(lines) == 1 and lines[0]["text"] and "Second" in lines[0]["text"], lines)
+    events.remove_person(vale, described["symbol"], added["actor"])
+    check("removing every added person leaves the stage as the game has it",
+          Overrides(tmp).get(vo.id, described["people_table"]) is None
+          and Overrides(tmp).get(vo.id, described["symbol"]) is None)
+    stock = next(x for x in after["people"] if not x["added"])
+    try:
+        events.remove_person(vale, described["symbol"], stock["actor"])
+        check("the game's own people can't be removed", False)
+    except ValueError:
+        check("the game's own people can't be removed", True)
+
     # ---- text the game can't build is refused, and typed punctuation just works
     from gsmap.messages import Messages, tidy
     msgs = Messages(tmp)

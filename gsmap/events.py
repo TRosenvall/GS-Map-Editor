@@ -175,11 +175,12 @@ class EventEditor(DoorEditor):
                 if ev["what"] == "Mind Read" and ev["message"] is not None:
                     ev["does"] = tr("Thinks")
             out.append(ev)
+        stock = self._stock_people(o, people_table) if people_table else len(people)
         return {"symbol": symbol, "people_table": people_table,
                 "tables": [n for _, n, _ in tables], "events": out,
                 "people": [{"actor": a, "sprite": p["sprite"], "x": p["x"] >> 16, "z": p["z"] >> 16,
-                            "name": self.names.sprite_name(p["sprite"])}
-                           for a, p in zip(numbers, people)]}
+                            "name": self.names.sprite_name(p["sprite"]), "added": i >= stock}
+                           for i, (a, p) in enumerate(zip(numbers, people))]}
 
     # ---- writing ---------------------------------------------------------------------
 
@@ -347,6 +348,62 @@ class EventEditor(DoorEditor):
         if text:
             out.update(self.add_talk(scene_id, symbol, actor, text, when))
         return out
+
+    @staticmethod
+    def _stock_people(o, people_table):
+        """How many people the game's own table lists: rows after these were added by the mod."""
+        stock = o.rows(people_table)
+        return next((i for i, r in enumerate(stock) if r["sprite"] < 0), len(stock))
+
+    @staticmethod
+    def _on_actor(r):
+        """Whether an event row's trigger is an actor number (talking, or an item or
+        Psynergy used on someone) rather than a cell code."""
+        c = r["control"]
+        return c & 0xF in (0, 7) or (c & 0xF in (4, 5) and bool(c & 0x10))
+
+    def remove_person(self, scene_id, symbol, actor):
+        """Take away a person the mod added, with everything they say. People the
+        game itself places can't go: scenes move and talk to them by number, and
+        every later person's number would change. Added people after this one
+        move up a number, and their lines follow them."""
+        actor = int(actor)
+        o = self._ctx(scene_id)
+        ov = Overrides(self.project.root)
+        placements = self._tables([o], ov, "placements", scene_ids={scene_id})
+        people_table, rows = self._stage_placements(symbol, placements)
+        if people_table is None:
+            raise ValueError(tr("The editor can't tell which people go with this story stage."))
+        numbers = actor_numbers(rows)
+        if actor not in numbers:
+            raise ValueError(tr("That person isn't in this place any more."))
+        index = numbers.index(actor)
+        if index < self._stock_people(o, people_table):
+            raise ValueError(tr("This person is part of the original game, and the story may move them or talk "
+                                "to them, so they can't be removed. You can move them instead."))
+        del rows[index]
+        changed = {people_table: ("placements", rows)}
+        # Every events table that goes with this people table.
+        for _, name, events in self._tables([o], ov, "events", need=False):
+            if self._stage_placements(name, placements)[0] != people_table:
+                continue
+            kept = []
+            for r in events:
+                if r["control"] != EVENTS_END and self._on_actor(r) and r["trigger"] >= actor:
+                    if r["trigger"] == actor:
+                        continue
+                    r = dict(r, trigger=r["trigger"] - 1)
+                kept.append(r)
+            if kept != events:
+                changed[name] = ("events", kept)
+        for name, (kind, new) in changed.items():
+            if new == o.rows(name):
+                ov.remove(o.id, name)
+            else:
+                ov.set(o.id, name, kind, new)
+        ov.save()
+        generate(self.project.root, self.scenes, ov)
+        return {"actor": actor, "table": people_table}
 
     # ---- regions: boxes that are exits --------------------------------------------------
 

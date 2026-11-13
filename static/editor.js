@@ -1218,8 +1218,14 @@ function evClick(e, x, y) {
   if (near && near[0] < 10) {
     const p = near[1], talks = EV.data.events.some(ev => ev.actor === p.actor && ev.kind === 'talk');
     EV.filter = { actor: p.actor, label: `${p.name || T('This person')}` }; EV.spot = null;
-    $('#evSpot').innerHTML = `<button id="evTalk" class="primary">${talks ? T('Add a line for a story moment…') : T('Make them say something…')}</button>`;
+    $('#evSpot').innerHTML = `<button id="evTalk" class="primary">${talks ? T('Add a line for a story moment…') : T('Make them say something…')}</button>`
+      + (p.added ? `<button id="evRemovePerson">${T('Remove this person')}</button>` : '');
     $('#evTalk').onclick = () => openEventEditor({ mode: 'talk', actor: p.actor, who: p.name, conditional: talks });
+    if (p.added) $('#evRemovePerson').onclick = () => {
+      if (!confirm(T('Remove {who} and everything they say?', { who: p.name || T('this person') }))) return;
+      EV.filter = null; $('#evSpot').style.display = 'none';
+      evAction({ action: 'remove-person', actor: p.actor }, T('Removed.'));
+    };
   } else {
     const [gx, gz] = groundAt(S.map.layers[0], sx, sy) || gridXY(S.map.layers[0], x, y);
     EV.filter = { x: gx, z: gz, label: T('Spot {x},{z}', { x: gx, z: gz }) }; EV.spot = { x: gx, z: gz }; EV.newPerson = null;

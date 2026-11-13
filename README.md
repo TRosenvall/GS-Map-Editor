@@ -215,6 +215,8 @@ Click a spot on the map, then choose:
 - **Add a step message…** for a message that shows when you step there. It won't repeat while you stand there, so it can't trap the player, and it shows again if you step off and come back.
 - **Add a person here…** to choose who it is with a picture preview, and whether they **walk around**. The editor checks the spot first (see below).
 
+To take away someone you added, click them and press **Remove this person**: what they say goes too. The game's own people can't be removed, because the story moves them and talks to them, but you can move them.
+
 ### Where people can stand
 
 Not every spot that looks open is a good place for someone to stand. Tick **Where people can stand** at the top, or just press **Add a person here…**, and the map is coloured by what a person there would mean:

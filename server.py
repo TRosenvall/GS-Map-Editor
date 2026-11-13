@@ -61,6 +61,7 @@ def event_label(action):
     labels = {"text": N_("changing some words"), "when": N_("changing when something happens"),
               "talk": N_("a new line"), "spot": N_("adding a sign or step message"),
               "remove": N_("removing an event"), "person": N_("adding a person"),
+              "remove-person": N_("removing a person"),
               "region": N_("changing an exit area")}
     return labels.get(action, N_("an event change"))
 
@@ -747,6 +748,8 @@ def make_handler(project, token=None, local_only=True):
                             elif a == "person":
                                 r = ee.add_person(sid, tbl, int(body["sprite"]), int(body["x"]), int(body["z"]),
                                                   body.get("text"), bool(body.get("wander")), body.get("when"))
+                            elif a == "remove-person":
+                                r = ee.remove_person(sid, tbl, int(body["actor"]))
                             elif a == "region":
                                 r = ee.edit_region(sid, body["region_table"], int(body["index"]), body.get("box"),
                                                    body.get("target"), body.get("when"), bool(body.get("remove")))
