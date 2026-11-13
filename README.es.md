@@ -1,4 +1,4 @@
-<!-- translated from README.md @ c43e7b4c4d74 -->
+<!-- translated from README.md @ 574887351a06 -->
 # GS Map Editor
 
 [English](README.md) · **Español** · [Deutsch](README.de.md) · [Français](README.fr.md) · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -30,6 +30,7 @@ El editor funciona sobre [alchemy](https://github.com/PascalPixel/alchemy), un p
 - [Sello: copiar y pegar](#sello-copiar-y-pegar)
 - [Importar tus propias imágenes](#importar-tus-propias-imágenes)
 - [Tablas de historia y escena](#tablas-de-historia-y-escena)
+- [Combates en un lugar](#combates-en-un-lugar)
 - [Conexiones](#conexiones)
 - [Atlas: todos los lugares a la vez](#atlas-todos-los-lugares-a-la-vez)
 - [El mapa del mundo](#el-mapa-del-mundo)
@@ -286,7 +287,7 @@ Pulsa **Mover personas** (P).
 2. Arrástralos por el mapa. Mantén ⇧ al soltar para ajustar a los 8 píxeles más cercanos.
 3. Guarda.
 
-Los puntos de llegada son donde aparece el grupo al entrar en un lugar.
+Los puntos de llegada son donde aparece el grupo al entrar en un lugar. Pasa el cursor sobre una persona para ver quién es y qué dice.
 
 ## Sello: copiar y pegar
 
@@ -316,6 +317,10 @@ La imagen se ajusta a los colores de este lugar, y las piezas repetidas se reuti
 
 El panel **Historia y escena** muestra las escenas que usan este mapa y las tablas que hay detrás, con nombres sencillos como "Puntos de llegada: normal". Los puntos de llegada y las personas se ven en el mapa. Las salidas se editan como una lista, con una comprobación de que el punto de llegada que elijas existe. Casi siempre es más fácil usar las herramientas Puertas, Eventos y Mover personas.
 
+## Combates en un lugar
+
+Pulsa **Combates…** para ver los combates aleatorios del lugar en el que estás: con qué frecuencia hay combates y qué grupos de enemigos aparecen, con la probabilidad de cada uno. Cámbialos y pulsa **Guardar**. En la mayoría de cuevas y mazmorras los combates ocurren en cualquier sitio por el que camines; en algunas, solo en las casillas pintadas como **Suelo con encuentros A** en Zonas de paso. Algunos lugares comparten sus combates con otros, y el cuadro de diálogo lo indica: un cambio se ve en todos ellos.
+
 ## Conexiones
 
 Pulsa **Conexiones** para ver cualquier lugar en el centro, con todos los lugares que llevan a él a la izquierda y todos los sitios adonde lleva a la derecha. Haz clic en un lugar para ir allí, o pulsa **Abrir** para saltar a esa puerta en el editor. Usa la casilla de búsqueda para encontrar un lugar.
@@ -340,7 +345,7 @@ Elige el mapa del mundo arriba del todo de la lista de lugares. Pulsa **← Luga
 | **Capa superpuesta** | O | Pinta montañas, árboles y costa. Por dónde se puede caminar depende de los tiles de ambas capas. |
 | **Regiones** | R | Pinta regiones de encuentros. Cada una tiene sus propios combates aleatorios, y cada una lleva el nombre de los pueblos que contiene. En **Combates aquí**, cambia con qué frecuencia hay combates y qué grupos de enemigos aparecen, en terreno abierto y en bosques. |
 | **Pueblos** | T | Arrastra un pueblo o una mazmorra para moverlo. Haz clic en uno para cambiar adónde lleva. **Colocar un icono nuevo…** añade uno, con una imagen que usan los propios pueblos del juego; los iconos que añadiste se pueden quitar. |
-| **Puntos de paso** | P | Las casillas azules llevan a algún sitio al pisarlas. Haz clic en una para cambiar adónde lleva o quitarla, o haz clic en cualquier otra casilla para crear una nueva. |
+| **Puntos de paso** | P | Las casillas azules llevan a algún sitio al pisarlas. Haz clic en una para cambiar adónde lleva o quitarla, o haz clic en cualquier otra casilla para crear una nueva. **Añadir una casilla…** hace un punto más ancho: haz clic en las casillas que quieras añadir y luego pulsa Esc. |
 
 - Marca **Zonas de paso**, **Regiones de encuentros** o **Lugares** para verlos en el mapa.
 - Cuando mueves un pueblo, **mover también sus puntos de llegada** hace que sigas apareciendo junto a él al salir. Está activado por defecto.
@@ -436,7 +441,7 @@ En Windows y Linux, usa Ctrl en lugar de ⌘ y Alt en lugar de ⌥.
 - **The Lost Age**, ni ediciones que no sean la inglesa.
 - **Windows o Linux** como app empaquetada.
 - **Lugares totalmente nuevos:** no hay ningún botón para añadir uno.
-- **Combates y datos del juego:** no se pueden editar los monstruos, los objetos, las tiendas ni la música, ni los combates dentro de los lugares. En el mapa del mundo puedes elegir los grupos de enemigos de cada región y con qué frecuencia aparecen, entre los grupos que tiene el juego.
+- **Combates y datos del juego:** no se pueden editar los monstruos, los objetos, las tiendas ni la música. Puedes elegir cuáles de los grupos de enemigos del juego aparecen en cada sitio, y con qué frecuencia, pero no crear grupos nuevos.
 - **Scripts de la historia:** puedes cambiar lo que dice la gente y cuándo, y añadir eventos sencillos, pero no escribir escenas cinemáticas.
 - **El mapa de la pantalla de pausa.**
 

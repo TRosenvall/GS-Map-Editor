@@ -1,4 +1,4 @@
-<!-- translated from README.md @ c43e7b4c4d74 -->
+<!-- translated from README.md @ 574887351a06 -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · [Deutsch](README.de.md) · [Français](README.fr.md) · **Italiano** · [日本語](README.ja.md)
@@ -30,6 +30,7 @@ L'editor lavora su [alchemy](https://github.com/PascalPixel/alchemy), un progett
 - [Timbro: copia e incolla](#timbro-copia-e-incolla)
 - [Importare le tue immagini](#importare-le-tue-immagini)
 - [Tabelle della storia e delle scene](#tabelle-della-storia-e-delle-scene)
+- [Battaglie in un luogo](#battaglie-in-un-luogo)
 - [Collegamenti](#collegamenti)
 - [Atlante: tutti i luoghi insieme](#atlante-tutti-i-luoghi-insieme)
 - [La mappa del mondo](#la-mappa-del-mondo)
@@ -286,7 +287,7 @@ Premi **Sposta persone** (P).
 2. Trascinali sulla mappa. Tieni premuto ⇧ mentre li lasci per agganciarli agli 8 pixel più vicini.
 3. Salva.
 
-I punti di arrivo sono dove compare il gruppo quando entra in un luogo.
+I punti di arrivo sono dove compare il gruppo quando entra in un luogo. Passa sopra una persona con il mouse per vedere chi è e cosa dice.
 
 ## Timbro: copia e incolla
 
@@ -316,6 +317,10 @@ L'immagine viene adattata ai colori di questo luogo, e i pezzi ripetuti vengono 
 
 Il pannello **Storia e scena** mostra le scene che usano questa mappa e le tabelle che ci stanno dietro, con nomi comprensibili come "Punti di arrivo: normale". I punti di arrivo e le persone compaiono sulla mappa. Le uscite si modificano come lista, con un controllo che il punto di arrivo scelto esista. Nella maggior parte dei casi gli strumenti Porte, Eventi e Sposta persone sono più semplici.
 
+## Battaglie in un luogo
+
+Premi **Battaglie…** per vedere le battaglie casuali del luogo in cui ti trovi: quanto spesso arrivano e quali gruppi di nemici compaiono, con la probabilità di ciascuno. Modificale e premi **Salva**. Nella maggior parte delle grotte e dei dungeon le battaglie avvengono ovunque cammini; in alcuni, solo sulle caselle dipinte come **Terreno con scontri A** in Calpestabilità. Alcuni luoghi condividono le loro battaglie con altri, e la finestra di dialogo lo dice: una modifica compare in tutti.
+
 ## Collegamenti
 
 Premi **Collegamenti** per vedere un luogo qualsiasi al centro, con a sinistra tutti i luoghi che portano lì e a destra tutti quelli verso cui porta. Clicca un luogo per spostarti lì, o premi **Apri** per saltare a quella porta nell'editor. Usa la casella di ricerca per trovare un luogo.
@@ -340,7 +345,7 @@ Scegli la mappa del mondo in cima alla lista dei luoghi. Premi **← Luoghi** pe
 | **Sovrapposizione** | O | Dipingi montagne, alberi e coste. Dove si può camminare dipende dalle tile di entrambi i livelli. |
 | **Regioni** | R | Dipingi le regioni degli scontri. Ognuna ha le sue battaglie casuali, e ognuna prende il nome dalle città al suo interno. In **Battaglie qui**, cambia quanto spesso arrivano le battaglie e quali gruppi di nemici compaiono, in terreno aperto e nelle foreste. |
 | **Città** | T | Trascina una città o un dungeon per spostarlo. Cliccane uno per cambiare dove porta. **Posiziona una nuova icona…** ne aggiunge una, con un'immagine usata dalle città del gioco stesso; le icone che hai aggiunto si possono rimuovere. |
-| **Punti di passaggio** | P | I quadrati blu portano da qualche parte quando ci passi sopra. Cliccane uno per cambiare dove porta o per rimuoverlo, oppure clicca qualsiasi altro quadrato per crearne uno nuovo. |
+| **Punti di passaggio** | P | I quadrati blu portano da qualche parte quando ci passi sopra. Cliccane uno per cambiare dove porta o per rimuoverlo, oppure clicca qualsiasi altro quadrato per crearne uno nuovo. **Aggiungi una casella…** rende un punto più largo: clicca le caselle da aggiungere, poi premi Esc. |
 
 - Spunta **Calpestabilità**, **Regioni degli scontri** o **Luoghi** per mostrarli sulla mappa.
 - Quando sposti una città, **sposta anche i suoi punti di arrivo** fa sì che, uscendo, tu compaia ancora accanto a essa. È attivo per impostazione predefinita.
@@ -436,7 +441,7 @@ Su Windows e Linux, usa Ctrl al posto di ⌘ e Alt al posto di ⌥.
 - **The Lost Age**, e le edizioni diverse da quella inglese.
 - **Windows o Linux** come app pacchettizzata.
 - **Luoghi completamente nuovi:** non c'è un pulsante per aggiungerne uno.
-- **Battaglie e dati di gioco:** mostri, oggetti, negozi e musica non si possono modificare, e nemmeno le battaglie dentro i luoghi. Sulla mappa del mondo puoi scegliere i gruppi di nemici di ogni regione e quanto spesso arrivano, tra i gruppi che il gioco ha.
+- **Battaglie e dati di gioco:** mostri, oggetti, negozi e musica non si possono modificare. Puoi scegliere quali dei gruppi di nemici del gioco compaiono in ogni posto, e quanto spesso, ma non creare gruppi nuovi.
 - **Script della storia:** puoi cambiare cosa dicono le persone e quando, e aggiungere eventi semplici, ma non scrivere scene di intermezzo.
 - **La mappa della schermata di pausa.**
 

@@ -1,4 +1,4 @@
-<!-- translated from README.md @ c43e7b4c4d74 -->
+<!-- translated from README.md @ 574887351a06 -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · **Deutsch** · [Français](README.fr.md) · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -30,6 +30,7 @@ Der Editor arbeitet mit [alchemy](https://github.com/PascalPixel/alchemy), einem
 - [Stempel: kopieren und einfügen](#stempel-kopieren-und-einfügen)
 - [Eigene Bilder importieren](#eigene-bilder-importieren)
 - [Tabellen für Story und Szene](#tabellen-für-story-und-szene)
+- [Kämpfe an einem Ort](#kämpfe-an-einem-ort)
 - [Verbindungen](#verbindungen)
 - [Atlas: alle Orte auf einmal](#atlas-alle-orte-auf-einmal)
 - [Die Weltkarte](#die-weltkarte)
@@ -286,7 +287,7 @@ Drück auf **Personen verschieben** (P).
 2. Zieh sie auf der Karte. Halte beim Loslassen ⇧ gedrückt, um sie auf die nächsten 8 Pixel einrasten zu lassen.
 3. Speichere.
 
-Ankunftspunkte sind die Stellen, an denen die Gruppe erscheint, wenn sie einen Ort betritt.
+Ankunftspunkte sind die Stellen, an denen die Gruppe erscheint, wenn sie einen Ort betritt. Fahr mit der Maus über eine Person, um zu sehen, wer sie ist und was sie sagt.
 
 ## Stempel: kopieren und einfügen
 
@@ -316,6 +317,10 @@ Das Bild wird an die Farben dieses Orts angepasst, und wiederholte Teile werden 
 
 Der Bereich **Story und Szene** zeigt die Szenen, die diese Karte nutzen, und die Tabellen dahinter, mit verständlichen Namen wie „Ankunftspunkte: Standard“. Ankunftspunkte und Personen werden auf der Karte angezeigt. Ausgänge werden als Liste bearbeitet, mit einer Prüfung, ob der Ankunftspunkt, den du wählst, existiert. Meistens sind die Werkzeuge Türen, Ereignisse und Personen verschieben einfacher.
 
+## Kämpfe an einem Ort
+
+Drück auf **Kämpfe …**, um die Zufallskämpfe des Orts zu sehen, an dem du gerade bist: wie oft sie kommen und welche Gegnergruppen auftauchen, mit der Wahrscheinlichkeit für jede. Änder sie und drück auf **Speichern**. In den meisten Höhlen und Dungeons kommen die Kämpfe überall, wo du läufst; in manchen nur auf Feldern, die in der Begehbarkeit als **Kampfboden A** gemalt sind. Manche Orte teilen ihre Kämpfe mit anderen, und der Dialog sagt das: Eine Änderung zeigt sich dann in allen.
+
 ## Verbindungen
 
 Drück auf **Verbindungen**, um einen beliebigen Ort in der Mitte zu sehen, mit allen Orten, die zu ihm führen, links und allen, zu denen er führt, rechts. Klick auf einen Ort, um dorthin zu wechseln, oder drück auf **Öffnen**, um im Editor zu dieser Tür zu springen. Nutze das Suchfeld, um einen Ort zu finden.
@@ -340,7 +345,7 @@ Wähl die Weltkarte ganz oben in der Ortsliste. Drück auf **← Orte**, um zur�
 | **Overlay** | O | Berge, Bäume und Küsten malen. Ob man laufen kann, hängt von den Kacheln beider Ebenen ab. |
 | **Regionen** | R | Kampfregionen malen. Jede hat ihre eigenen Zufallskämpfe und ist nach den Städten in ihr benannt. Unter **Kämpfe hier** änderst du, wie oft Kämpfe kommen und welche Gegnergruppen auftauchen, auf offenem Gelände und in Wäldern. |
 | **Städte** | T | Eine Stadt oder einen Dungeon ziehen, um sie zu verschieben. Auf eine klicken, um zu ändern, wohin sie führt. **Neues Symbol platzieren …** fügt eines hinzu, mit einem Bild, das die Städte des Spiels selbst benutzen; selbst hinzugefügte Symbole lassen sich entfernen. |
-| **Trittstellen** | P | Blaue Felder führen irgendwohin, wenn man auf sie tritt. Auf eines klicken, um zu ändern, wohin es führt, oder um es zu entfernen, oder auf ein anderes Feld klicken, um ein neues zu machen. |
+| **Trittstellen** | P | Blaue Felder führen irgendwohin, wenn man auf sie tritt. Auf eines klicken, um zu ändern, wohin es führt, oder um es zu entfernen, oder auf ein anderes Feld klicken, um ein neues zu machen. **Feld hinzufügen …** macht eine Stelle breiter: auf die Felder klicken, die dazukommen sollen, dann Esc drücken. |
 
 - Setz das Häkchen bei **Begehbarkeit**, **Kampfregionen** oder **Orte**, um diese auf der Karte anzuzeigen.
 - Wenn du eine Stadt verschiebst, sorgt **auch die Ankunftspunkte mitnehmen** dafür, dass du beim Verlassen neben ihr erscheinst. Es ist standardmäßig eingeschaltet.
@@ -436,7 +441,7 @@ Unter Windows und Linux nimmst du Strg statt ⌘ und Alt statt ⌥.
 - **The Lost Age** und andere Ausgaben als die englische.
 - **Windows oder Linux** als fertig gepackte App.
 - **Ganz neue Orte:** Es gibt keinen Knopf, um einen hinzuzufügen.
-- **Kämpfe und Spieldaten:** Monster, Gegenstände, Läden und Musik lassen sich nicht bearbeiten, ebenso wenig die Kämpfe innerhalb von Orten. Auf der Weltkarte kannst du für jede Region aus den Gruppen, die das Spiel hat, die Gegnergruppen wählen und wie oft sie kommen.
+- **Kämpfe und Spieldaten:** Monster, Gegenstände, Läden und Musik lassen sich nicht bearbeiten. Du kannst wählen, welche der Gegnergruppen des Spiels wo auftauchen und wie oft, aber keine neuen Gruppen machen.
 - **Story-Skripte:** Du kannst ändern, was Personen sagen und wann, und einfache Ereignisse hinzufügen, aber keine Zwischensequenzen schreiben.
 - **Die Karte im Pausenbildschirm.**
 

@@ -1,4 +1,4 @@
-<!-- translated from README.md @ c43e7b4c4d74 -->
+<!-- translated from README.md @ 574887351a06 -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · [Deutsch](README.de.md) · **Français** · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -30,6 +30,7 @@ L'éditeur s'appuie sur [alchemy](https://github.com/PascalPixel/alchemy), un pr
 - [Tampon : copier et coller](#tampon--copier-et-coller)
 - [Importer vos propres images](#importer-vos-propres-images)
 - [Tables d'histoire et de scène](#tables-dhistoire-et-de-scène)
+- [Combats dans un lieu](#combats-dans-un-lieu)
 - [Connexions](#connexions)
 - [Atlas : tous les lieux d'un coup](#atlas--tous-les-lieux-dun-coup)
 - [La carte du monde](#la-carte-du-monde)
@@ -286,7 +287,7 @@ Appuyez sur **Déplacer les personnages** (P).
 2. Faites-les glisser sur la carte. Maintenez ⇧ en relâchant pour les aligner sur les 8 pixels les plus proches.
 3. Enregistrez.
 
-Les points d'arrivée sont les endroits où le groupe apparaît en entrant dans un lieu.
+Les points d'arrivée sont les endroits où le groupe apparaît en entrant dans un lieu. Survolez un personnage pour voir qui il est et ce qu'il dit.
 
 ## Tampon : copier et coller
 
@@ -316,6 +317,10 @@ L'image est adaptée aux couleurs de ce lieu, et les morceaux répétés sont r�
 
 Le panneau **Histoire et scène** montre les scènes qui utilisent cette carte et les tables qui se trouvent derrière, avec des noms parlants comme « Arrival points: normal ». Les points d'arrivée et les personnages apparaissent sur la carte. Les sorties se modifient sous forme de liste, avec une vérification que le point d'arrivée choisi existe. La plupart du temps, les outils Portes, Événements et Déplacer les personnages sont plus simples.
 
+## Combats dans un lieu
+
+Appuyez sur **Combats…** pour voir les combats aléatoires du lieu où vous êtes : leur fréquence, et quels groupes d'ennemis apparaissent avec quelle probabilité chacun. Modifiez-les et appuyez sur **Enregistrer**. Dans la plupart des grottes et des donjons, les combats ont lieu partout où l'on marche ; dans certains, seulement sur les cases peintes en **Sol de rencontres A** dans Praticabilité. Certains lieux partagent leurs combats avec d'autres, et la boîte de dialogue le signale : une modification apparaît alors dans tous.
+
 ## Connexions
 
 Appuyez sur **Connexions** pour voir n'importe quel lieu au milieu, avec à gauche tous les lieux qui y mènent et à droite tous ceux vers lesquels il mène. Cliquez sur un lieu pour vous y déplacer, ou appuyez sur **Ouvrir** pour aller à cette porte dans l'éditeur. Utilisez la case de recherche pour trouver un lieu.
@@ -340,7 +345,7 @@ Choisissez la carte du monde en haut de la liste des lieux. Appuyez sur **← Li
 | **Surcouche** | O | Peindre les montagnes, les arbres et les côtes. La marche dépend des tuiles des deux calques. |
 | **Régions** | R | Peindre les régions de rencontres. Chacune a ses propres combats aléatoires, et chacune porte le nom des villes qu'elle contient. Sous **Combats ici**, changez la fréquence des combats et les groupes d'ennemis qui apparaissent, en terrain découvert et en forêt. |
 | **Villes** | T | Faites glisser une ville ou un donjon pour le déplacer. Cliquez dessus pour changer sa destination. **Placer une nouvelle icône…** en ajoute une, avec une image qu'utilisent les villes du jeu lui-même ; les icônes que vous avez ajoutées peuvent être supprimées. |
-| **Cases de passage** | P | Les cases bleues mènent quelque part quand on marche dessus. Cliquez sur l'une d'elles pour changer sa destination ou la supprimer, ou cliquez sur n'importe quelle autre case pour en créer une nouvelle. |
+| **Cases de passage** | P | Les cases bleues mènent quelque part quand on marche dessus. Cliquez sur l'une d'elles pour changer sa destination ou la supprimer, ou cliquez sur n'importe quelle autre case pour en créer une nouvelle. **Ajouter une case…** élargit une case de passage : cliquez sur les cases à ajouter, puis appuyez sur Échap. |
 
 - Cochez **Praticabilité**, **Régions de rencontres** ou **Lieux** pour les afficher sur la carte.
 - Quand vous déplacez une ville, **déplacer aussi ses points d'arrivée** fait que vous réapparaissez à côté d'elle en la quittant. C'est activé par défaut.
@@ -436,7 +441,7 @@ Sous Windows et Linux, utilisez Ctrl pour ⌘ et Alt pour ⌥.
 - **The Lost Age**, et les éditions autres que l'anglaise.
 - **Windows ou Linux** en tant qu'application empaquetée.
 - **Des lieux entièrement nouveaux :** il n'y a pas de bouton pour en ajouter un.
-- **Les combats et les données du jeu :** les monstres, les objets, les boutiques et la musique ne peuvent pas être modifiés, pas plus que les combats à l'intérieur des lieux. Sur la carte du monde, vous pouvez choisir les groupes d'ennemis de chaque région et leur fréquence, parmi les groupes que le jeu possède.
+- **Les combats et les données du jeu :** les monstres, les objets, les boutiques et la musique ne peuvent pas être modifiés. Vous pouvez choisir lesquels des groupes d'ennemis du jeu apparaissent à chaque endroit, et à quelle fréquence, mais pas créer de nouveaux groupes.
 - **Les scripts de l'histoire :** vous pouvez changer ce que disent les personnages et quand, et ajouter des événements simples, mais pas écrire de cinématiques.
 - **La carte de l'écran de pause.**
 
