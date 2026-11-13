@@ -45,7 +45,7 @@ Windows runs the same Linux editor inside WSL, which is also the only way alchem
 - The editor opens in the Windows browser through WSL's localhost forwarding. Play starts the Windows mGBA from `Program Files\mGBA`, given the game's `\\wsl.localhost\…` path. The game builds in Ubuntu's own disk, since a build on `/mnt/c` is many times slower.
 - The pages show Ctrl and Alt in place of ⌘ and ⌥ on any system but a Mac (`localWords` in `static/common.js`).
 
-`.github/workflows/linux.yml` checks this on GitHub's Ubuntu machines at every push: `setup-in-wsl.sh` installs the editor, `tests/setup_flow.py` goes through first-run setup through the installed command, the build must match `rom.sha1`, and the round-trip, edit and placement tests run on that checkout. The Windows half (the `.cmd`, WSL's install, the shortcut, Windows mGBA) has no automatic test: it needs a Windows PC.
+`.github/workflows/linux.yml` checks this on GitHub's Ubuntu machines at every push: `setup-in-wsl.sh` installs the editor, `tests/setup_flow.py` goes through first-run setup through the installed command, the build must match `rom.sha1`, and the round-trip, edit, placement and feature tests run on that checkout. The Windows half (the `.cmd`, WSL's install, the shortcut, Windows mGBA) has no automatic test: it needs a Windows PC.
 
 ### Releasing
 
@@ -152,6 +152,7 @@ Saved scene edits carry a fingerprint of the table they were made for. A table r
 
 - `python3 tests/safety.py`: what must never go wrong: failures and crashes leave no half-saved files, undo and redo step through saved actions in order and a new change clears redo, chests stay in their own rooms, bad values and hostile patches are refused, renamed or changed tables are handled, an unknown layout is reported rather than guessed at.
 - `python3 tests/placement.py`: the walking rules against the game: the people placed in eight towns are talkable and their ways out reachable, and in Imil the ice, an unreachable snowy spot (with its leveling fix), a narrow lane, a doorstep and a wall are each warned about.
+- `python3 tests/features.py`: the newer features' edge cases on throwaway copies: removing added people, where Play starts, export names, world map step spots and town icons, encounter zones and what Reset restores, the atlas cache, Check's world map problems, the commit a mod starts from, which chest spots count toward the 10, and script descriptions in plain words.
 - `python3 tests/edits.py`: saves block, walkability and height edits on a copy of real maps and checks they read back, with nothing else changed.
 - `python3 tests/i18n.py`: every message the code shows is translated in every language, and each translation keeps its `{placeholders}`, HTML tags and keys (⌘ ⇧ ⌥ ▶).
 - `python3 tests/roundtrip.py`: loads and re-saves every map grid, cell-picture and shape table, and chest list (727 files with the debug-room mod, 721 on a plain checkout). All must come out byte-identical. This guarantees that saving a map only changes what you edited.

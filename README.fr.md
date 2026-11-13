@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 574887351a06 -->
+<!-- translated from README.md @ 1a86f855b136 -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · [Deutsch](README.de.md) · **Français** · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -118,7 +118,7 @@ Appuyez ensuite sur **Ouvrir l'éditeur**. Par la suite, l'application s'ouvre d
 | **Barre du haut** | Le zoom, les calques, les surcouches, les outils, et les boutons pour enregistrer, vérifier et jouer. |
 | **Milieu** | La carte. |
 | **Droite** | Le panneau de l'outil que vous utilisez. |
-| **Ligne du bas** | Les messages d'état. Quand vous survolez la carte, elle indique ce que fait la case sous votre curseur, par exemple « Coffre : Herb » ou la destination d'une sortie. |
+| **Ligne du bas** | Les messages d'état. Quand vous survolez la carte, elle indique ce que fait la case sous votre curseur, par exemple « Coffre : Herb » ou la destination d'une sortie, et de quelle case il s'agit. Les numéros de case sont ceux qu'utilisent Vérifier, les portes et les coffres. |
 
 Cochez **Avancé** dans la barre du haut pour afficher les nombres et codes bruts et un bouton **Compiler** séparé. Vous n'en aurez pas besoin pour une utilisation normale.
 
@@ -193,7 +193,7 @@ Les outils Coffre, Portes et Événements placent eux-mêmes les codes spéciaux
 
 ## Hauteur : la hauteur du sol
 
-Appuyez sur **Hauteur** (H). Le panneau liste les hauteurs que ce lieu utilise déjà, par exemple « Plat, 24 px » ou « Pente ou marche ». Choisissez-en une et peignez.
+Appuyez sur **Hauteur** (H). Le panneau liste les hauteurs que ce lieu utilise déjà, de la plus haute à la plus basse, par exemple « Plat, 24 px » ou « Pente, de 16 à 24 px de gauche à droite ». Les hauteurs qui se liraient pareil reçoivent un numéro, et en survoler une indique combien de cases l'utilisent. Choisissez-en une et peignez.
 
 La hauteur influe sur la marche autant que sur l'apparence. Les personnages se tiennent à la hauteur du sol sur lequel ils sont, et le jeu refuse un pas de plus de 8 pixels vers le haut ou de 12 pixels vers le bas : une grande différence de hauteur agit donc comme un mur.
 
@@ -206,11 +206,11 @@ Appuyez sur **Coffre** (K).
 - **En supprimer un :** cliquez dessus et appuyez sur **Supprimer le coffre**.
 - **En déplacer un :** faites-le glisser, puis enregistrez. Les Pierres de Psynergie peuvent aussi être déplacées. Un coffre ne peut pas aller sur une case qui est déjà une porte, un panneau ou un message de passage.
 
-L'éditeur s'occupe du reste, y compris du drapeau qui retient qu'un coffre a été ouvert, pour qu'un coffre reste vide quand vous revenez. Un lieu peut contenir au maximum **10 coffres et pierres**.
+L'éditeur s'occupe du reste, y compris du drapeau qui retient qu'un coffre a été ouvert, pour qu'un coffre reste vide quand vous revenez. Un lieu peut contenir au maximum **10 coffres et Pierres de Psynergie**. Les autres endroits à fouiller ne comptent pas dans les 10.
 
 ## Événements : personnages, panneaux et messages
 
-Appuyez sur **Événements** (E). Le panneau liste en toutes lettres tout ce qui se passe dans ce lieu : ce que disent les personnages, les pensées lues avec Mind Read, les panneaux, les messages de passage, les fouilles et les zones de sortie. Les personnages apparaissent sur la carte tels qu'ils sont ; survolez quelqu'un pour voir ce qu'il dit.
+Appuyez sur **Événements** (E). Le panneau liste en toutes lettres tout ce qui se passe dans ce lieu : ce que disent les personnages, les pensées lues avec Mind Read, les panneaux, les messages de passage, les fouilles et les zones de sortie. Les personnages apparaissent sur la carte tels qu'ils sont ; survolez quelqu'un pour voir ce qu'il dit. Les scripts de scène sont décrits en mots simples (cochez **Avancé** pour la description complète). Les personnages qui attendent hors de la carte jusqu'à ce que l'histoire les amène ne sont pas dessinés ; le panneau indique combien il y en a.
 
 L'**Étape de l'histoire** en haut est importante. Beaucoup de lieux changent au fil de l'histoire, et chaque étape a ses propres personnages et événements. Choisissez l'étape que vous voulez modifier.
 
@@ -255,7 +255,7 @@ Cliquez sur un personnage. Appuyez sur **Le faire parler…**, ou sur **Ajouter 
 Chaque événement de la liste a ces boutons, quand ils s'appliquent :
 
 - **Changer le texte** ouvre l'éditeur de texte.
-- **Quand…** décide quand l'événement a lieu : **Toujours**, **Seulement une fois que…** un drapeau d'histoire est activé, ou **Seulement tant que… n'est pas** activé. Les drapeaux sont listés par nom.
+- **Quand…** décide quand l'événement a lieu : **Toujours**, **Seulement une fois que…** un drapeau d'histoire est activé, ou **Seulement tant que… n'est pas** activé. Les drapeaux sont listés par nom. Un « drapeau propre à ce lieu » est effacé chaque fois que le groupe entre dans le lieu.
 - **Supprimer** l'efface.
 
 ### L'éditeur de texte
@@ -287,7 +287,7 @@ Appuyez sur **Déplacer les personnages** (P).
 2. Faites-les glisser sur la carte. Maintenez ⇧ en relâchant pour les aligner sur les 8 pixels les plus proches.
 3. Enregistrez.
 
-Les points d'arrivée sont les endroits où le groupe apparaît en entrant dans un lieu. Survolez un personnage pour voir qui il est et ce qu'il dit.
+Les points d'arrivée sont les endroits où le groupe apparaît en entrant dans un lieu. Survolez un personnage pour voir qui il est et ce qu'il dit. Les personnages qui attendent hors de la carte jusqu'à ce que l'histoire les amène sont regroupés, en général dans le coin supérieur gauche, dessinés une seule fois avec un nombre comme « ×6 » ; faites-en glisser un pour le placer.
 
 ## Tampon : copier et coller
 
@@ -354,7 +354,7 @@ Choisissez la carte du monde en haut de la liste des lieux. Appuyez sur **← Li
 
 ## Vérifier : trouver les problèmes
 
-Appuyez sur **Vérifier** pour passer en revue toutes les cartes à la recherche des problèmes que vos modifications causeraient. Chacun est accompagné d'une correction et d'un bouton **Afficher** qui ouvre l'emplacement. Il recherche :
+Appuyez sur **Vérifier** pour passer en revue toutes les cartes à la recherche des problèmes que vos modifications causeraient. Chacun est accompagné d'une correction et d'un bouton **Afficher** qui ouvre le lieu et entoure la case pendant quelques secondes. Il recherche :
 
 - les portes qui ne mènent nulle part ou vers un point d'arrivée qui n'existe pas ;
 - les coffres qui ne peuvent pas être ouverts, qui n'ont rien de défini, qui se remplissent à nouveau ou qui partagent un drapeau « ouvert » ;

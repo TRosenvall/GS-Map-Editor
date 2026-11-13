@@ -1,4 +1,4 @@
-<!-- translated from docs/SPEC.md @ cc811df51f27 -->
+<!-- translated from docs/SPEC.md @ fc648c206c4f -->
 # gs-mapedit: Editor-Spezifikation und Bauplan
 
 *Dies ist eine Übersetzung der englischen [SPEC.md](../SPEC.md). Wenn sich die beiden unterscheiden, ist die englische Fassung aktuell.*
@@ -38,7 +38,7 @@ Der Editor liest und schreibt nur alchemys Quelldateien: TSV, PNG und eng begren
 | Blockdefinitionen | `cell_pictures.tsv` | neue 2×2-Kachelkombinationen anhängen | Höchstens 4,095 Blöcke. Zeilennummer = Block-ID. |
 | Kollisionscodes | `map.txt`, das Verhalten jedes Felds | malen | Pro Ebenenfenster. Die Codes 1–239 können Ereignisse tragen (Ausgänge, Truhen). |
 | Höhe / Form | `map.txt`, die Form jedes Felds, + `shapes.tsv` | malen | Pro Ebenenfenster. |
-| Truhen / Psynergie-Steine | `treasure_spot x, z, id`-Zeilen in `map.s` | hinzufügen/verschieben/entfernen | **id muss dem Kollisionscode bei (x, z) entsprechen**: überprüft 418/418. Höchstens 10 pro Karte. Endmarkierungszeile `ff ff ff`. Der Inhalt braucht ein `SEARCH(SEARCH_CHEST)`-Ereignis in der Szene mit einem neuen Flag. |
+| Truhen / Psynergie-Steine | `treasure_spot x, z, id`-Zeilen in `map.s` | hinzufügen/verschieben/entfernen | **id muss dem Kollisionscode bei (x, z) entsprechen**: überprüft 418/418. Das Spiel platziert höchstens 10 pro Szene und zählt dabei nur Markierungen, deren Code in den Ereignissen dieser Szene eine Truhe oder ein noch nicht genommener Psynergie-Stein ist (`treasure_spots.c`). Endmarkierungszeile `ff ff ff`. Der Inhalt braucht ein `SEARCH(SEARCH_CHEST)`-Ereignis in der Szene mit einem neuen Flag. |
 | Kachelanimation | `animation.tsv` | später | Höchstens 16 Kanäle. |
 
 Geteilte Dateien: Blöcke können aus dem Ordner einer anderen Karte kommen, und Felder und Attribute aus `default/` werden ebenfalls geteilt. Der Editor zeigt, wenn eine Datei geteilt ist, und warnt vor dem Bearbeiten.

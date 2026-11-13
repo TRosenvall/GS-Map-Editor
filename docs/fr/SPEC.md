@@ -1,4 +1,4 @@
-<!-- translated from docs/SPEC.md @ cc811df51f27 -->
+<!-- translated from docs/SPEC.md @ fc648c206c4f -->
 # gs-mapedit : spécification de l'éditeur et plan de construction
 
 *Ceci est une traduction du document anglais [SPEC.md](../SPEC.md) ; en cas de différence, c'est la version anglaise qui fait foi.*
@@ -38,7 +38,7 @@ L'éditeur lit et écrit uniquement les fichiers source d'alchemy : TSV, PNG, et
 | Définitions de blocs | `cell_pictures.tsv` | ajouter de nouvelles combinaisons de tuiles 2×2 | 4 095 blocs au maximum. Numéro de ligne = id du bloc. |
 | Codes de collision | `map.txt`, le comportement de chaque case | peindre | Par fenêtre de calque. Les codes 1–239 peuvent porter des événements (sorties, coffres). |
 | Hauteur / forme | `map.txt`, la forme de chaque case, + `shapes.tsv` | peindre | Par fenêtre de calque. |
-| Coffres / Pierres de Psynergie | lignes `treasure_spot x, z, id` dans `map.s` | ajouter/déplacer/supprimer | **l'id doit être égal au code de collision en (x, z)** : vérifié 418/418. 10 au maximum par carte. Ligne de marqueur de fin `ff ff ff`. Le contenu nécessite un événement `SEARCH(SEARCH_CHEST)` dans la scène avec un nouveau drapeau. |
+| Coffres / Pierres de Psynergie | lignes `treasure_spot x, z, id` dans `map.s` | ajouter/déplacer/supprimer | **l'id doit être égal au code de collision en (x, z)** : vérifié 418/418. Le jeu en place au plus 10 par scène, en ne comptant que les marqueurs dont le code est un coffre ou une Pierre de Psynergie pas encore prise dans les événements de cette scène (`treasure_spots.c`). Ligne de marqueur de fin `ff ff ff`. Le contenu nécessite un événement `SEARCH(SEARCH_CHEST)` dans la scène avec un nouveau drapeau. |
 | Animation des tuiles | `animation.tsv` | plus tard | 16 canaux au maximum. |
 
 Fichiers partagés : les blocs peuvent venir du dossier d'une autre carte, et les cases et attributs de `default/` sont partagés aussi. L'éditeur indique quand un fichier est partagé et avertit avant de le modifier.

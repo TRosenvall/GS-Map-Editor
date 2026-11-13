@@ -35,7 +35,7 @@ The editor reads and writes only alchemy's source files: TSV, PNG, and narrow re
 | Block definitions | `cell_pictures.tsv` | append new 2×2 tile combos | Max 4,095 blocks. Row number = block id. |
 | Collision codes | `map.txt`, each cell's behavior | paint | Per layer window. Codes 1–239 can carry events (exits, chests). |
 | Height / shape | `map.txt`, each cell's shape, + `shapes.tsv` | paint | Per layer window. |
-| Chests / Psynergy stones | `treasure_spot x, z, id` lines in `map.s` | add/move/remove | **id must equal the collision code at (x, z)**: verified 418/418. Max 10 per map. End marker row `ff ff ff`. Contents need a `SEARCH(SEARCH_CHEST)` event in the scene with a fresh flag. |
+| Chests / Psynergy stones | `treasure_spot x, z, id` lines in `map.s` | add/move/remove | **id must equal the collision code at (x, z)**: verified 418/418. The game places at most 10 per scene, counting only markers whose code is a chest or a not-yet-taken Psynergy Stone in that scene's events (`treasure_spots.c`). End marker row `ff ff ff`. Contents need a `SEARCH(SEARCH_CHEST)` event in the scene with a fresh flag. |
 | Tile animation | `animation.tsv` | later | 16 channels max. |
 
 Shared files: blocks can come from another map's folder, and `default/` cells and attributes are shared too. The editor shows when a file is shared and warns before editing it.

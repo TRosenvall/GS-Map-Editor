@@ -1,4 +1,4 @@
-<!-- translated from docs/DEVELOPING.md @ 9804c9abc13f -->
+<!-- translated from docs/DEVELOPING.md @ eb8752708913 -->
 # Sviluppare GS Map Editor
 
 *Questa è una traduzione del file inglese [DEVELOPING.md](../DEVELOPING.md); se i due differiscono, vale quello inglese.*
@@ -48,7 +48,7 @@ Windows esegue lo stesso editor Linux dentro WSL, che è anche l'unico modo in c
 - L'editor si apre nel browser di Windows attraverso l'inoltro di localhost di WSL. Gioca avvia l'mGBA di Windows da `Program Files\mGBA`, passandogli il percorso `\\wsl.localhost\…` del gioco. Il gioco viene compilato sul disco di Ubuntu, perché una build su `/mnt/c` è molte volte più lenta.
 - Le pagine mostrano Ctrl e Alt al posto di ⌘ e ⌥ su qualsiasi sistema che non sia un Mac (`localWords` in `static/common.js`).
 
-`.github/workflows/linux.yml` lo verifica sulle macchine Ubuntu di GitHub a ogni push: `setup-in-wsl.sh` installa l'editor, `tests/setup_flow.py` percorre la configurazione del primo avvio tramite il comando installato, la build deve corrispondere a `rom.sha1`, e i test di andata e ritorno, di modifica e di posizionamento girano su quel checkout. La metà Windows (il `.cmd`, l'installazione di WSL, il collegamento, l'mGBA di Windows) non ha test automatici: serve un PC Windows.
+`.github/workflows/linux.yml` lo verifica sulle macchine Ubuntu di GitHub a ogni push: `setup-in-wsl.sh` installa l'editor, `tests/setup_flow.py` percorre la configurazione del primo avvio tramite il comando installato, la build deve corrispondere a `rom.sha1`, e i test di andata e ritorno, di modifica, di posizionamento e delle funzioni girano su quel checkout. La metà Windows (il `.cmd`, l'installazione di WSL, il collegamento, l'mGBA di Windows) non ha test automatici: serve un PC Windows.
 
 ### Pubblicare una release
 
@@ -155,6 +155,7 @@ Le modifiche salvate alle scene portano un'impronta della tabella per cui sono s
 
 - `python3 tests/safety.py`: ciò che non deve mai andare storto: errori e crash non lasciano file salvati a metà, annulla e ripeti percorrono le azioni salvate in ordine e una nuova modifica svuota il ripeti, i forzieri restano nelle loro stanze, i valori errati e le patch ostili vengono rifiutati, le tabelle rinominate o modificate vengono gestite, una struttura sconosciuta viene segnalata invece di essere indovinata.
 - `python3 tests/placement.py`: le regole di movimento confrontate con il gioco: le persone piazzate in otto città sono raggiungibili per parlarci e le loro vie d'uscita sono raggiungibili, e a Imil il ghiaccio, un punto innevato irraggiungibile (con la sua correzione di livellamento), un vicolo stretto, una soglia e un muro producono ciascuno un avviso.
+- `python3 tests/features.py`: i casi limite delle funzioni più recenti, su copie usa e getta: rimuovere persone aggiunte, dove parte Gioca, i nomi di esportazione, i punti al passaggio e le icone delle città sulla mappa del mondo, le zone degli incontri e cosa ripristina Ripristina, la cache dell'atlante, i problemi della mappa del mondo trovati da Controlla, il commit da cui parte una mod, quali punti forziere contano nei 10, e le descrizioni degli script con parole semplici.
 - `python3 tests/edits.py`: salva modifiche a blocchi, calpestabilità e altezza su una copia di mappe reali e verifica che vengano rilette correttamente, senza che altro cambi.
 - `python3 tests/i18n.py`: ogni messaggio che il codice mostra è tradotto in ogni lingua, e ogni traduzione mantiene i suoi `{placeholders}`, tag HTML e tasti (⌘ ⇧ ⌥ ▶).
 - `python3 tests/roundtrip.py`: carica e risalva ogni griglia di mappa, tabella di immagini delle celle e di forme, ed elenco di forzieri (727 file con la mod della stanza di debug, 721 su un checkout pulito). Tutti devono risultare identici byte per byte. Questo garantisce che salvare una mappa cambi solo ciò che hai modificato.

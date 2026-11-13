@@ -1,4 +1,4 @@
-<!-- translated from docs/SPEC.md @ cc811df51f27 -->
+<!-- translated from docs/SPEC.md @ fc648c206c4f -->
 # gs-mapedit: specifica dell'editor e piano di sviluppo
 
 *Questa è una traduzione del file inglese [SPEC.md](../SPEC.md); se i due differiscono, vale quello inglese.*
@@ -38,7 +38,7 @@ L'editor legge e scrive solo i file sorgente di alchemy: TSV, PNG e zone ristret
 | Definizioni dei blocchi | `cell_pictures.tsv` | aggiungere nuove combinazioni di tile 2×2 | Massimo 4.095 blocchi. Numero di riga = id del blocco. |
 | Codici di collisione | `map.txt`, il comportamento di ogni cella | dipingere | Per finestra di livello. I codici 1–239 possono portare eventi (uscite, forzieri). |
 | Altezza / forma | `map.txt`, la forma di ogni cella, + `shapes.tsv` | dipingere | Per finestra di livello. |
-| Forzieri / Psynergy Stone | righe `treasure_spot x, z, id` in `map.s` | aggiungere/spostare/rimuovere | **id deve essere uguale al codice di collisione in (x, z)**: verificato 418/418. Massimo 10 per mappa. Riga marcatore di fine `ff ff ff`. Il contenuto richiede un evento `SEARCH(SEARCH_CHEST)` nella scena con un nuovo flag. |
+| Forzieri / Psynergy Stone | righe `treasure_spot x, z, id` in `map.s` | aggiungere/spostare/rimuovere | **id deve essere uguale al codice di collisione in (x, z)**: verificato 418/418. Il gioco ne piazza al massimo 10 per scena, contando solo i marcatori il cui codice è un forziere o una Psynergy Stone non ancora presa negli eventi di quella scena (`treasure_spots.c`). Riga marcatore di fine `ff ff ff`. Il contenuto richiede un evento `SEARCH(SEARCH_CHEST)` nella scena con un nuovo flag. |
 | Animazione delle tile | `animation.tsv` | più avanti | Massimo 16 canali. |
 
 File condivisi: i blocchi possono venire dalla cartella di un'altra mappa, e anche le celle e gli attributi di `default/` sono condivisi. L'editor mostra quando un file è condiviso e avvisa prima di modificarlo.

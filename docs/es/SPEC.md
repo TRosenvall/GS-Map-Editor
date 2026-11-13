@@ -1,4 +1,4 @@
-<!-- translated from docs/SPEC.md @ cc811df51f27 -->
+<!-- translated from docs/SPEC.md @ fc648c206c4f -->
 # gs-mapedit: especificación del editor y plan de construcción
 
 *Esta es una traducción del documento en inglés [SPEC.md](../SPEC.md); si los dos difieren, el inglés es el actualizado.*
@@ -38,7 +38,7 @@ El editor lee y escribe solo los archivos fuente de alchemy: TSV, PNG y zonas ac
 | Definiciones de bloques | `cell_pictures.tsv` | añadir al final nuevas combinaciones de 2×2 tiles | Máximo 4.095 bloques. Número de fila = id de bloque. |
 | Códigos de colisión | `map.txt`, el comportamiento de cada celda | pintar | Por ventana de capa. Los códigos 1–239 pueden llevar eventos (salidas, cofres). |
 | Altura / forma | `map.txt`, la forma de cada celda, + `shapes.tsv` | pintar | Por ventana de capa. |
-| Cofres / Piedras de Psinergía | líneas `treasure_spot x, z, id` en `map.s` | añadir/mover/quitar | **el id debe ser igual al código de colisión en (x, z)**: verificado 418/418. Máximo 10 por mapa. Fila marcadora final `ff ff ff`. El contenido necesita un evento `SEARCH(SEARCH_CHEST)` en la escena con un indicador nuevo. |
+| Cofres / Piedras de Psinergía | líneas `treasure_spot x, z, id` en `map.s` | añadir/mover/quitar | **el id debe ser igual al código de colisión en (x, z)**: verificado 418/418. El juego coloca como máximo 10 por escena y solo cuenta los marcadores cuyo código es un cofre o una Piedra de Psinergía aún no recogida en los eventos de esa escena (`treasure_spots.c`). Fila marcadora final `ff ff ff`. El contenido necesita un evento `SEARCH(SEARCH_CHEST)` en la escena con un indicador nuevo. |
 | Animación de tiles | `animation.tsv` | más adelante | 16 canales como máximo. |
 
 Archivos compartidos: los bloques pueden venir de la carpeta de otro mapa, y las celdas y atributos de `default/` también se comparten. El editor muestra cuándo un archivo está compartido y avisa antes de editarlo.

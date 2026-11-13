@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 574887351a06 -->
+<!-- translated from README.md @ 1a86f855b136 -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · **Deutsch** · [Français](README.fr.md) · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -118,7 +118,7 @@ Drück dann auf **Editor öffnen**. Danach öffnet sich die App direkt im Editor
 | **Obere Leiste** | Zoom, Ebenen, Overlays, Werkzeuge und Knöpfe zum Speichern, Prüfen und Spielen. |
 | **Mitte** | Die Karte. |
 | **Rechts** | Der Bereich für das Werkzeug, das du gerade benutzt. |
-| **Untere Zeile** | Statusmeldungen. Wenn du mit der Maus darüberfährst, sagt sie, was die Stelle unter deinem Mauszeiger tut, etwa „Truhe: Herb“ oder wohin ein Ausgang führt. |
+| **Untere Zeile** | Statusmeldungen. Wenn du mit der Maus darüberfährst, sagt sie, was die Stelle unter deinem Mauszeiger tut, etwa „Truhe: Herb“ oder wohin ein Ausgang führt, und welches Feld es ist. Die Feldnummern sind dieselben, die Prüfen, Türen und Truhen verwenden. |
 
 Setz in der oberen Leiste das Häkchen bei **Erweitert**, um rohe Zahlen und Codes und einen eigenen Knopf **Bauen** anzuzeigen. Fürs normale Bearbeiten brauchst du das nicht.
 
@@ -193,7 +193,7 @@ Die Werkzeuge Truhe, Türen und Ereignisse setzen die besonderen Codes, die sie 
 
 ## Höhe: wie hoch der Boden ist
 
-Drück auf **Höhe** (H). Der Bereich listet die Höhen auf, die dieser Ort schon nutzt, etwa „Flach, 24 px“ oder „Hang oder Stufe“. Wähl eine aus und male.
+Drück auf **Höhe** (H). Der Bereich listet die Höhen auf, die dieser Ort schon nutzt, die höchste zuerst, etwa „Flach, 24 px“ oder „Hang, 16 bis 24 px von links nach rechts“. Höhen, die gleich klingen würden, bekommen eine Nummer, und wenn du mit der Maus über eine fährst, siehst du, wie viele Felder sie nutzen. Wähl eine aus und male.
 
 Die Höhe beeinflusst nicht nur das Aussehen, sondern auch das Laufen. Personen stehen auf der Höhe des Bodens unter ihnen, und das Spiel lässt keinen Schritt von mehr als 8 Pixeln nach oben oder 12 Pixeln nach unten zu, deshalb wirkt ein großer Höhenunterschied wie eine Wand.
 
@@ -206,11 +206,11 @@ Drück auf **Truhe** (K).
 - **Eine entfernen:** Klick darauf und drück auf **Truhe entfernen**.
 - **Eine verschieben:** Zieh sie und speichere dann. Auch Psynergie-Steine lassen sich ziehen. Eine Truhe kann nicht auf ein Feld, das schon eine Tür, ein Schild oder eine Tritt-Nachricht ist.
 
-Den Rest erledigt der Editor, auch das Flag, das sich merkt, dass eine Truhe geöffnet wurde, sodass eine Truhe leer bleibt, wenn du zurückkommst. Ein Ort kann höchstens **10 Truhen und Steine** haben.
+Den Rest erledigt der Editor, auch das Flag, das sich merkt, dass eine Truhe geöffnet wurde, sodass eine Truhe leer bleibt, wenn du zurückkommst. Ein Ort kann höchstens **10 Truhen und Psynergie-Steine** haben. Andere Stellen zum Untersuchen zählen nicht zu den 10.
 
 ## Ereignisse: Personen, Schilder und Nachrichten
 
-Drück auf **Ereignisse** (E). Der Bereich listet in Worten alles auf, was an diesem Ort passiert: was Personen sagen, Gedanken für Mind Read, Schilder, Tritt-Nachrichten, Dinge zum Untersuchen und Ausgangsbereiche. Personen erscheinen auf der Karte als sie selbst; fahr mit der Maus über jemanden, um zu sehen, was er sagt.
+Drück auf **Ereignisse** (E). Der Bereich listet in Worten alles auf, was an diesem Ort passiert: was Personen sagen, Gedanken für Mind Read, Schilder, Tritt-Nachrichten, Dinge zum Untersuchen und Ausgangsbereiche. Personen erscheinen auf der Karte als sie selbst; fahr mit der Maus über jemanden, um zu sehen, was er sagt. Szenenskripte werden in einfachen Worten beschrieben (setz das Häkchen bei **Erweitert** für die vollständige Beschreibung). Personen, die außerhalb der Karte warten, bis die Geschichte sie herbringt, werden nicht gezeichnet; der Bereich sagt, wie viele es sind.
 
 Der **Story-Abschnitt** oben ist wichtig. Viele Orte verändern sich im Lauf der Story, und jeder Abschnitt hat seine eigenen Personen und Ereignisse. Wähl den Abschnitt, den du bearbeiten willst.
 
@@ -255,7 +255,7 @@ Klick auf eine Person. Drück auf **Lass sie etwas sagen …** oder, wenn sie sc
 Jedes Ereignis in der Liste hat diese Knöpfe, wo sie passen:
 
 - **Text ändern** öffnet den Texteditor.
-- **Wann …** legt fest, wann das Ereignis passiert: **Immer**, **Erst sobald** ein Story-Flag gesetzt ist, oder **Nur solange** es nicht gesetzt ist. Flags werden mit Namen aufgelistet.
+- **Wann …** legt fest, wann das Ereignis passiert: **Immer**, **Erst sobald** ein Story-Flag gesetzt ist, oder **Nur solange** es nicht gesetzt ist. Flags werden mit Namen aufgelistet. Ein „eigenes Flag dieses Ortes“ wird jedes Mal gelöscht, wenn die Gruppe den Ort betritt.
 - **Entfernen** löscht es.
 
 ### Der Texteditor
@@ -287,7 +287,7 @@ Drück auf **Personen verschieben** (P).
 2. Zieh sie auf der Karte. Halte beim Loslassen ⇧ gedrückt, um sie auf die nächsten 8 Pixel einrasten zu lassen.
 3. Speichere.
 
-Ankunftspunkte sind die Stellen, an denen die Gruppe erscheint, wenn sie einen Ort betritt. Fahr mit der Maus über eine Person, um zu sehen, wer sie ist und was sie sagt.
+Ankunftspunkte sind die Stellen, an denen die Gruppe erscheint, wenn sie einen Ort betritt. Fahr mit der Maus über eine Person, um zu sehen, wer sie ist und was sie sagt. Personen, die außerhalb der Karte warten, bis die Geschichte sie herbringt, stehen zusammen, meist in der oberen linken Ecke, einmal gezeichnet mit einer Zahl wie „×6“; zieh eine heraus, um sie zu platzieren.
 
 ## Stempel: kopieren und einfügen
 
@@ -354,7 +354,7 @@ Wähl die Weltkarte ganz oben in der Ortsliste. Drück auf **← Orte**, um zur�
 
 ## Prüfen: Probleme finden
 
-Drück auf **Prüfen**, um alle Karten auf Probleme zu untersuchen, die deine Änderungen verursachen würden. Zu jedem gibt es eine Lösung und einen Knopf **Anzeigen**, der die Stelle öffnet. Es sucht nach:
+Drück auf **Prüfen**, um alle Karten auf Probleme zu untersuchen, die deine Änderungen verursachen würden. Zu jedem gibt es eine Lösung und einen Knopf **Anzeigen**, der den Ort öffnet und das Feld ein paar Sekunden lang einkreist. Es sucht nach:
 
 - Türen, die nirgendwohin führen oder zu einem Ankunftspunkt, den es nicht gibt;
 - Truhen, die sich nicht öffnen lassen, für die nichts festgelegt ist, die sich wieder füllen oder die sich ein „Geöffnet“-Flag teilen;

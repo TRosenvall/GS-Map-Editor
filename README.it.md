@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 574887351a06 -->
+<!-- translated from README.md @ 1a86f855b136 -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · [Deutsch](README.de.md) · [Français](README.fr.md) · **Italiano** · [日本語](README.ja.md)
@@ -118,7 +118,7 @@ Poi premi **Apri l'editor**. Da quel momento l'app si apre direttamente nell'edi
 | **Barra in alto** | Zoom, livelli, sovrapposizioni, strumenti e pulsanti per salvare, controllare e giocare. |
 | **Centro** | La mappa. |
 | **Destra** | Il pannello dello strumento che stai usando. |
-| **Riga in basso** | Messaggi di stato. Mentre passi sopra con il mouse, dice cosa fa il punto sotto il cursore, per esempio "Forziere: Herb" o dove porta un'uscita. |
+| **Riga in basso** | Messaggi di stato. Mentre passi sopra con il mouse, dice cosa fa il punto sotto il cursore, per esempio "Forziere: Herb" o dove porta un'uscita, e quale casella è. I numeri delle caselle sono quelli che usano Controlla, le porte e i forzieri. |
 
 Spunta **Avanzate** nella barra in alto per mostrare numeri e codici grezzi e un pulsante **Compila** separato. Per le modifiche normali non ti servirà.
 
@@ -193,7 +193,7 @@ Gli strumenti Forziere, Porte ed Eventi impostano da soli i codici speciali di c
 
 ## Altezza: quanto è alto il terreno
 
-Premi **Altezza** (H). Il pannello elenca le altezze che questo luogo usa già, per esempio "Piano, 24 px" o "Pendenza o gradino". Scegline una e dipingi.
+Premi **Altezza** (H). Il pannello elenca le altezze che questo luogo usa già, dalla più alta, per esempio "Piano, 24 px" o "Pendenza, da 16 a 24 px da sinistra a destra". Le altezze che si leggerebbero uguali ricevono un numero, e passandoci sopra con il mouse vedi quante caselle la usano. Scegline una e dipingi.
 
 L'altezza influisce sul camminare oltre che sull'aspetto. Le persone stanno all'altezza del terreno su cui si trovano, e il gioco rifiuta un passo di più di 8 pixel in salita o di 12 pixel in discesa, quindi una grande differenza di altezza fa da muro.
 
@@ -206,11 +206,11 @@ Premi **Forziere** (K).
 - **Rimuoverne uno:** cliccalo e premi **Rimuovi forziere**.
 - **Spostarne uno:** trascinalo, poi salva. Anche le Psynergy Stone si possono trascinare. Un forziere non può stare su una casella che è già una porta, un cartello o un messaggio al passaggio.
 
-L'editor pensa al resto, compreso il flag che ricorda che un forziere è stato aperto, così il forziere resta vuoto quando torni. Un luogo può contenere al massimo **10 forzieri e pietre**.
+L'editor pensa al resto, compreso il flag che ricorda che un forziere è stato aperto, così il forziere resta vuoto quando torni. Un luogo può contenere al massimo **10 forzieri e Psynergy Stone**. Gli altri punti da esaminare non contano nei 10.
 
 ## Eventi: persone, cartelli e messaggi
 
-Premi **Eventi** (E). Il pannello elenca a parole tutto ciò che succede in questo luogo: cosa dicono le persone, i pensieri letti con Mind Read, i cartelli, i messaggi al passaggio, i punti da esaminare e le aree di uscita. Le persone compaiono sulla mappa con il loro aspetto; passa sopra qualcuno con il mouse per vedere cosa dice.
+Premi **Eventi** (E). Il pannello elenca a parole tutto ciò che succede in questo luogo: cosa dicono le persone, i pensieri letti con Mind Read, i cartelli, i messaggi al passaggio, i punti da esaminare e le aree di uscita. Le persone compaiono sulla mappa con il loro aspetto; passa sopra qualcuno con il mouse per vedere cosa dice. Gli script di scena sono descritti con parole semplici (spunta **Avanzate** per la descrizione completa). Le persone che aspettano fuori dalla mappa finché la storia non le porta qui non vengono disegnate; il pannello dice quante sono.
 
 La **Fase della storia** in cima è importante. Molti luoghi cambiano man mano che la storia va avanti, e ogni fase ha le sue persone e i suoi eventi. Scegli la fase che vuoi modificare.
 
@@ -255,7 +255,7 @@ Clicca una persona. Premi **Fagli dire qualcosa…**, oppure **Aggiungi una batt
 Ogni evento della lista ha questi pulsanti, dove servono:
 
 - **Cambia parole** apre l'editor di testo.
-- **Quando…** decide quando succede l'evento: **Sempre**, **Solo dopo che** un flag della storia è attivo, o **Solo finché** non lo è. I flag sono elencati per nome.
+- **Quando…** decide quando succede l'evento: **Sempre**, **Solo dopo che** un flag della storia è attivo, o **Solo finché** non lo è. I flag sono elencati per nome. Un "flag proprio di questo luogo" viene azzerato ogni volta che il gruppo entra nel luogo.
 - **Rimuovi** lo elimina.
 
 ### L'editor di testo
@@ -287,7 +287,7 @@ Premi **Sposta persone** (P).
 2. Trascinali sulla mappa. Tieni premuto ⇧ mentre li lasci per agganciarli agli 8 pixel più vicini.
 3. Salva.
 
-I punti di arrivo sono dove compare il gruppo quando entra in un luogo. Passa sopra una persona con il mouse per vedere chi è e cosa dice.
+I punti di arrivo sono dove compare il gruppo quando entra in un luogo. Passa sopra una persona con il mouse per vedere chi è e cosa dice. Le persone che aspettano fuori dalla mappa finché la storia non le porta qui stanno insieme, di solito nell'angolo in alto a sinistra, disegnate una volta sola con un numero come "×6"; trascinane una fuori per posizionarla.
 
 ## Timbro: copia e incolla
 
@@ -354,7 +354,7 @@ Scegli la mappa del mondo in cima alla lista dei luoghi. Premi **← Luoghi** pe
 
 ## Controlla: trovare i problemi
 
-Premi **Controlla** per esaminare tutte le mappe alla ricerca dei problemi che le tue modifiche causerebbero. Ognuno arriva con una soluzione e un pulsante **Mostra** che apre il punto. Cerca:
+Premi **Controlla** per esaminare tutte le mappe alla ricerca dei problemi che le tue modifiche causerebbero. Ognuno arriva con una soluzione e un pulsante **Mostra** che apre il luogo e cerchia la casella per qualche secondo. Cerca:
 
 - porte che non portano da nessuna parte o portano a un punto di arrivo che non esiste;
 - forzieri che non si possono aprire, non hanno nulla definito, si riempiono di nuovo o condividono un flag di apertura;

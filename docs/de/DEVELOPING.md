@@ -1,4 +1,4 @@
-<!-- translated from docs/DEVELOPING.md @ 9804c9abc13f -->
+<!-- translated from docs/DEVELOPING.md @ eb8752708913 -->
 # GS Map Editor entwickeln
 
 *Dies ist eine Übersetzung der englischen [DEVELOPING.md](../DEVELOPING.md). Wenn sich die beiden unterscheiden, ist die englische Fassung aktuell.*
@@ -48,7 +48,7 @@ Windows führt denselben Linux-Editor in WSL aus, was auch der einzige Weg ist, 
 - Der Editor öffnet sich im Windows-Browser über die localhost-Weiterleitung von WSL. Spielen startet das Windows-mGBA aus `Program Files\mGBA` mit dem Pfad `\\wsl.localhost\…` des Spiels. Das Spiel wird auf Ubuntus eigener Festplatte gebaut, da ein Build auf `/mnt/c` um ein Vielfaches langsamer ist.
 - Die Seiten zeigen auf jedem System außer einem Mac Ctrl und Alt statt ⌘ und ⌥ (`localWords` in `static/common.js`).
 
-`.github/workflows/linux.yml` prüft das bei jedem Push auf GitHubs Ubuntu-Maschinen: `setup-in-wsl.sh` installiert den Editor, `tests/setup_flow.py` geht die Ersteinrichtung über den installierten Befehl durch, der Build muss `rom.sha1` entsprechen, und die Round-Trip-, Bearbeitungs- und Platzierungstests laufen auf diesem Checkout. Die Windows-Hälfte (die `.cmd`, die WSL-Installation, die Verknüpfung, Windows-mGBA) hat keinen automatischen Test: Dafür braucht es einen Windows-PC.
+`.github/workflows/linux.yml` prüft das bei jedem Push auf GitHubs Ubuntu-Maschinen: `setup-in-wsl.sh` installiert den Editor, `tests/setup_flow.py` geht die Ersteinrichtung über den installierten Befehl durch, der Build muss `rom.sha1` entsprechen, und die Round-Trip-, Bearbeitungs-, Platzierungs- und Funktionstests laufen auf diesem Checkout. Die Windows-Hälfte (die `.cmd`, die WSL-Installation, die Verknüpfung, Windows-mGBA) hat keinen automatischen Test: Dafür braucht es einen Windows-PC.
 
 ### Releases
 
@@ -155,6 +155,7 @@ Gespeicherte Szenenänderungen tragen einen Fingerabdruck der Tabelle, für die 
 
 - `python3 tests/safety.py`: was nie schiefgehen darf: Fehler und Abstürze hinterlassen keine halb gespeicherten Dateien, Rückgängig und Wiederholen gehen gespeicherte Aktionen der Reihe nach durch und eine neue Änderung leert Wiederholen, Truhen bleiben in ihren eigenen Räumen, schlechte Werte und feindselige Patches werden abgelehnt, umbenannte oder geänderte Tabellen werden behandelt, ein unbekannter Aufbau wird gemeldet statt erraten.
 - `python3 tests/placement.py`: die Laufregeln gegen das Spiel: Die in acht Städten platzierten Personen sind ansprechbar und ihre Auswege erreichbar, und in Imil wird jeweils vor dem Eis, einer unerreichbaren verschneiten Stelle (mit ihrer Einebnungs-Lösung), einer schmalen Gasse, einer Türschwelle und einer Wand gewarnt.
+- `python3 tests/features.py`: die Grenzfälle der neueren Funktionen auf Wegwerfkopien: hinzugefügte Personen entfernen, wo Spielen startet, Exportnamen, Trittstellen und Stadtsymbole auf der Weltkarte, Begegnungszonen und was Zurücksetzen wiederherstellt, der Atlas-Cache, die Weltkarten-Probleme von Prüfen, der Commit, von dem ein Mod ausgeht, welche Truhenstellen zu den 10 zählen, und Skriptbeschreibungen in einfachen Worten.
 - `python3 tests/edits.py`: speichert Block-, Begehbarkeits- und Höhenänderungen auf einer Kopie echter Karten und prüft, dass sie sich zurücklesen lassen, ohne dass sich sonst etwas geändert hat.
 - `python3 tests/i18n.py`: Jede Meldung, die der Code zeigt, ist in jeder Sprache übersetzt, und jede Übersetzung behält ihre `{placeholders}`, HTML-Tags und Tasten (⌘ ⇧ ⌥ ▶).
 - `python3 tests/roundtrip.py`: lädt und speichert jedes Kartenraster, jede Feldbild- und Formtabelle und jede Truhenliste neu (727 Dateien mit der Debug-Raum-Mod, 721 bei einem unveränderten Checkout). Alle müssen byte-identisch herauskommen. Das garantiert, dass das Speichern einer Karte nur ändert, was du bearbeitet hast.

@@ -1,4 +1,4 @@
-<!-- translated from docs/DEVELOPING.md @ 9804c9abc13f -->
+<!-- translated from docs/DEVELOPING.md @ eb8752708913 -->
 # Développer GS Map Editor
 
 *Ceci est une traduction du document anglais [DEVELOPING.md](../DEVELOPING.md) ; en cas de différence, c'est la version anglaise qui fait foi.*
@@ -48,7 +48,7 @@ Windows exécute le même éditeur Linux dans WSL, qui est aussi la seule façon
 - L'éditeur s'ouvre dans le navigateur Windows grâce à la redirection localhost de WSL. Jouer lance le mGBA Windows depuis `Program Files\mGBA`, en lui donnant le chemin `\\wsl.localhost\…` du jeu. Le jeu se compile sur le disque propre d'Ubuntu, car une compilation sur `/mnt/c` est bien plus lente.
 - Les pages affichent Ctrl et Alt à la place de ⌘ et ⌥ sur tout système autre qu'un Mac (`localWords` dans `static/common.js`).
 
-`.github/workflows/linux.yml` vérifie cela sur les machines Ubuntu de GitHub à chaque push : `setup-in-wsl.sh` installe l'éditeur, `tests/setup_flow.py` parcourt l'installation du premier lancement via la commande installée, la compilation doit correspondre à `rom.sha1`, et les tests d'aller-retour, d'édition et de placement s'exécutent sur cette copie. La moitié Windows (le `.cmd`, l'installation de WSL, le raccourci, le mGBA Windows) n'a pas de test automatique : elle nécessite un PC Windows.
+`.github/workflows/linux.yml` vérifie cela sur les machines Ubuntu de GitHub à chaque push : `setup-in-wsl.sh` installe l'éditeur, `tests/setup_flow.py` parcourt l'installation du premier lancement via la commande installée, la compilation doit correspondre à `rom.sha1`, et les tests d'aller-retour, d'édition, de placement et de fonctions s'exécutent sur cette copie. La moitié Windows (le `.cmd`, l'installation de WSL, le raccourci, le mGBA Windows) n'a pas de test automatique : elle nécessite un PC Windows.
 
 ### Publier une version
 
@@ -155,6 +155,7 @@ Les modifications de scène enregistrées portent une empreinte de la table pour
 
 - `python3 tests/safety.py` : ce qui ne doit jamais mal tourner : les échecs et les plantages ne laissent aucun fichier à moitié enregistré, annuler et rétablir parcourent les actions enregistrées dans l'ordre et une nouvelle modification vide le rétablissement, les coffres restent dans leurs propres salles, les valeurs incorrectes et les patchs malveillants sont refusés, les tables renommées ou modifiées sont gérées, une organisation inconnue est signalée plutôt que devinée.
 - `python3 tests/placement.py` : les règles de déplacement confrontées au jeu : les personnages placés dans huit villes sont accessibles pour leur parler et leurs sorties atteignables, et à Imil la glace, un endroit enneigé inaccessible (avec sa correction par aplanissement), une allée étroite, un pas de porte et un mur font chacun l'objet d'un avertissement.
+- `python3 tests/features.py` : les cas limites des fonctions les plus récentes, sur des copies jetables : retirer des personnages ajoutés, où Jouer commence, les noms d'export, les cases de passage et les icônes de villes de la carte du monde, les zones de rencontre et ce que Réinitialiser restaure, le cache de l'atlas, les problèmes de carte du monde de Vérifier, le commit d'où part un mod, quels emplacements de coffre comptent dans les 10, et les descriptions de scripts en mots simples.
 - `python3 tests/edits.py` : enregistre des modifications de blocs, de praticabilité et de hauteur sur une copie de vraies cartes et vérifie qu'elles se relisent, sans que rien d'autre ne change.
 - `python3 tests/i18n.py` : chaque message affiché par le code est traduit dans chaque langue, et chaque traduction conserve ses `{placeholders}`, balises HTML et touches (⌘ ⇧ ⌥ ▶).
 - `python3 tests/roundtrip.py` : charge et réenregistre chaque grille de carte, table d'images de cases et de formes, et liste de coffres (727 fichiers avec le mod de la salle de debug, 721 sur une copie ordinaire). Tous doivent ressortir identiques à l'octet près. Cela garantit qu'enregistrer une carte ne change que ce que vous avez modifié.

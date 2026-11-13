@@ -115,7 +115,7 @@ Then press **Open the editor**. After this, the app opens straight into the edit
 | **Top bar** | Zoom, layers, overlays, tools, and buttons for saving, checking and playing. |
 | **Middle** | The map. |
 | **Right** | The panel for the tool you're using. |
-| **Bottom line** | Status messages. As you hover, it says what the spot under your cursor does, such as "Chest: Herb" or where an exit leads. |
+| **Bottom line** | Status messages. As you hover, it says what the spot under your cursor does, such as "Chest: Herb" or where an exit leads, and which square it is. Square numbers are the ones Check, doors and chests use. |
 
 Tick **Advanced** in the top bar to show raw numbers and codes and a separate **Build** button. You won't need it for normal editing.
 
@@ -190,7 +190,7 @@ The Chest, Doors and Events tools set the special codes they need themselves, so
 
 ## Height: how high the ground is
 
-Press **Height** (H). The panel lists the heights this place already uses, such as "Flat, 24 px" or "Slope or step". Pick one and paint.
+Press **Height** (H). The panel lists the heights this place already uses, tallest first, such as "Flat, 24 px" or "Slope, 16 to 24 px left to right". Heights that would read the same get a number, and hovering over one says how many squares use it. Pick one and paint.
 
 Height affects walking as well as looks. People stand at the height of the ground they're on, and the game refuses a step of more than 8 pixels up or 12 pixels down, so a big difference in height acts as a wall.
 
@@ -203,11 +203,11 @@ Press **Chest** (K).
 - **Remove one:** click it and press **Remove chest**.
 - **Move one:** drag it, then save. Psynergy Stones can be dragged too. A chest can't go on a square that's already a door, sign or step message.
 
-The editor handles the rest, including the flag that remembers a chest has been opened, so a chest stays empty when you come back. A place can hold at most **10 chests and stones**.
+The editor handles the rest, including the flag that remembers a chest has been opened, so a chest stays empty when you come back. A place can hold at most **10 chests and Psynergy Stones**. Other search spots don't count toward the 10.
 
 ## Events: people, signs and messages
 
-Press **Events** (E). The panel lists everything that happens in this place, in words: what people say, Mind Read thoughts, signs, step messages, searches and exit areas. People show on the map as themselves; hover over someone to see what they say.
+Press **Events** (E). The panel lists everything that happens in this place, in words: what people say, Mind Read thoughts, signs, step messages, searches and exit areas. People show on the map as themselves; hover over someone to see what they say. Scene scripts are described in plain words (tick **Advanced** for the full description). People who wait off the map until the story brings them in aren't drawn; the panel says how many there are.
 
 **Story stage** at the top matters. Many places change as the story moves on, and each stage has its own people and events. Choose the stage you want to edit.
 
@@ -252,7 +252,7 @@ Click a person. Press **Make them say something…**, or **Add a line for a stor
 Each event in the list has these buttons, where they apply:
 
 - **Change words** opens the writer.
-- **When…** decides when the event happens: **Always**, **Only once** a story flag is set, or **Only while** it isn't. Flags are listed by name.
+- **When…** decides when the event happens: **Always**, **Only once** a story flag is set, or **Only while** it isn't. Flags are listed by name. A flag named "this place's own flag" is cleared each time the party enters the place.
 - **Remove** deletes it.
 
 ### The writer
@@ -284,7 +284,7 @@ Press **Move people** (P).
 2. Drag them on the map. Hold ⇧ as you let go to snap to the nearest 8 pixels.
 3. Save.
 
-Arrival points are where the party appears on entering a place. Hover over a person to see who they are and what they say.
+Arrival points are where the party appears on entering a place. Hover over a person to see who they are and what they say. People waiting off the map until the story brings them in sit together, usually in the top-left corner, drawn once with a count such as "×6"; drag one out to place them.
 
 ## Stamp: copy and paste
 
@@ -351,7 +351,7 @@ Choose the world map at the top of the place list. Press **← Places** to go ba
 
 ## Check: finding problems
 
-Press **Check** to look over every map for problems your changes would cause. Each one comes with a fix and a **Show** button that opens the spot. It looks for:
+Press **Check** to look over every map for problems your changes would cause. Each one comes with a fix and a **Show** button that opens the place and circles the square for a few seconds. It looks for:
 
 - doors that lead nowhere or to an arrival point that doesn't exist;
 - chests that can't be opened, have nothing defined, fill up again, or share an "opened" flag;

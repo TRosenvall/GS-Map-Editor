@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 574887351a06 -->
+<!-- translated from README.md @ 1a86f855b136 -->
 # GS Map Editor
 
 [English](README.md) · **Español** · [Deutsch](README.de.md) · [Français](README.fr.md) · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -118,7 +118,7 @@ Luego pulsa **Abrir el editor**. A partir de entonces, la app se abre directamen
 | **Barra superior** | Zoom, capas, superposiciones, herramientas y botones para guardar, revisar y jugar. |
 | **Centro** | El mapa. |
 | **Derecha** | El panel de la herramienta que estás usando. |
-| **Línea inferior** | Mensajes de estado. Al pasar el cursor, dice qué hace el sitio que hay debajo, como "Cofre: Herb" o adónde lleva una salida. |
+| **Línea inferior** | Mensajes de estado. Al pasar el cursor, dice qué hace el sitio que hay debajo, como "Cofre: Herb" o adónde lleva una salida, y qué casilla es. Los números de casilla son los mismos que usan Revisar, las puertas y los cofres. |
 
 Marca **Avanzado** en la barra superior para mostrar números y códigos en bruto y un botón **Compilar** aparte. No lo necesitarás para editar normalmente.
 
@@ -193,7 +193,7 @@ Las herramientas Cofre, Puertas y Eventos ponen ellas mismas los códigos especi
 
 ## Altura: lo alto que está el suelo
 
-Pulsa **Altura** (H). El panel muestra las alturas que ya usa este lugar, como "Plano, 24 px" o "Pendiente o escalón". Elige una y pinta.
+Pulsa **Altura** (H). El panel muestra las alturas que ya usa este lugar, de la más alta a la más baja, como "Plano, 24 px" o "Pendiente, de 16 a 24 px de izquierda a derecha". Las alturas que se leerían igual llevan un número, y al pasar el cursor sobre una ves cuántas casillas la usan. Elige una y pinta.
 
 La altura afecta a por dónde se camina además de a cómo se ve. Las personas están a la altura del suelo que pisan, y el juego no permite un paso de más de 8 píxeles hacia arriba ni de más de 12 hacia abajo, así que una gran diferencia de altura actúa como una pared.
 
@@ -206,11 +206,11 @@ Pulsa **Cofre** (K).
 - **Quitar uno:** haz clic en él y pulsa **Quitar cofre**.
 - **Mover uno:** arrástralo y luego guarda. Las Piedras de Psinergía también se pueden arrastrar. Un cofre no puede ir en una casilla que ya es una puerta, un letrero o un mensaje al pisar.
 
-El editor se ocupa del resto, incluida la marca que recuerda que un cofre se ha abierto, para que un cofre siga vacío cuando vuelvas. Un lugar puede tener como máximo **10 cofres y piedras**.
+El editor se ocupa del resto, incluida la marca que recuerda que un cofre se ha abierto, para que un cofre siga vacío cuando vuelvas. Un lugar puede tener como máximo **10 cofres y Piedras de Psinergía**. Los demás sitios que examinar no cuentan para el límite de 10.
 
 ## Eventos: personas, letreros y mensajes
 
-Pulsa **Eventos** (E). El panel muestra, en palabras, todo lo que pasa en este lugar: lo que dice la gente, los pensamientos de Mind Read, letreros, mensajes al pisar, cosas que examinar y zonas de salida. Las personas se ven en el mapa tal como son; pasa el cursor sobre alguien para ver lo que dice.
+Pulsa **Eventos** (E). El panel muestra, en palabras, todo lo que pasa en este lugar: lo que dice la gente, los pensamientos de Mind Read, letreros, mensajes al pisar, cosas que examinar y zonas de salida. Las personas se ven en el mapa tal como son; pasa el cursor sobre alguien para ver lo que dice. Los scripts de escena se describen con palabras sencillas (marca **Avanzado** para ver la descripción completa). Las personas que esperan fuera del mapa hasta que la historia las trae no se dibujan; el panel dice cuántas hay.
 
 La **Etapa de la historia** de arriba importa. Muchos lugares cambian a medida que avanza la historia, y cada etapa tiene sus propias personas y eventos. Elige la etapa que quieras editar.
 
@@ -255,7 +255,7 @@ Haz clic en una persona. Pulsa **Hacer que diga algo…**, o **Añadir una líne
 Cada evento de la lista tiene estos botones, cuando corresponden:
 
 - **Cambiar palabras** abre el editor de texto.
-- **Cuándo…** decide cuándo ocurre el evento: **Siempre**, **Solo cuando** una marca de la historia esté activada, o **Solo mientras no…** esté activada. Las marcas se muestran por su nombre.
+- **Cuándo…** decide cuándo ocurre el evento: **Siempre**, **Solo cuando** una marca de la historia esté activada, o **Solo mientras no…** esté activada. Las marcas se muestran por su nombre. Una "marca propia de este lugar" se borra cada vez que el grupo entra en el lugar.
 - **Quitar** lo borra.
 
 ### El editor de texto
@@ -287,7 +287,7 @@ Pulsa **Mover personas** (P).
 2. Arrástralos por el mapa. Mantén ⇧ al soltar para ajustar a los 8 píxeles más cercanos.
 3. Guarda.
 
-Los puntos de llegada son donde aparece el grupo al entrar en un lugar. Pasa el cursor sobre una persona para ver quién es y qué dice.
+Los puntos de llegada son donde aparece el grupo al entrar en un lugar. Pasa el cursor sobre una persona para ver quién es y qué dice. Las personas que esperan fuera del mapa hasta que la historia las trae están juntas, normalmente en la esquina superior izquierda, dibujadas una sola vez con un número como "×6"; arrastra una fuera para colocarla.
 
 ## Sello: copiar y pegar
 
@@ -354,7 +354,7 @@ Elige el mapa del mundo arriba del todo de la lista de lugares. Pulsa **← Luga
 
 ## Revisar: encontrar problemas
 
-Pulsa **Revisar** para repasar todos los mapas en busca de problemas que causarían tus cambios. Cada uno viene con una solución y un botón **Mostrar** que abre el sitio. Busca:
+Pulsa **Revisar** para repasar todos los mapas en busca de problemas que causarían tus cambios. Cada uno viene con una solución y un botón **Mostrar** que abre el lugar y rodea la casilla durante unos segundos. Busca:
 
 - puertas que no llevan a ninguna parte o que llevan a un punto de llegada que no existe;
 - cofres que no se pueden abrir, que no tienen nada definido, que se vuelven a llenar o que comparten una marca de "abierto";
