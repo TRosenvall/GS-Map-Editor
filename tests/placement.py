@@ -96,5 +96,12 @@ check("a doorstep is kept clear", any(q["kind"] == "trigger" for q in w.check(do
 wall = next((i, j) for j in range(w.h) for i in range(w.w) if cells[j * w.w + i] == "wall")
 check("a wall is refused", any(q["kind"] == "wall" for q in w.check(wall[0] * 16 + 8, wall[1] * 16 + 8)))
 
+# ---- Play starts where the party can walk
+from gsmap import playtest  # noqa: E402
+for name, want in (("AltmillerCaveDraught", 1), ("ValeCaveMouth", 0)):
+    info, d, w = walk(name)
+    arrival, sure = playtest.landing(p, info, DoorEditor(p, s, n).entrances(by_name[name]["id"]), w)
+    check(f"{name}: Play starts at arrival point {want}", arrival["entrance"] == want and sure, arrival["entrance"])
+
 print("all ok" if not failed else f"{failed} FAILED")
 sys.exit(1 if failed else 0)

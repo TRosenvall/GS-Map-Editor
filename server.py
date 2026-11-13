@@ -883,8 +883,13 @@ def make_handler(project, token=None, local_only=True):
                         arrivals = de.entrances(sid)
                         # Scene 0 is the title screen, where a game starts anyway.
                         if sid != 0 and arrivals:
-                            info = project.maps.get(row_to_map().get(sc["layered_row"]))
-                            arrival, sure = playtest.landing(project, info, arrivals)
+                            n = row_to_map().get(sc["layered_row"])
+                            info = project.maps.get(n)
+                            try:
+                                walk = walk_for(n, sid) if info else None
+                            except (KeyError, ValueError, StopIteration):
+                                walk = None  # the plainer check below still applies
+                            arrival, sure = playtest.landing(project, info, arrivals, walk)
                             chosen = body.get("entrance")
                             if chosen is not None:
                                 arrival = next((a for a in arrivals if a["entrance"] == int(chosen)), None)

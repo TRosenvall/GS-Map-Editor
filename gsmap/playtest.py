@@ -21,15 +21,24 @@ MAX_STEP_UP, MAX_STEP_DOWN = 8, 12  # pixels the game lets the party step
 KEPT = 3  # mGBA can hold a copy open, and saves beside it
 
 
-def landing(project, info, arrivals):
-    """Which arrival point Play starts at: (arrival, sure). A best guess from the
-    map: some first arrivals sit on a wall square or boxed in by height, kept for
-    a story scene that moves the party on. Others can't be told apart from the
-    files at all, so the page also offers a choice (Start at). The first that isn't
-    walled in; sure is False when every one looks it."""
+# Lattice points (8 pixels apart) the party must be able to reach from a start,
+# by the game's walking rules (walk.py): about four squares by four. Fewer means
+# it can barely move. Ways out aren't required: many places leave through exit
+# areas, which the walking graph doesn't list.
+MIN_ROOM = 64
+
+
+def landing(project, info, arrivals, walk=None):
+    """Which arrival point Play starts at: (arrival, sure). The first that isn't
+    on a wall square or boxed in by the heights beside it and, given the map's
+    walking graph, from which the party can move about. Some arrivals sit boxed
+    in on purpose, for a story scene that moves the party on. Some can't be told
+    apart from the files at all, so the page also offers a choice (Start at).
+    sure is False when every one looks walled in."""
     if info is None or not arrivals:
         return (arrivals[0] if arrivals else None), True
     col = project.load_grid(info, "collision").cells
+    nodes = {e["entrance"]: node for e, node in walk.starts} if walk is not None else {}
 
     def wall(x, z):
         return col[(z >> 4) % 128][(x >> 4) % 128] == WALL
@@ -42,10 +51,15 @@ def landing(project, info, arrivals):
         return any(not wall(x + dx, z + dz) and -MAX_STEP_DOWN <= project.ground_height(info, x + dx, z + dz) - here <= MAX_STEP_UP
                    for dx, dz in ((16, 0), (-16, 0), (0, 16), (0, -16)))
 
-    for a in arrivals:
-        if open_beside(a):
+    def room(a):
+        node = nodes.get(a["entrance"])
+        return walk is None or node is None or len(walk.flood(starts=[node])) >= MIN_ROOM
+
+    open_ones = [a for a in arrivals if open_beside(a)]
+    for a in open_ones:
+        if room(a):
             return a, True
-    return arrivals[0], False
+    return (open_ones[0], True) if open_ones else (arrivals[0], False)
 
 
 def make_copy(root, folder, scene, entrance):

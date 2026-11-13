@@ -349,7 +349,7 @@ The original game has quirks of its own, and those are hidden unless you tick **
 Press **▶ Play**. It saves, checks, builds and opens your game in mGBA, starting at the place you're editing. From the world map page, it builds and starts on the world map, without the check.
 
 - Each Play is a **fresh game**: Isaac alone, with no story progress, so a place can look like its early-game version.
-- You appear at the place's first arrival point that doesn't look walled in, not the spot you're viewing. That's a best guess: a few places still start you stuck or inside a story scene. If that happens, choose another arrival point in **Start at**, next to ▶ Play, and press Play again.
+- You appear at the place's first arrival point the party can walk on from, by the game's walking rules, not the spot you're viewing. Story scenes aren't followed, so a few places may still start you inside one. If that happens, choose another arrival point in **Start at**, next to ▶ Play, and press Play again.
 - A build after a map change takes around 20 seconds.
 - The start point only exists in a throwaway copy of the game, so your exported mod still boots normally from the title screen.
 

@@ -394,6 +394,18 @@ with tempfile.TemporaryDirectory() as tmp:
     Fake.heights.clear()
     Grid.cells[2][2] = Grid.cells[2][3] = 255
     check("and says so when every arrival is walled in", playtest.landing(Fake, object(), [walled, openfloor]) == (walled, False))
+    Grid.cells[2][2] = Grid.cells[2][3] = Grid.cells[5][5] = Grid.cells[5][6] = 0
+    other = {"entrance": 2, "x": 88, "z": 88}
+    class Boxed:  # the walking graph: from arrival 1 the party can barely move
+        starts = [(openfloor, "a"), (other, "b")]
+        @staticmethod
+        def flood(starts):
+            return set(range(5)) if starts == ["a"] else set(range(500))
+    check("Play skips an arrival the party can barely move from",
+          playtest.landing(Fake, object(), [openfloor, other], Boxed) == (other, True))
+    check("but keeps the plain check's pick when nothing has room",
+          playtest.landing(Fake, object(), [openfloor], Boxed) == (openfloor, True))
+    Grid.cells[2][2] = Grid.cells[2][3] = Grid.cells[5][5] = Grid.cells[5][6] = 255
 
     # ---- image import
     shared = [m for m in p.maps.values() if m.resources and m.number in ("005", "032", "003")]
