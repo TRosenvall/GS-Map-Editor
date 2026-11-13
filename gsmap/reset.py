@@ -11,6 +11,7 @@ nothing uses any of it. One save, so Undo brings it all back.
 import os
 import subprocess
 
+from . import table as tablemod
 from . import fsio, layout, patch, tileset
 from .i18n import tr
 from .messages import BEGIN, END, Messages
@@ -39,6 +40,30 @@ def _restore(root, base, rel):
     if current == shown.stdout:
         return False
     fsio.atomic_write(path, shown.stdout)
+    return True
+
+
+def _restore_shared_shapes(root, base, rel):
+    """A height table other places also use goes back to the original, keeping
+    the heights the editor added after it: their squares in those other places
+    still point at them. The editor only ever adds rows at the end, so they
+    are what follows the original's rows; an unused one there is harmless."""
+    shown = _git(root, "show", f"{base}:{rel}")
+    path = os.path.join(root, rel)
+    if shown.returncode != 0 or not os.path.exists(path):
+        return _restore(root, base, rel)
+    original = tablemod.parse(shown.stdout.decode("utf-8"))
+    current = tablemod.load(path)
+    n = len(original.rows)
+    if len(current.rows) <= n or current.columns != original.columns:
+        return _restore(root, base, rel)
+    for row in current.rows[n:]:
+        original.append(row)
+    text = original.to_text().encode("utf-8")
+    with open(path, "rb") as f:
+        if f.read() == text:
+            return False
+    fsio.atomic_write(path, text)
     return True
 
 
@@ -147,8 +172,11 @@ def reset_map(project, scenes, names, info, settings=None, shared_too=False):
                                                    info.source("SHAPES", "shapes.tsv"))} - set(listing)
     _refuse_if_set_up_by_hand(project, base, info)
     changed = 0
+    shapes = os.path.relpath(info.source("SHAPES", "shapes.tsv"), root)
+    shared_shapes = any(o.number != info.number and os.path.relpath(o.source("SHAPES", "shapes.tsv"), root) == shapes
+                        for o in project.maps.values())
     for rel in [r for r in listing if r.endswith(RESTORED)] + sorted(borrowed):
-        changed += _restore(root, base, rel)
+        changed += (_restore_shared_shapes if rel == shapes and shared_shapes else _restore)(root, base, rel)
     for name in TABLES:
         rel = f"{folder}/{name}"
         if rel not in listing and rel not in borrowed and os.path.exists(os.path.join(root, rel)):

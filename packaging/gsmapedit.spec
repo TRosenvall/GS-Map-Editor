@@ -5,8 +5,13 @@
 # set up on first run (gsmap/setup.py), never bundled.
 import os
 
+from PyInstaller.utils.hooks import copy_metadata
+
 ROOT = os.path.abspath(os.path.join(SPECPATH, ".."))
 TOOLCHAIN = os.path.join(SPECPATH, "toolchain")
+# Licence files of the packages the app carries (THIRD_PARTY_NOTICES.md);
+# Pillow's also lists those of the libraries its wheel carries.
+LICENCES = [d for name in ("pillow", "pywebview", "bottle", "typing_extensions") for d in copy_metadata(name)]
 
 a = Analysis(
     [os.path.join(ROOT, "desktop.py")],
@@ -16,7 +21,7 @@ a = Analysis(
         (os.path.join(ROOT, "gsmap", "data"), os.path.join("gsmap", "data")),
         (os.path.join(ROOT, "LICENSE"), "."),
         (os.path.join(ROOT, "THIRD_PARTY_NOTICES.md"), "."),
-    ] + ([(TOOLCHAIN, "toolchain")] if os.path.isdir(TOOLCHAIN) else []),
+    ] + LICENCES + ([(TOOLCHAIN, "toolchain")] if os.path.isdir(TOOLCHAIN) else []),
     hiddenimports=["server", "webview.platforms.cocoa"],
     excludes=["tkinter"],
 )

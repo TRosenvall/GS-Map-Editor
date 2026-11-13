@@ -23,7 +23,10 @@
   body.busy #status::after { content: ' · working…'; color: var(--accent); }
   body { margin: 0; background: var(--bg); color: var(--text);
          font: 13px/1.4 -apple-system, system-ui, sans-serif; height: 100vh;
-         display: grid; grid-template-columns: 240px 1fr 300px; grid-template-rows: auto minmax(0, 1fr) auto; overflow: hidden; }
+         display: grid; grid-template-columns: 240px minmax(0, 1fr) 300px; grid-template-rows: auto minmax(0, 1fr) auto; overflow: hidden; }
+  /* Narrow windows: the place list and the tool panel give up width so the map keeps a usable share. */
+  @media (max-width: 1000px) { body { grid-template-columns: 190px minmax(0, 1fr) 250px; } }
+  @media (max-width: 760px) { body { grid-template-columns: 150px minmax(0, 1fr) 210px; } }
   header { grid-column: 1 / 4; display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
            padding: 8px 12px; background: var(--panel); border-bottom: 1px solid var(--line); }
   /* The layer sliders fill in when a map opens: hold their room so the toolbar doesn't jump. */
@@ -112,7 +115,8 @@
   .ev .act { display: none; gap: 4px; margin-top: 5px; } .ev.on .act { display: flex; }
   .ev .act button { padding: 2px 8px; font-size: 12px; }
   #evList h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 12px 0 2px; }
-  #evEdit { position: fixed; inset: 0; background: #000a; z-index: 50; display: none; align-items: center; justify-content: center; }
+  #evEdit { position: fixed; inset: 0; background: #000a; z-index: 50; display: none; align-items: flex-start; justify-content: center; padding-top: 4vh; }
+  /* Top-anchored: the preview boxes appear as you type, and a centred dialog would slide its buttons away from the cursor. */
   #evEdit .ex { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; width: min(760px, 94vw); padding: 16px 18px; max-height: 92vh; overflow: auto; }
   #evEdit label.l { display: block; color: var(--muted); font-size: 12px; margin: 10px 0 3px; }
   #evEdit textarea, #evEdit input[type=text], #evEdit select { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 4px; padding: 6px; font: inherit; }
@@ -137,6 +141,7 @@
   #cnList div.on { background: var(--sel); color: var(--accent); }
   #cnView { overflow: auto; padding: 16px; display: grid; grid-template-columns: 1fr auto 1fr; gap: 18px; align-items: start; }
   #cnView .col h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 0 0 8px; }
+  @media (max-width: 760px) { #conn .cnBody { grid-template-columns: 150px minmax(0, 1fr); } #cnView { grid-template-columns: 1fr; } }
   .lk { display: flex; gap: 8px; align-items: center; border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; margin-bottom: 6px; cursor: pointer; background: var(--bg); }
   .lk:hover { border-color: var(--accent); } .lk .t { flex: 1; } .lk .s { color: var(--muted); font-size: 11px; }
   .lk .ar { color: #58a6ff; font-weight: 700; }
@@ -174,6 +179,8 @@
   #tableView .note { color: var(--muted); font-size: 11px; margin: 4px 0; }
   #log { margin: 0 10px 10px; max-height: 30%; overflow: auto; font: 11px/1.4 ui-monospace, monospace;
          background: #111318; border: 1px solid var(--line); border-radius: 4px; padding: 6px; white-space: pre-wrap; display: none; }
+  /* The build log is for Advanced (its Build button lives there): don't leave compiler output in the panel once it's off. */
+  body:not(.advanced) #log { display: none !important; }
   footer { grid-column: 1 / 4; padding: 5px 12px; background: var(--panel); border-top: 1px solid var(--line);
            color: var(--muted); font-variant-numeric: tabular-nums; min-height: 26px; white-space: nowrap; overflow: hidden; }
   footer b { color: var(--text); font-weight: 500; }

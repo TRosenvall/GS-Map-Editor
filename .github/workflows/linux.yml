@@ -47,3 +47,6 @@ jobs:
 
       - name: New features keep the game and the mod consistent
         run: python3 tests/features.py "$RUNNER_TEMP/home/GSMapEditor/alchemy"
+
+      - name: Saving is safe, refuses bad input and can be undone
+        run: python3 tests/safety.py "$RUNNER_TEMP/home/GSMapEditor/alchemy"

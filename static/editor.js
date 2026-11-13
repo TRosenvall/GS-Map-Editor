@@ -79,8 +79,11 @@ async function openMap(n) {
   for (const k in PEOPLE_LINES) delete PEOPLE_LINES[k];  // what people say may have changed
   if (S.map && S.map.number !== n) EV.stage = null;  // a story stage belongs to one map's tables
   if (!await saveFirst()) return;
+  // The place asked for last wins: an earlier request still loading stops at its next step.
+  const ticket = S.opening = {}, stale = () => S.opening !== ticket;
   $('#status').textContent = T('Loading map {n}…', { n });
   const map = await api(`/api/map/${n}`);
+  if (stale()) return;
   if (map.error) {
     S.failed = map.damaged ? n : null;  // Reset place can still put it back
     if (map.damaged) failDialog(T("This place can't be opened"), map.error, map.detail);
@@ -94,16 +97,20 @@ async function openMap(n) {
   if (S.block != null && (S.block >= map.metatile_count || map.retired?.includes(S.block))) S.block = null;
   S.pending.clear(); S.markerMoves.clear(); S.tableEdits.clear(); S.undo = []; S.redo = [];
   const bases = [...new Set(map.layers.filter(l => l.priority).map(l => l.char_base))];
-  S.atlas = {};
-  await Promise.all(bases.map(async b => { S.atlas[b] = await loadImage(`/api/map/${n}/atlas/${b}.png?t=${Date.now()}`); }));
+  const atlas = S.atlas = {};
+  S.pixelCache = {};  // keyed by atlas URL, which changes on every load
+  await Promise.all(bases.map(async b => { atlas[b] = await loadImage(`/api/map/${n}/atlas/${b}.png?t=${Date.now()}`); }));
+  if (stale()) return;
   buildLayerControls();
   renderList(); drawAll(); drawPalette(); updateButtons();
   await loadScenes();
+  if (stale()) return;
   fillPlayFrom();
   if (S.tool === 'stamp') setStampMode(S.stampMode);
-  api(`/api/map/${n}/legend`).then(l => { S.legend = l.error ? {} : l; drawAll(); });
+  api(`/api/map/${n}/legend`).then(l => { if (S.map !== map) return; S.legend = l.error ? {} : l; drawAll(); });
   loadChests(); loadDoors();
   if (S.tool === 'events') await loadEvents();
+  if (stale()) return;
   if (S.tool === 'shape') buildHeightPanel();
   WK.key = null; loadStand();
   status(S.advanced ? `${T('Map {n}', { n: `<b>${n}</b>` })} · ${esc(map.folder)} · ${esc(map.tileset)}${map.palette ? ' ' + T('(palette {p})', { p: esc(map.palette) }) : ''} · ${map.size[0]}×${map.size[1]} · ${T('{n} blocks', { n: map.metatile_count })}` : `<b>${esc(S.maps.find(m => m.number === n)?.label || T('Place {n}', { n }))}</b>`);
@@ -121,6 +128,7 @@ function forgetPlace() {
   importData = null; $('#importBox').style.display = 'none';
   S.chestAt = null; $('#chestForm').style.display = 'none';
   S.doorAt = null; $('#doorForm').style.display = 'none'; S.arrivalMark = S.cellMark = null;
+  S.legend = {}; S.chests = null; S.doors = null;  // until the new place's arrive
   if (S.tool === 'stamp') S.sel = null;
 }
 
@@ -199,19 +207,34 @@ function hbFromRow(r) {
   for (const [pattern, dirs] of Object.entries(HB_ROWS))
     for (const [dir, [kind, lowFirst]] of Object.entries(dirs))
       if (kind === k && (lowFirst ? a <= b : a > b)) return { pattern, dir, low: Math.min(a, b), high: Math.max(a, b) };
-  return { pattern: 'copied', dir: 'right', low: Math.min(a, b), high: Math.max(a, b) };
+  const ls = (k === 7 ? r.slice(1, 3) : r.slice(1, 4)).map(lvSigned);  // as describeShape reads them
+  return { pattern: 'copied', dir: 'right', low: Math.min(...ls), high: Math.max(...ls) };
 }
 // The table row for a square type: the first identical one, else a new one
 // kept with the place until Save adds it (or until the place is reloaded).
-function findShape(row) {
-  return S.map.shapes.findIndex(r => r && r[0] === row[0] && r[1] === row[1] && r[2] === row[2] && (r[3] ?? 0) === (row[3] ?? 0));
-}
+const sameShape = (r, row) => !!r && !!row && r[0] === row[0] && r[1] === row[1] && r[2] === row[2] && (r[3] ?? 0) === (row[3] ?? 0);
+function findShape(row) { return S.map.shapes.findIndex(r => sameShape(r, row)); }
 function shapeIndex(row) {
   const m = S.map, i = findShape(row);
   if (i >= 0) return i;
+  const free = unusedShape();  // trying levels out leaves rows behind: reuse one
+  if (free != null) { m.shapes[free] = row.slice(); return free; }
   if (m.shapes.length >= 256) return null;  // the game reads one byte per square
   m.shapes.push(row.slice());
   return m.shapes.length - 1;
+}
+// A row made here that nothing uses any more: no square, Undo or Redo step
+// or brush names it (stamps carry rows by content, so they don't count).
+function unusedShape() {
+  const m = S.map, saved = m.shapesSaved ?? m.shapes.length;
+  if (saved >= m.shapes.length) return null;
+  const inUse = new Set();
+  for (const line of m.grids.shape || []) for (const v of line) if (v >= saved) inUse.add(v);
+  for (const step of [...S.undo || [], ...S.redo || [], S.stroke || []])
+    for (const c of step) if (c.plane === 'shape') { inUse.add(c.before); inUse.add(c.after); }
+  inUse.add(parseInt(S.tool === 'shape' ? $('#value').value : S.values?.shape, 16));
+  for (let v = saved; v < m.shapes.length; v++) if (!inUse.has(v)) return v;
+  return null;
 }
 function pendingShapes() { const m = S.map; return m ? m.shapes.slice(m.shapesSaved) : []; }
 function describeShape(r) {
@@ -277,6 +300,13 @@ function setHeightBrush(change) {
 function buildHeightPanel() {
   const box = $('#heightPanel'), m = S.map; if (!m) return;
   let current = parseInt($('#value').value, 16);
+  // The table was replaced (another place, a reload, a save): the brush is its
+  // row's content, so find (or make) that row in this one.
+  if (S.hbTable && S.hbTable !== m.shapes && current === S.hbValue && S.hbContent) {
+    const v = shapeIndex(S.hbContent);
+    current = v ?? NaN; $('#value').value = v == null ? '' : hex(v);
+    if (S.hb && S.hb.exact != null) S.hb.exact = v;
+  }
   if (!(current < m.shapes.length)) { $('#value').value = ''; current = NaN; }  // another place's height
   const used = new Map();
   for (const row of m.grids.shape || []) for (const v of row) used.set(v, (used.get(v) || 0) + 1);
@@ -303,6 +333,7 @@ function buildHeightPanel() {
     ? `<label>${T('Level')} ${num('low', hb.low)}</label>`
     : `<label>${T('From level')} ${num('low', hb.low)}</label> <label>${T('to')} ${num('high', hb.high)}</label>`;
   const row = isNaN(current) ? null : m.shapes[current];
+  Object.assign(S, { hbTable: m.shapes, hbValue: current, hbContent: row && row.slice() });
   const isNew = !isNaN(current) && current >= m.shapesSaved;
   const walkable = hbWalkable(hb);
   const canStairs = ['ramp', 'steps'].includes(hb.pattern) && hb.exact == null;
@@ -352,23 +383,30 @@ function buildHeightPanel() {
   g.fillStyle = '#000'; g.fillRect(0, 0, 48, 48);
   if (row) {
     const ls = [...Array(256).keys()].map(i => shapeLevelAt(row, i % 16, i >> 4));
-    const lo = Math.min(...ls), span = Math.max(...ls) - lo || 1;
-    ls.forEach((l, i) => { g.fillStyle = `rgba(80,160,255,${(0.2 + 0.8 * (l - lo) / span).toFixed(2)})`; g.fillRect((i % 16) * 3, (i >> 4) * 3, 3, 3); });
+    // Shaded on the same scale as the map: the place's lowest ground to its highest, stretched to take in this square.
+    const placed = [...new Set((m.grids.shape || []).flat())].map(v => cellHeightPx(m.shapes[v]) / 8);
+    const lo = Math.min(...placed, ...ls), span = Math.max(...placed, ...ls) - lo || 1;
+    ls.forEach((l, i) => { g.fillStyle = `rgba(80,160,255,${(0.1 + 0.65 * (l - lo) / span).toFixed(2)})`; g.fillRect((i % 16) * 3, (i >> 4) * 3, 3, 3); });
   }
 }
 // Height's blue grows with the ground's real height, from this place's lowest
 // ground (no blue) to its highest; the height numbers themselves are only table rows.
 function heightShade(m) {
   const hs = (m.shapes || []).map(cellHeightPx), inUse = new Set((m.grids.shape || []).flat());
-  const used = [...inUse].map(v => hs[v] ?? 0), lo = Math.min(0, ...used), span = Math.max(...used) - lo || 1;
+  const used = [...inUse].map(v => hs[v] ?? 0), lo = used.length ? Math.min(...used) : 0, span = Math.max(...used) - lo || 1;
   return v => { const f = ((hs[v] ?? lo) - lo) / span; return f > 0 ? `rgba(80,160,255,${(0.1 + 0.65 * f).toFixed(2)})` : null; };
 }
 // Pixels to levels (8 px each), to a half-level where a ramp's middle falls between.
 function levelOf(px) { return Math.round(px / 4) / 2; }
+// Pixels at a square's middle: flat kinds their level, ramps halfway, other
+// kinds their highest sample (only bends, folds and picked kinds read the third).
+const SHAPE_THREE = new Set([5, 6, 10, 11, 12, 13]);
 function cellHeightPx(r) {
   if (!r) return 0;
-  const k = r[0] & 15, a = r[1], b = r[2], c = r[3];
-  return (k === 0 ? a : k === 1 || k === 2 ? (a + b) / 2 : Math.max(a, b, c)) * 8;
+  const k = r[0] & 15, a = lvSigned(r[1]), b = lvSigned(r[2]);
+  if (HB_FLAT.has(k)) return 8 * a;
+  if (k === 1 || k === 2) return 4 * (a + b);
+  return 8 * (SHAPE_THREE.has(k) ? Math.max(a, b, lvSigned(r[3] ?? 0)) : Math.max(a, b));
 }
 
 function buildBrushes() {
@@ -386,19 +424,23 @@ function buildBrushes() {
   }
 }
 
-function drawCell(ctx, x, y) {
-  const m = S.map, z = +$('#zoom').value, s = 16 * z;
-  ctx.fillStyle = '#000'; ctx.fillRect(x * s, y * s, s, s);
-  for (const l of visibleLayers()) {
-    if (!S.show[l.index]) continue;
-    const img = S.atlas[l.char_base]; if (!img) continue;
-    const b = at(m.blocks, l, x, y); if (b == null) continue;
-    const id = b & 0xfff; if (id >= m.metatile_count) continue;
-    ctx.globalAlpha = S.alpha[l.index];
-    ctx.drawImage(img, (id % 32) * 16, Math.floor(id / 32) * 16, 16, 16, x * s, y * s, s, s);
-  }
-  ctx.globalAlpha = 1;
-  if ($('#ovGrid').checked) { ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.strokeRect(x * s + .5, y * s + .5, s, s); }
+// Draws window cells (x, y): their blocks, layer by layer, and the grid. What
+// that needs is worked out once per redraw, not once per square.
+function cellPainter() {
+  const m = S.map, z = +$('#zoom').value, s = 16 * z, grid = $('#ovGrid').checked;
+  const ls = visibleLayers().filter(l => S.show[l.index] && S.atlas[l.char_base]).map(l => ({
+    img: S.atlas[l.char_base], alpha: S.alpha[l.index], ox: l.origin[0] + m.bounds[0] / 2, oy: l.origin[1] + m.bounds[1] / 2 }));
+  return (ctx, x, y) => {
+    ctx.fillStyle = '#000'; ctx.fillRect(x * s, y * s, s, s);
+    for (const L of ls) {  // as at(m.blocks, l, x, y)
+      const b = m.blocks?.[(L.oy + y) % 128]?.[(L.ox + x) % 128]; if (b == null) continue;
+      const id = b & 0xfff; if (id >= m.metatile_count) continue;
+      ctx.globalAlpha = L.alpha;
+      ctx.drawImage(L.img, (id % 32) * 16, Math.floor(id / 32) * 16, 16, 16, x * s, y * s, s, s);
+    }
+    ctx.globalAlpha = 1;
+    if (grid) { ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.strokeRect(x * s + .5, y * s + .5, s, s); }
+  };
 }
 
 // Walkability and height, each square drawn where the game shows its ground:
@@ -408,15 +450,20 @@ function drawGroundOverlays(ctx) {
   if (!col && !sh) return;
   const z = +$('#zoom').value, s = 16 * z, l = layer(), cells = [];
   const shade = heightShade(m);
+  const ox = l.origin[0] + m.bounds[0] / 2, oy = l.origin[1] + m.bounds[1] / 2;  // as gridXY
   for (let y = 0; y < m.size[1]; y++) for (let x = 0; x < m.size[0]; x++) {
-    const [gx, gy] = gridXY(l, x, y);
-    cells.push([heightPx(l, gx, gy), x, y - heightPx(l, gx, gy) / 16, gx, gy]);
+    const gx = (ox + x) % 128, gy = (oy + y) % 128, h = heightPx(l, gx, gy);
+    cells.push([h, x, y - h / 16, gx, gy]);
   }
   cells.sort((a, b) => a[0] - b[0]);
+  // A colour per value, worked out once per redraw.
+  const colours = new Map(), shades = new Map();
+  const colourOf = v => { if (!colours.has(v)) colours.set(v, collisionColor(v)); return colours.get(v); };
+  const shadeOf = v => { if (!shades.has(v)) shades.set(v, shade(v)); return shades.get(v); };
   for (const [, x, y, gx, gy] of cells) {
-    if (col) { const c = collisionColor(m.grids.collision?.[gy]?.[gx]); if (c) { ctx.fillStyle = c; ctx.fillRect(x * s, y * s, s, s); } }
+    if (col) { const c = colourOf(m.grids.collision?.[gy]?.[gx]); if (c) { ctx.fillStyle = c; ctx.fillRect(x * s, y * s, s, s); } }
     if (sh) {
-      const v = m.grids.shape?.[gy]?.[gx], c = shade(v);
+      const v = m.grids.shape?.[gy]?.[gx], c = shadeOf(v);
       if (c) {
         ctx.fillStyle = c; ctx.fillRect(x * s, y * s, s, s);
         if (z >= 2 && S.advanced) { ctx.fillStyle = '#fff'; ctx.fillText(hex(v), x * s + s / 2, y * s + s / 2); }
@@ -446,7 +493,8 @@ function drawAll() {
     }
   }
   ctxSetup(ctx);
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) drawCell(ctx, x, y);
+  const paint = cellPainter();
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) paint(ctx, x, y);
   drawGroundOverlays(ctx); drawStand(ctx);
   markPending(ctx); drawMarkers(ctx); drawDoors(ctx); drawEvents(ctx); drawPoints(ctx); drawCellMark(ctx);
 }
@@ -462,7 +510,8 @@ function drawAllSoon() {
 function redrawCells(cells) {
   if ($('#ovCollision').checked || $('#ovShape').checked || $('#ovStand').checked) return drawAllSoon();  // raised squares overlap other cells
   const ctx = $('#cv').getContext('2d'); ctxSetup(ctx);
-  for (const [x, y] of cells) drawCell(ctx, x, y);
+  const paint = cellPainter();
+  for (const [x, y] of cells) paint(ctx, x, y);
   markPending(ctx); drawMarkers(ctx); drawDoors(ctx); drawEvents(ctx); drawPoints(ctx); drawCellMark(ctx);
 }
 
@@ -478,10 +527,7 @@ function windowXY(l, gx, gy) {
 // position and draws them raised by the ground's height (field/terrain.c: a
 // cell's shape row holds a kind and samples in 8-px units). These convert.
 function heightPx(l, gx, gy) {
-  const v = S.map.grids.shape?.[gy]?.[gx], row = S.map.shapes?.[v];
-  if (!row) return 0;
-  const k = row[0] & 15, a = row[1], b = row[2], c = row[3];
-  return 8 * (k === 0 ? a : (k === 1 || k === 2) ? (a + b) / 2 : Math.max(a, b, c));
+  return cellHeightPx(S.map.shapes?.[S.map.grids.shape?.[gy]?.[gx]]);
 }
 // Window position (cells, possibly fractional) where ground cell (gx, gy) shows.
 function groundXY(l, gx, gy) {
@@ -534,9 +580,9 @@ function drawMarkers(ctx) {
     ctx.lineWidth = S.tool === 'chest' ? 2 : 1;
     ctx.strokeStyle = moved ? '#7ee787' : '#e0b84a';
     ctx.strokeRect(w[0] * s + 2, w[1] * s + 2, s - 4, s - 4);
-    const c = S.chests?.find(c => c.x === mk.x && c.z === mk.z);
+    const c = S.chests?.find(c => c.code === mk.id);  // by its code: a moved chest keeps its picture
     if (c?.chest && c.value >> 20 === 1 && S.icons[c.value & 0xffff]?.complete) ctx.drawImage(S.icons[c.value & 0xffff], w[0] * s + 2, w[1] * s + 2, s - 4, s - 4);
-    else if (z >= 2) { ctx.fillStyle = moved ? '#7ee787' : '#e0b84a'; ctx.fillText(hex(mk.id), w[0] * s + s / 2, w[1] * s + s / 2); }
+    else if (z >= 2 && S.advanced) { ctx.fillStyle = moved ? '#7ee787' : '#e0b84a'; ctx.fillText(hex(mk.id), w[0] * s + s / 2, w[1] * s + s / 2); }
   }
   if (S.tool === 'chest' && S.chestAt) {
     const w = groundXY(l, S.chestAt.x, S.chestAt.z);
@@ -610,11 +656,66 @@ function trackPending(key, before, value) {
   if (S.saved.get(key) === value) S.pending.delete(key); else S.pending.set(key, value);
 }
 
-function paintAt(x, y) {
-  const m = S.map, l = layer();
+// The grid square a paint stroke touches at window cell (x, y): blocks are drawn
+// where they are; walkability and height belong to the ground under the cursor.
+function strokeCell(x, y) {
+  const l = layer();
+  return S.tool === 'block' || !S.mouse ? gridXY(l, x, y) : (groundAt(l, S.mouse[0], S.mouse[1]) || gridXY(l, x, y));
+}
+// Grid squares from a to b, both included, in a line (no gaps when the mouse moves fast).
+function cellsBetween(a, b) {
+  const out = [], dx = Math.abs(b[0] - a[0]), dy = Math.abs(b[1] - a[1]), sx = Math.sign(b[0] - a[0]), sy = Math.sign(b[1] - a[1]);
+  if (dx > 32 || dy > 32) return [b];  // a jump across the place (or the grid's wrap): just the square
+  let [x, y] = a, err = dx - dy;
+  for (;;) {
+    out.push([x, y]);
+    if (x === b[0] && y === b[1]) return out;
+    const e2 = 2 * err;
+    if (e2 > -dy) { err -= dy; x += sx; }
+    if (e2 < dx) { err += dx; y += sy; }
+  }
+}
+function stairsStroke() {
+  const hb = S.hb;
+  return S.tool === 'shape' && hb && hb.stairs && ['ramp', 'steps'].includes(hb.pattern) && hb.exact == null;
+}
+// A drag moved to window cell (x, y): paint every square since the last one.
+// Stairs stay on the line they started on and climb one square at a time, so
+// raised steps hiding the ground behind them can't make the stroke jump ahead.
+function paintTo(x, y) {
+  const m = S.map;
   if (x < 0 || y < 0 || x >= m.size[0] || y >= m.size[1]) return;
-  // Blocks are drawn where they are; walkability and height belong to the ground under the cursor.
-  const [gx, gy] = S.tool === 'block' || !S.mouse ? gridXY(l, x, y) : (groundAt(l, S.mouse[0], S.mouse[1]) || gridXY(l, x, y));
+  const g = strokeCell(x, y), from = S.strokeAt;
+  let path;
+  if (stairsStroke() && S.climbFrom) {
+    const [cx, cy] = S.climbFrom, d = S.hb.dir, along = d === 'left' || d === 'right';
+    const sign = d === 'right' || d === 'down' ? 1 : -1;
+    const k = sign * (along ? g[0] - cx : g[1] - cy), last = S.climbK || 0;
+    if (k <= last) return;
+    const next = last + 1, cell = along ? [cx + sign * next, cy] : [cx, cy + sign * next];
+    if (cell[0] < 0 || cell[1] < 0 || cell[0] > 127 || cell[1] > 127) return;  // the grid's edge
+    S.climbK = next;
+    path = [cell];
+  } else {
+    path = from ? cellsBetween(from, g).slice(1) : [g];
+  }
+  if (!path.length) return;
+  for (const [gx, gy] of path) paintGround(gx, gy);
+  S.strokeAt = path[path.length - 1];
+  if (path.length === 1 && path[0][0] === g[0] && path[0][1] === g[1]) redrawCells([[x, y]]); else drawAllSoon();
+}
+
+function paintAt(x, y) {
+  const m = S.map;
+  if (x < 0 || y < 0 || x >= m.size[0] || y >= m.size[1]) return;
+  const [gx, gy] = strokeCell(x, y);
+  S.strokeAt = [gx, gy]; S.climbK = 0;
+  paintGround(gx, gy);
+  redrawCells([[x, y]]);
+}
+
+function paintGround(gx, gy) {
+  const m = S.map;
   if (S.tool === 'block') {
     if (S.block == null) return status(`<span class="warn">${T('Pick a block first.')}</span>`);
     setValue('block', gx, gy, (m.blocks[gy][gx] & 0xf000) | S.block);  // keep the cell's flags
@@ -628,7 +729,6 @@ function paintAt(x, y) {
     if (value == null) return status(`<span class="err">${T('This place already has {n} heights, the most the game can hold. Reuse one of them.', { n: 256 })}</span>`);
     setValue(S.tool, gx, gy, value);
   }
-  redrawCells([[x, y]]);
 }
 
 // Fill: every square connected to the one clicked (sideways, not diagonally)
@@ -691,6 +791,8 @@ function applyChanges(list, which) {
     trackPending(`${c.plane}:${c.gx}:${c.gy}`, now, c[which]);
   }
   drawAll(); updateButtons(); renderTable(); staleStand();
+  // What the status line said (and its buttons, like "Move to the nearest good spot") was about the change just undone or redone.
+  status(which === 'before' ? T('Undone. Save to keep it that way.') : T('Redone. Save to keep it.'));
 }
 
 // Marker state is {x, z, restore, oldCol, newCol}; collision codes of the two
@@ -778,7 +880,7 @@ function cellFromEvent(e) {
 
 let painting = false, lastCell = null;
 $('#cv').addEventListener('mousedown', e => {
-  if (!S.map) return;
+  if (!S.map || S.saving) return;  // see doSave
   const [x, y] = cellFromEvent(e);
   S.mouse = mousePx(e);
   if (e.altKey) { eyedrop(x, y); return; }
@@ -825,7 +927,7 @@ $('#cv').addEventListener('mousemove', e => {
   S.mouse = mousePx(e);
   const g0 = groundAt(layer(), S.mouse[0], S.mouse[1]);
   const key = S.tool === 'block' || !g0 ? `${x},${y}` : `${g0[0]},${g0[1]}`;
-  if (painting && key !== lastCell) { lastCell = key; paintAt(x, y); }
+  if (painting && key !== lastCell && !S.saving) { lastCell = key; paintTo(x, y); }
   if (S.tool === 'stamp') stampMove(x, y);
   if (x < 0 || y < 0 || x >= m.size[0] || y >= m.size[1]) return;
   const parts = visibleLayers().map(l => {
@@ -836,7 +938,7 @@ $('#cv').addEventListener('mousemove', e => {
   // what the ground under the cursor does (raised ground is stored further down the grid)
   const l = layer(), [gx, gy] = g0 || gridXY(l, x, y);
   const col = m.grids.collision?.[gy]?.[gx], mk = (m.markers || []).find(k => k.x === gx && k.z === gy);
-  const what = mk ? `<b>${(S.legend[String(mk.id)] || [T('Chest')])[0]}</b>` : `<b>${collisionName(col)}</b>`;
+  const what = mk ? `<b>${esc((S.legend[String(mk.id)] || [T('Chest')])[0])}</b>` : `<b>${esc(collisionName(col))}</b>`;
   // Over a person in Move people: who it is and, once their lines are loaded, what they say.
   if (S.tool === 'points') {
     const t = table();
@@ -890,8 +992,10 @@ function variantName(sym) {
 
 async function loadScenes(keepSelection) {
   const prevScene = $('#sceneSel').value, prevTable = $('#tableSel').value;
+  const map = S.map;
   if (!S.allScenes) S.allScenes = await api('/api/scenes');
-  const r = await api(`/api/map/${S.map.number}/scenes`);
+  const r = await api(`/api/map/${map.number}/scenes`);
+  if (S.map !== map) return;  // another place opened meanwhile
   S.scenes = Array.isArray(r) ? r : [];
   const sel = $('#sceneSel'); sel.innerHTML = '';
   if (!S.scenes.length) { $('#tableSel').innerHTML = ''; $('#tableView').innerHTML = `<div class="note">${esc(r.error || T('No scene uses this map.'))}</div>`; return; }
@@ -951,7 +1055,8 @@ function drawPoints(ctx) {
   rowsOf(t).forEach((r, i) => {
     if ((t.kind === 'entrances' ? r.entrance : r.sprite) < 0) return;
     const [x, y] = pointPx(t, r), cx = x * z, cy = y * z, rad = 5 * z;
-    if (t.kind === 'placements' && r.x === 0 && r.z === 0) { corner = [cx, cy]; if (waiting++) return; }
+    const off = t.kind === 'placements' && r.x === 0 && r.z === 0;
+    if (off) { if (waiting++) return; corner = [cx, cy, 0]; }
     ctx.lineWidth = 2;
     if (t.kind === 'entrances') {
       ctx.strokeStyle = '#3ddc84'; ctx.strokeRect(cx - rad, cy - rad, rad * 2, rad * 2);
@@ -960,7 +1065,10 @@ function drawPoints(ctx) {
       const img = spriteImage(r.sprite);
       if (img && img.complete && img.naturalWidth) {
         const w = img.naturalWidth * z, h = img.naturalHeight * z;
-        ctx.drawImage(img, cx - w / 2, cy - h + 4 * z, w, h);  // feet at the point
+        // Feet at the point; one waiting at 0,0 is pulled down onto the canvas so it shows whole.
+        const top = off ? Math.max(cy - h + 4 * z, 0) : cy - h + 4 * z, left = off ? Math.max(cx - w / 2, 0) : cx - w / 2;
+        ctx.drawImage(img, left, top, w, h);
+        if (off) corner = [left + w, top + 14, 1];
       } else {
         ctx.strokeStyle = r.x === 0 && r.z === 0 ? '#888' : '#ff5cf0';
         ctx.beginPath(); ctx.arc(cx, cy, rad, 0, 7); ctx.stroke();
@@ -969,7 +1077,9 @@ function drawPoints(ctx) {
     }
   });
   if (waiting > 1) {
-    const text = `×${waiting}`, tw = ctx.measureText(text).width, bx = corner[0] + 4 * z, by = corner[1] - 4 * z;
+    // Beside the picture, inside the canvas (corner holds where the picture ended).
+    const text = `×${waiting}`, tw = ctx.measureText(text).width;
+    const bx = corner[2] ? corner[0] + 2 : Math.max(corner[0] + 4 * z, 2), by = corner[2] ? corner[1] : Math.max(corner[1] - 4 * z, 14);
     ctx.save(); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
     ctx.fillStyle = '#000b'; ctx.fillRect(bx, by - 11, tw + 6, 14);
     ctx.fillStyle = '#fff'; ctx.fillText(text, bx + 3, by);
@@ -997,13 +1107,13 @@ function peopleLines(t) {
 
 // A line of game text for one status line: its markup dropped, at most 120 characters.
 function shortText(text) {
-  const plain = String(text).replace(/\{[^}]*\}/g, ' ').replace(/\s+/g, ' ').trim();
+  const plain = showNames(String(text).replace(/\{(?!protagonist_name|actor_name:)[^}]*\}/g, ' ')).replace(/\s+/g, ' ').trim();
   return plain.length > 120 ? plain.slice(0, 119) + '…' : plain;
 }
 
 function spriteImage(id) {
   if (!(id in S.spriteImg)) {
-    const img = new Image(); img.onload = () => drawAll(); img.src = `/api/asset/sprite/${id}.png`;
+    const img = new Image(); img.onload = drawAllSoon; img.src = `/api/asset/sprite/${id}.png`;  // once a frame however many arrive
     S.spriteImg[id] = img;
   }
   return S.spriteImg[id];
@@ -1053,8 +1163,10 @@ function endPointDrag(e) {
 async function entrancesOf(sceneId) {
   const sc = S.allScenes.find(s => s.id === sceneId); if (!sc) return [];
   const k = sc.overlay.toString(16);
-  if (!S.entranceCache[k]) S.entranceCache[k] = await api(`/api/scene-overlay/${k}/entrances`);
-  return S.entranceCache[k];
+  // The request itself is kept, so a table with many exits to one scene asks once.
+  if (!S.entranceCache[k]) S.entranceCache[k] = api(`/api/scene-overlay/${k}/entrances`);
+  const list = await S.entranceCache[k];
+  return Array.isArray(list) ? list : [];
 }
 
 const hexIn = v => v == null ? '' : '0x' + v.toString(16);
@@ -1291,8 +1403,9 @@ function pasteStamp(x, y) {
   const bad = c.layers.filter(Boolean).some(L => L.block.flat().some(v => v != null && retired.has(v & 0xfff)));
   if (bad) return status(`<span class="err">${T('This stamp uses blocks this map retired to make room for custom tiles, so they would draw the wrong art here.')}</span>`);
   const objOnly = $('#stampObjects').checked, walk = $('#stampWalk').checked;
-  // A height is a row number in each place's own table: pasted elsewhere, find or make the same row.
-  const heightHere = v => c.map === m.number || !c.shapeRows?.[v] ? v : shapeIndex(c.shapeRows[v]);
+  // A height is a row number in each place's own table, and unsaved rows are
+  // renumbered by Save: unless the number still means the same row, find or make it.
+  const heightHere = v => { const r = c.shapeRows?.[v]; return !r || sameShape(m.shapes[v], r) ? v : shapeIndex(r); };
   S.stroke = [];
   const cells = [];
   for (let j = 0; j < c.h; j++) for (let i = 0; i < c.w; i++) {
@@ -1325,7 +1438,7 @@ async function loadChests() {
   drawAll();
 }
 function chestIcon(id) {
-  if (!S.icons[id]) { S.icons[id] = new Image(); S.icons[id].onload = () => S.map && drawAll(); S.icons[id].src = `/api/asset/item/${id}.png`; }
+  if (!S.icons[id]) { S.icons[id] = new Image(); S.icons[id].onload = drawAllSoon; S.icons[id].src = `/api/asset/item/${id}.png`; }
   return S.icons[id];
 }
 function itemByName(name) {
@@ -1339,7 +1452,7 @@ function chestSelect(x, z, mk) {
   const c = mk && S.chests?.find(c => c.x === x && c.z === z);
   if (mk && !c?.chest) {
     chestDeselect(); drawAll();
-    return status(T('This is {what}; it can be moved but not changed here.', { what: S.legend[String(mk.id)]?.[0] || T('a Psynergy Stone or scripted find') }));
+    return status(T('This is {what}; it can be moved but not changed here.', { what: esc(S.legend[String(mk.id)]?.[0] || T('a Psynergy Stone or scripted find')) }));
   }
   S.chestAt = { x, z, chest: c || null };
   $('#chestForm').style.display = 'block';
@@ -1398,14 +1511,18 @@ function showNames(t) {
 }
 async function loadEvents() {
   const sc = scene(); if (!sc) { $('#evList').innerHTML = `<div class="note">${T('No scene uses this map.')}</div>`; return; }
-  const q = `scene=${sc.id}` + (EV.stage ? `&table=${EV.stage}` : '');
-  const r = await api(`/api/map/${S.map.number}/events?${q}`);
+  const q = `scene=${sc.id}` + (EV.stage ? `&table=${encodeURIComponent(EV.stage)}` : ''), map = S.map, ask = EV.ask = {};
+  const r = await api(`/api/map/${map.number}/events?${q}`);
+  if (EV.ask !== ask || S.map !== map) return;  // asked again, or another place opened, meanwhile
   if (r.error) { $('#evList').innerHTML = `<div class="err">${esc(r.error)}</div>`; return; }
   EV.data = r; EV.stage = r.symbol; staleStand();
   $('#evStage').innerHTML = r.tables.map(t => `<option value="${esc(t)}" ${t === r.symbol ? 'selected' : ''}>${esc(variantName(t))}</option>`).join('');
   $('#evShared').style.display = r.shared_with.length ? '' : 'none';
   $('#evShared').textContent = r.shared_with.length ? T('This scene shares its people and events with {places}: changes show there too.', { places: r.shared_with.slice(0, 3).join(', ') + (r.shared_with.length > 3 ? '…' : '') }) : '';
-  if (!S.flags) { S.flags = await api('/api/flags'); $('#flagList').innerHTML = S.flags.flags.map(f => `<option value="${esc(f.label)}">`).join(''); }
+  if (!S.flags) {  // a failed answer is asked again next time, not kept
+    const f = await api('/api/flags');
+    if (!f.error) { S.flags = f; $('#flagList').innerHTML = f.flags.map(f => `<option value="${esc(f.label)}">`).join(''); }
+  }
   renderEvents(); drawAll();
 }
 $('#evStage').onchange = () => { EV.stage = $('#evStage').value; EV.sel = null; loadEvents(); };
@@ -1542,7 +1659,7 @@ function evClick(e, x, y) {
   $('#evSpot').style.display = 'flex';
   if (p) {
     const talks = EV.data.events.some(ev => ev.actor === p.actor && ev.kind === 'talk');
-    EV.filter = { actor: p.actor, label: `${p.name || T('This person')}` }; EV.spot = null;
+    EV.filter = { actor: p.actor, label: `${p.name || T('This person')}` }; EV.spot = null; EV.newPerson = null;
     $('#evSpot').innerHTML = `<button id="evTalk" class="primary">${talks ? T('Add a line for a story moment…') : T('Make them say something…')}</button>`
       + (p.added ? `<button id="evRemovePerson">${T('Remove this person')}</button>` : '');
     $('#evTalk').onclick = () => openEventEditor({ mode: 'talk', actor: p.actor, who: p.name, conditional: talks });
@@ -1675,7 +1792,8 @@ async function showPersonCheck(note) {
 
 // Moving a person with the Points tool: the same check, after the drop.
 async function checkMovedPerson(t, i, x, z) {
-  const actor = actorNumber(rowsOf(t), i), r = await checkSpot(x, z, actor);
+  const map = S.map, actor = actorNumber(rowsOf(t), i), r = await checkSpot(x, z, actor);
+  if (S.map !== map || table() !== t) return;  // its buttons would change a table no longer shown
   if (r.error || !r.problems.length) return;
   status(`<span class="warn">${T('Moved, but:')}</span> ${r.problems.map(p => esc(p.text)).join(' ')} `
     + (r.nearest ? `<button id="stNear">${T('Move to the nearest good spot')}</button> ` : '')
@@ -1882,7 +2000,6 @@ async function followDoor(sceneId, entrance, back) {
     $('#view').scrollTo(ex * z0 - $('#view').clientWidth / 2, ey * z0 - $('#view').clientHeight / 2);
   }
   drawAll();
-  if (a) setTimeout(drawAll, 4100);
   status(T('Arrived at {place}, arrival point {n}.', { place: `<b>${esc(r.label)}</b>`, n: a ? a.entrance : 0 }));
 }
 // Show scene `id` of this place, as picking it from the menu does.
@@ -1930,6 +2047,10 @@ async function pkScene(id, entrance) {
   PK.scene = id; PK.entrance = entrance; pkList(); $('#pkMapWrap').scrollTo(0, 0);
   const r = await api(`/api/scene/${id}/arrivals`);
   if (PK.scene !== id) return;
+  if (r.error) {
+    $('#pkImg').removeAttribute('src'); $('#pkDots').innerHTML = '';
+    $('#pkArrivals').innerHTML = `<div class="err" style="padding:12px">${esc(r.error)}</div>`; pkUpdate(); return;
+  }
   PK.info = r; $('#pkHint').style.display = 'none';
   const dots = $('#pkDots'); dots.innerHTML = '';
   $('#pkArrivals').innerHTML = r.arrivals.length ? '' : `<div class="note" style="padding:12px">${T('This place lists no arrival points; the party arrives at its default spot (0).')}</div>`;
@@ -1970,7 +2091,7 @@ $('#pkOk').onclick = () => {
 let importData = null;
 // Names some places that can take a picture, so the refusal says where to go.
 async function explainNoImport() {
-  const own = await api('/api/maps/own-tileset').catch(() => []);
+  const r = await api('/api/maps/own-tileset'), own = Array.isArray(r) ? r : [];  // api() answers {error}, never throws
   const names = [...new Set(S.maps.filter(m => own.includes(m.number)).map(m => m.label || m.folder))];
   const some = names.length ? ' ' + T('You can import into {n} places, such as {places}.', { n: own.length, places: names.slice(0, 3).map(esc).join(', ') }) : '';
   status(`<span class="warn">${T('This place shares its art with other places, so a picture here would change them too.')}${some}</span>`);
@@ -2029,7 +2150,14 @@ $('#cv').addEventListener('mouseleave', () => { S.hoverCell = null; if (S.tool =
 try { S.clip = JSON.parse(localStorage.getItem('gsmap.clip')); } catch (e) { S.clip = null; }
 
 // ---- save / build / play -------------------------------------------------------
+// One save at a time: ⌘S pressed again, or an action that saves first, waits for
+// the save already running. Meanwhile clicks on the map and Undo/Redo are ignored
+// (S.saving): what is sent must be what the bookkeeping clears after it.
 async function doSave() {
+  if (!S.saving) S.saving = saveNow().finally(() => { S.saving = null; });
+  return S.saving;
+}
+async function saveNow() {
   const edits = [...S.pending].map(([k, value]) => {
     const [plane, gx, gy] = k.split(':'); return { plane, x: +gx, y: +gy, value };
   });
@@ -2057,7 +2185,7 @@ async function doSave() {
     status(`<span class="ok">${T('Saved.')}</span> ${T('Press ▶ Play to try it.')}`); refreshUndoSave(); return;
   }
   const newShapes = pendingShapes();
-  const r = await api(`/api/map/${S.map.number}/edits`, newShapes.length ? { edits: sent, markers, shapes: newShapes } : { edits: sent, markers });
+  const r = await api(`/api/map/${S.map.number}/edits`, newShapes.length ? { edits: sent, markers, shapes: newShapes, shapes_base: S.map.shapesSaved } : { edits: sent, markers });
   if (r.error) { S.saveError = r.error; status(`<span class="err">${T('Not saved: {error}', { error: esc(r.error) })}</span>`); updateButtons(); return; }
   if (r.shapes) settleShapes(r.shapes, r.remap || {});
   const movedChests = S.markerMoves.size;
@@ -2073,14 +2201,16 @@ async function doSave() {
 }
 
 // After a save that added heights: the table as the file now holds it, and
-// squares painted with an unsaved height renumbered to its saved row.
+// squares painted with an unsaved height renumbered to its saved row. The
+// height brush finds its row again by content (buildHeightPanel).
 function settleShapes(rows, remap) {
   const m = S.map, saved = m.shapesSaved ?? m.shapes.length, old = m.shapes;
-  const to = v => remap[v] ?? rows.findIndex(r => r.every((x, i) => x === (old[v][i] ?? 0)));
-  for (const line of m.grids.shape) for (let x = 0; x < line.length; x++) if (line[x] >= saved) line[x] = to(line[x]);
-  const cur = parseInt($('#value').value, 16);
+  const to = v => remap[v] ?? rows.findIndex(r => sameShape(r, old[v]));
+  for (const line of m.grids.shape) for (let x = 0; x < line.length; x++) {
+    if (line[x] < saved) continue;
+    const v = to(line[x]); if (v >= 0) line[x] = v;
+  }
   m.shapes = rows; m.shapesSaved = rows.length;
-  if (cur >= saved) { const v = old[cur] ? to(cur) : -1; $('#value').value = v >= 0 ? hex(v) : ''; if (S.hb) S.hb.exact = null; }
   if (S.tool === 'shape') buildHeightPanel();
 }
 
@@ -2207,6 +2337,8 @@ $('#exGo').onclick = async () => {
   let since = 0;
   for (;;) {
     const s = await api(`/api/export/status?since=${since}`);
+    // No answer at all (api()'s own {error}): the app went away, so stop asking.
+    if (s.done === undefined) { $('#exGo').disabled = false; $('#exMsg').innerHTML = `<span class="err">${esc(s.error)}</span>`; break; }
     if (s.log?.length) { $('#exLog').textContent += s.log.join('\n') + '\n'; $('#exLog').scrollTop = $('#exLog').scrollHeight; }
     since = s.next ?? since;
     $('#exMsg').textContent = s.done ? '' : T('Working… the first export also builds the unmodified game once, which takes a few minutes.');
@@ -2253,6 +2385,7 @@ $('#ptGo').onclick = async () => {
   let since = 0;
   for (;;) {
     const s = await api(`/api/export/status?since=${since}`);
+    if (s.done === undefined) { $('#ptGo').disabled = false; $('#ptMsg').innerHTML = `<span class="err">${esc(s.error)}</span>`; break; }  // as in Export
     if (s.log?.length) { $('#ptLog').textContent += s.log.join('\n') + '\n'; $('#ptLog').scrollTop = $('#ptLog').scrollHeight; }
     since = s.next ?? since;
     $('#ptMsg').textContent = s.done ? '' : (own ? T('Patching…') : T('Patching… the first time also builds the unmodified game, a few minutes.'));
@@ -2303,7 +2436,7 @@ function renderChecks() {
   for (const i of shown) { const k = i.place || T('Everywhere'); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(i); }
   let html = shown.length ? '' : `<div class="note" style="padding:16px 0">${T('Nothing to fix. Your doors lead somewhere, your chests open, and every block exists.')}</div>`;
   for (const [place, list] of groups) {
-    html += `<h3>${place}</h3>`;
+    html += `<h3>${esc(place)}</h3>`;
     for (const i of list) {
       const idx = r.indexOf(i);
       html += `<div class="issue${i.original ? ' orig' : ''}"><span class="ico">${i.severity === 'error' ? '⛔' : '⚠️'}</span>
@@ -2421,6 +2554,7 @@ function status(html) { $('#status').innerHTML = html; }
 // Undo takes back unsaved changes first, then saved actions newest first, from
 // any tool and any place; Redo does them again until something new is saved.
 $('#undo').onclick = async () => {
+  if (S.saving) return;  // see doSave
   const s = S.undo.pop();
   if (s) { applyChanges([...s].reverse(), 'before'); S.redo.push(s); updateButtons(); return; }
   if (!HIST.last) return;
@@ -2429,6 +2563,7 @@ $('#undo').onclick = async () => {
   await historyStep(false, afterHistory);
 };
 $('#redo').onclick = async () => {
+  if (S.saving) return;
   const s = S.redo.pop();
   if (s) { applyChanges(s, 'after'); S.undo.push(s); updateButtons(); return; }
   if (!HIST.next || dirtyCount()) return;

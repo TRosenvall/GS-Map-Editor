@@ -66,9 +66,16 @@ def parse(text):
         lines.pop()
     columns = [tuple(h.split(":", 1)) for h in lines[0].split("\t")]
     rows, spellings = [], []
+    values = {}  # spelling -> value: tables repeat a few spellings many times
     for line in lines[1:]:
         cells = line.split("\t")
-        rows.append([int(c, 0) for c in cells])
+        row = []
+        for c in cells:
+            v = values.get(c)
+            if v is None:
+                v = values[c] = int(c, 0)
+            row.append(v)
+        rows.append(row)
         spellings.append(cells)
     return Table(columns, rows, spellings)
 

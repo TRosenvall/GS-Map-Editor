@@ -26,8 +26,10 @@ import collections
 import math
 import os
 import re
+import threading
 
 from . import layout
+from .project import shape_row
 from .i18n import N_, tr, translate
 
 WALL, LEDGE, CLIMB, GAP = 255, 252, 253, 254
@@ -45,8 +47,14 @@ PROBES = tuple((math.cos(math.radians(a)), math.sin(math.radians(a))) for a in (
 # way Walk._step_ok always has: 8 * (dx * c - dz * s), 8 * (dz * c + dx * s).
 PROBE_OFFSETS = {(dx, dz): tuple((8 * (dx * c - dz * s), 8 * (dz * c + dx * s)) for c, s in PROBES)
                  for dx, dz in DIRS}
+# The same offsets rounded down: from a whole pixel (every lattice point is
+# one), floor(x + ax) is x + floor(ax), so a probe needs no rounding of its own.
+PROBE_STEPS = {d: tuple((math.floor(ax), math.floor(az)) for ax, az in offsets) for d, offsets in PROBE_OFFSETS.items()}
 
 TABLES = f"{layout.SRC}/field/terrain_tables.c"
+GRAPHS_KEPT = 8  # walking graphs kept for reuse (Walk._build), the newest
+_GRAPHS = collections.OrderedDict()
+_GRAPHS_LOCK = threading.Lock()
 
 
 def _tables(games_root):
@@ -169,7 +177,9 @@ class Walk:
             if grid is not None:
                 grid[int(e["y"])][int(e["x"])] = int(e["value"])
         self.rows = [[v + 256 if v < 0 else v for v in r] for r in project.shape_rows(info)]
-        self.rows += [[int(v) & 0xFF for v in r[:4]] for r in shapes or ()]
+        if not isinstance(shapes or [], (list, tuple)):
+            raise ValueError(f"new heights should be a list of rows, not {shapes!r}")
+        self.rows += [shape_row(r) for r in shapes or ()]
         self.lerp, self.index = _tables(project.root)
         self.events = events
         self.entrances = entrances
@@ -225,14 +235,14 @@ class Walk:
         return -STEP_DOWN <= d <= STEP_UP
 
     def _step_ok(self, x, z, dx, dz):
-        # _clear for each probe, written out: this runs for every lattice point.
+        # _clear for each probe, written out: this runs for every lattice point,
+        # and (x, z) is always one, in whole pixels (see PROBE_STEPS).
         g = self.ground(x, z)
         x0, z0 = self.x0, self.z0
         x1, z1 = x0 + self.w * 16, z0 + self.h * 16
         col, shp, ox, oz, heights = self.col, self.shp, self.ox, self.oz, self._heights
-        floor = math.floor
-        for ax, az in PROBE_OFFSETS[(dx, dz)]:
-            px, pz = floor(x + ax), floor(z + az)
+        for ax, az in PROBE_STEPS[(dx, dz)]:
+            px, pz = x + ax, z + az
             if not (x0 <= px < x1 and z0 <= pz < z1):
                 return False
             gx, gz = (ox + px // 16) % 128, (oz + pz // 16) % 128
@@ -299,16 +309,32 @@ class Walk:
         return out
 
     def _build(self):
-        self.nodes = [(self.x0 + i * GRID, self.z0 + j * GRID)
-                      for j in range(self.h * 16 // GRID) for i in range(self.w * 16 // GRID)]
-        self.edges = {}
-        self.slide_ends = set()
-        for n in self.nodes:
-            if self.behavior(*n) == WALL:
-                continue
-            moves = self._moves(*n)
-            self.edges[n] = moves
-            self.slide_ends.update(m for m, k in moves if k == "slide")
+        # The moves depend only on the cells, heights and slides, which several
+        # scenes of a map share and most saves (an event, a door) leave alone:
+        # a graph made from the same ones is reused. Shared: treat it as read-only.
+        key = (self.ox, self.oz, self.x0, self.z0, self.w, self.h, frozenset(self.slide),
+               tuple(map(tuple, self.rows)), tuple(map(tuple, self.col)), tuple(map(tuple, self.shp)),
+               tuple(self.lerp), tuple(self.index))
+        with _GRAPHS_LOCK:
+            hit = _GRAPHS.get(key)
+            if hit is not None:
+                _GRAPHS.move_to_end(key)
+        if hit is None:
+            nodes = [(self.x0 + i * GRID, self.z0 + j * GRID)
+                     for j in range(self.h * 16 // GRID) for i in range(self.w * 16 // GRID)]
+            edges, slide_ends = {}, set()
+            for n in nodes:
+                if self.behavior(*n) == WALL:
+                    continue
+                moves = self._moves(*n)
+                edges[n] = moves
+                slide_ends.update(m for m, k in moves if k == "slide")
+            hit = (nodes, edges, slide_ends)
+            with _GRAPHS_LOCK:
+                _GRAPHS[key] = hit
+                while len(_GRAPHS) > GRAPHS_KEPT:
+                    _GRAPHS.popitem(last=False)
+        self.nodes, self.edges, self.slide_ends = hit
         self.starts = []
         for e in self.entrances:
             if self.inside(e["x"], e["z"]):

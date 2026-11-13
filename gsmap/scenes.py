@@ -25,21 +25,30 @@ EXIT_HAS_FLAG = 0x10000000
 EXIT_TABLE_END = 0x1FF
 
 
+ENTRY = struct.Struct("<IIIBBH")  # an ELF32 symbol
+
+
 def readelf_symbols(elf):
     """{name: (value, size, "FUNC"|"OBJECT")} of an ELF's defined symbols, read
     directly: a scene overlay is opened often, and there are 200 of them."""
-    data = open(elf, "rb").read()
+    with open(elf, "rb") as f:
+        data = f.read()
     shoff, = struct.unpack_from("<I", data, 32)
     shentsize, shnum = struct.unpack_from("<HH", data, 46)
     sections = [struct.unpack_from("<10I", data, shoff + i * shentsize) for i in range(shnum)]
     syms = {}
+    kinds = {1: "OBJECT", 2: "FUNC"}
     for sec in sections:
         if sec[1] != 2:  # SHT_SYMTAB
             continue
         strings = sections[sec[6]]
-        for off in range(sec[4], sec[4] + sec[5], sec[9]):
-            name, value, size, info, _, shndx = struct.unpack_from("<IIIBBH", data, off)
-            kind = {1: "OBJECT", 2: "FUNC"}.get(info & 15)
+        first, end, step = sec[4], sec[4] + sec[5], sec[9]
+        if step == ENTRY.size:  # as ELF32 always has it: read them in one go
+            entries = ENTRY.iter_unpack(data[first:end - (end - first) % step])
+        else:
+            entries = (ENTRY.unpack_from(data, off) for off in range(first, end, step))
+        for name, value, size, info, _, shndx in entries:
+            kind = kinds.get(info & 15)
             if kind and shndx not in (0, 0xFFF1):
                 start = strings[4] + name
                 syms[data[start:data.index(b"\0", start)].decode()] = (value, size, kind)

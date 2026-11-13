@@ -96,19 +96,22 @@ def parse(text):
         rows.pop()
     if ay + len(rows) > h:
         raise ValueError(f"grid has {len(rows)} rows, more than its {h}")
+    seen = {}  # a map uses few distinct cells: each is read once
     for i, row in enumerate(rows):
         y = ay + i
         tokens = row.split()
-        if ax + len(tokens) > w:
-            raise ValueError(f"grid row {i} has {len(tokens)} cells, more than its {w}")
-        pic, beh, shp = pictures[y], behaviors[y], shapes[y]
-        x = ax
+        n = len(tokens)
+        if ax + n > w:
+            raise ValueError(f"grid row {i} has {n} cells, more than its {w}")
+        if not n:
+            continue
+        cells = []
         for token in tokens:
-            if ":" in token:
-                pic[x], beh[x], shp[x] = _cell(token)
-            else:  # most cells: a picture alone (as _cell reads it)
-                pic[x], beh[x], shp[x] = int(token, 16), 0, 0
-            x += 1
+            c = seen.get(token)
+            if c is None:
+                c = seen[token] = _cell(token)
+            cells.append(c)
+        pictures[y][ax:ax + n], behaviors[y][ax:ax + n], shapes[y][ax:ax + n] = zip(*cells)
     return g
 
 

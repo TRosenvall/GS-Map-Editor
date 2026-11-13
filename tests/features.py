@@ -389,5 +389,31 @@ check("a script's comment loses its code names",
 check("joined place names are split", plain_doc("At BabiLighthouseStoneDoor, a switch hides.") == "At Babi Lighthouse Stone Door, a switch hides.")
 check("a comment that can't be said plainly is left out", plain_doc("Sets FLAG_X when it ends.") == "")
 
+
+# ---- heights, grids and walking graphs read the same, only faster
+from gsmap import grid as gridmod  # noqa: E402
+from gsmap import walk as walkmod  # noqa: E402
+ch = Project.cell_height
+check("a step below level 0 reads its own samples, not the unread third",
+      ch([3, -2, -1, 0]) == -8 and ch([8, -3, -1, 0]) == -8)
+check("flat, ramp and three-sample heights",
+      ch([0, 2, 5, 9]) == 16 and ch([15, 2, 5, 9]) == 16 and ch([1, 2, 4, 0]) == 24 and ch([5, -3, -2, -1]) == -8)
+g = gridmod.parse("grid:4x4\tat:1,1\tfill:1c:0:0\nfff fff:30:1 fff\n\n4fff:255 1c\n")
+check("a grid reads repeated cells and empty rows as written",
+      g.planes["metatile"] == [[0x1c] * 4, [0x1c, 0xfff, 0xfff, 0xfff], [0x1c] * 4, [0x1c, 0x4fff, 0x1c, 0x1c]]
+      and g.planes["collision"][1] == [0, 0, 30, 0] and g.planes["shape"][1] == [0, 0, 1, 0]
+      and g.planes["collision"][3] == [0, 255, 0, 0]
+      and g.to_text() == "grid:4x4\tat:1,1\tfill:1c:0:0\nfff fff:30:1 fff\n\n4fff:255\n")
+walk_project = Project(source)
+walk_map = walk_project.maps["009"]
+first = walkmod.Walk(walk_project, walk_map, [], [])
+again = walkmod.Walk(walk_project, walk_map, [], [])
+check("a map's walking graph is reused when nothing it reads changed", again.edges is first.edges)
+gx, gz = first.grid_cell(first.x0 + 40, first.z0 + 40)
+walled = walkmod.Walk(walk_project, walk_map, [], [], [{"plane": "collision", "x": gx, "y": gz, "value": 255}])
+check("and made afresh around an unsaved wall", walled.edges is not first.edges
+      and walled.edges != first.edges and walled.edges == walkmod.Walk(walk_project, walk_map, [], [], [
+          {"plane": "collision", "x": gx, "y": gz, "value": 255}]).edges)
+
 print("FAILED" if failed else "all ok")
 sys.exit(1 if failed else 0)

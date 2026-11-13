@@ -57,8 +57,10 @@ def changed_maps(project):
 class Checker:
     def __init__(self, project, scenes, names):
         self.project, self.scenes, self.names = project, scenes, names
+        self._bad_cells = {}  # map number -> _bad_blocks, for one run's two passes
 
     def run(self):
+        self._bad_cells = {}
         changed = changed_maps(self.project)
         mine = self._issues(stock=False)
         # What the unmodified game has doesn't change while the editor runs. On a
@@ -196,14 +198,44 @@ class Checker:
         out += self._block_issues(info, add)
 
     def _block_issues(self, info, add):
-        p = self.project
-        try:
-            blocks = p.resolved_blocks(info)
-            count = len(p.load_metatiles(info).rows)
-        except FileNotFoundError:
+        # The map files are the same in both passes (only the scene tables
+        # differ), so their cells are looked at once per run.
+        if info.number not in self._bad_cells:
+            self._bad_cells[info.number] = self._bad_blocks(info)
+        found = self._bad_cells[info.number]
+        if found is None:
             return []
         self._shape_issues(info, add)
-        retired = retired_blocks(p, info)
+        missing, ghost = found
+        if missing:
+            add("error", "block-missing", info,
+                tr("{n} cell(s) use a block this map doesn't have; they draw garbage.", n=len(missing)),
+                tr("Paint over them with the Paint tool."), "missing", missing[0], "block")
+        if ghost:
+            add("error", "block-retired", info,
+                tr("{n} cell(s) use a block whose tiles were reused for an imported image; "
+                   "they draw the image's pieces instead.", n=len(ghost)),
+                tr("Paint over them with the Paint tool."), "retired", ghost[0], "block")
+        return []
+
+    def _bad_blocks(self, info):
+        """([x, z] of cells using a block the map lacks, of cells using a retired
+        one), or None when the map's files aren't there."""
+        p = self.project
+        try:
+            count = len(p.load_metatiles(info).rows)
+            retired = retired_blocks(p, info)
+            # Kept with the grid until it changes, for the window, block count
+            # and retired blocks it was worked out for. Shared: read-only.
+            key = ("bad-blocks", tuple(info.bounds), tuple(map(tuple, info.layers)), tuple(info.priority),
+                   count, frozenset(retired))
+            return p._parsed(info.grid_path(), lambda path: self._scan_blocks(info, count, retired), key=key)
+        except FileNotFoundError:
+            return None
+
+    def _scan_blocks(self, info, count, retired):
+        p = self.project
+        blocks = p.resolved_blocks(info)
         missing, ghost = [], []
         for li in range(len(info.layers)):
             if not info.priority[li]:
@@ -223,16 +255,7 @@ class Checker:
                         missing.append([x, z])
                     elif b in retired:
                         ghost.append([x, z])
-        if missing:
-            add("error", "block-missing", info,
-                tr("{n} cell(s) use a block this map doesn't have; they draw garbage.", n=len(missing)),
-                tr("Paint over them with the Paint tool."), "missing", missing[0], "block")
-        if ghost:
-            add("error", "block-retired", info,
-                tr("{n} cell(s) use a block whose tiles were reused for an imported image; "
-                   "they draw the image's pieces instead.", n=len(ghost)),
-                tr("Paint over them with the Paint tool."), "retired", ghost[0], "block")
-        return []
+        return missing, ghost
 
     def _shape_issues(self, info, add):
         """A cell's height row must exist: past the table the game reads whatever

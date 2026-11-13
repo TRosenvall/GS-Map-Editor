@@ -147,12 +147,9 @@ class EventEditor(DoorEditor):
         msgs = Messages(self.project.root)
         docs = script_docs(self.project.tbs, o)
         fnames = flag_names(self.names.root)
-        col = self.project.load_grid(info, "collision").cells
         numbers = actor_numbers(people)
         by_actor = {a: p for a, p in zip(numbers, people)}
-        cells = {}
-        for gx, gz in self._window(info):
-            cells.setdefault(col[gz][gx], []).append([gx, gz])
+        cells = self._window_cells(info)
         out = []
         targets = search_targets()  # in the current language, once per call
         for i, r in enumerate(rows):

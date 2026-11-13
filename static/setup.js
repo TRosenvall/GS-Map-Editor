@@ -21,10 +21,11 @@ async function refresh() {
   if (firstTodo === -1 && !running && !r.problem) $('#msg').innerHTML = `<span class="ok">${T('Everything is ready.')}</span>`;
 }
 $('#steps').onclick = async e => {
-  const step = e.target.closest('[data-step]')?.dataset.step; if (!step) return;
+  const btn = e.target.closest('[data-step]'), step = btn?.dataset.step; if (!step || running) return;
+  btn.disabled = true;  // a double click would start the step, and follow its log, twice
   const r = await api('/api/setup/run', { step });
-  if (r.error) { $('#msg').innerHTML = `<span class="err">${esc(r.error)}</span>`; return; }
-  if (step === 'brew') { $('#msg').textContent = T('brew.sh is open in your browser. Install Homebrew, then press Check again.'); return; }
+  if (r.error) { btn.disabled = false; $('#msg').innerHTML = `<span class="err">${esc(r.error)}</span>`; return; }
+  if (step === 'brew') { btn.disabled = false; $('#msg').textContent = T('brew.sh is open in your browser. Install Homebrew, then press Check again.'); return; }
   if (step === 'clt') $('#msg').textContent = T('Apple\'s installer should be open. When it finishes, press Check again.');
   follow();
 };

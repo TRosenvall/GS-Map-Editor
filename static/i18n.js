@@ -82,7 +82,9 @@ function langPicker(select) {
   select.innerHTML = Object.entries(I18N_DATA.langs).map(([code, name]) => `<option value="${code}">${name}</option>`).join('');
   select.value = I18N_DATA.lang;
   select.onchange = async () => {
-    await fetch('/api/language', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-GSMap': '1' }, body: JSON.stringify({ lang: select.value }) });
+    try {
+      await fetch('/api/language', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-GSMap': '1' }, body: JSON.stringify({ lang: select.value }) });
+    } catch (e) { select.value = I18N_DATA.lang; return; }  // the app isn't answering: reloading would show an error page
     location.reload();
   };
 }

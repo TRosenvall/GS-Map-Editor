@@ -43,6 +43,19 @@ SHAPE_MAX = 256
 # Every value a cell holding a placeholder can have (cells are 16 bits): a
 # quick test of whether a grid row holds any.
 _PLACEHOLDERS = frozenset((top << 12) | EMPTY for top in range(16))
+# Shape kinds whose height function reads all three samples (field/terrain.c);
+# the others read one or two.
+_THREE_SAMPLES = frozenset((5, 6, 10, 11, 12, 13))
+
+
+def shape_row(raw):
+    """A height row the editor made, [kind, s0, s1, s2] with signed or unsigned
+    samples, as the table's four bytes; ValueError for anything the game can't read."""
+    if (not isinstance(raw, (list, tuple)) or len(raw) != 4
+            or not all(isinstance(n, int) and not isinstance(n, bool) and -128 <= n <= 255 for n in raw)
+            or not 0 <= raw[0] <= 15):
+        raise ValueError(f"shape {raw!r} isn't one the game can read")
+    return [n & 0xFF for n in raw]
 
 
 INTERNATIONAL = 1  # EDITION_INTERNATIONAL for the English edition
@@ -512,7 +525,7 @@ class Project:
             return []
         return [tuple(r[:3]) for r in t.rows if tuple(r[:3]) != (0xFF, 0xFF, 0xFF)]
 
-    def apply_edits(self, info, edits, marker_ops=None, new_shapes=None):
+    def apply_edits(self, info, edits, marker_ops=None, new_shapes=None, shapes_base=None):
         """Apply cell edits and save the grid TSVs.
 
         edits: [{"plane": "block"|"collision"|"shape", "x": gx, "y": gy,
@@ -521,7 +534,9 @@ class Project:
         new_shapes: heights made in the editor and not yet in shapes.tsv, as
         [kind, h0, h1, h2] (signed levels); a shape edit's value past the end of
         the table names one of them, in order. Only those painted are added,
-        each reusing an identical row if the table has one.
+        each reusing an identical row if the table has one. shapes_base is
+        how many rows the editor had when it numbered them; another save (a
+        place sharing the table, another window) may have added rows since.
         Returns {"saved": [paths], "warnings": [...], "shapes": rows,
         "remap": {editor value: saved value}}. Raises ValueError, with nothing
         written, when an invariant would break.
@@ -530,16 +545,23 @@ class Project:
         shape_table, remap = None, {}
         if new_shapes and any(e.get("plane") == "shape" for e in edits):
             shape_table = tablemod.load(shape_path)
-            base = len(shape_table.rows)
+            had = len(shape_table.rows)
+            base = had if shapes_base is None else shapes_base
+            if not isinstance(base, int) or not 0 <= base <= had:
+                raise ValueError(tr("This place's heights changed since it was opened. Open it again, then "
+                                    "repaint the new heights."))
+            if not isinstance(new_shapes, list):
+                raise ValueError(f"new heights should be a list of rows, not {new_shapes!r}")
             for e in edits:
-                v = int(e["value"]) if e.get("plane") == "shape" else -1
+                try:
+                    v = int(e["value"]) if e.get("plane") == "shape" else -1
+                except (KeyError, TypeError):
+                    raise ValueError(f"edit {e!r} has no value") from None
                 if v < base or v in remap:
                     continue
                 if v - base >= len(new_shapes):
                     raise ValueError(tr("This place has no such height. Pick one from the Height panel."))
-                row = [int(n) & 0xFF for n in new_shapes[v - base][:4]]
-                if len(row) != 4 or not 0 <= row[0] <= 15:
-                    raise ValueError(f"shape {new_shapes[v - base]!r} isn't one the game can read")
+                row = shape_row(new_shapes[v - base])
                 if row in shape_table.rows:
                     remap[v] = shape_table.rows.index(row)
                 else:
@@ -550,7 +572,7 @@ class Project:
                     remap[v] = len(shape_table.rows) - 1
             edits = [dict(e, value=remap[int(e["value"])]) if e.get("plane") == "shape" and int(e["value"]) in remap
                      else e for e in edits]
-            if len(shape_table.rows) == base:
+            if len(shape_table.rows) == had:
                 shape_table = None  # every new height matched one already there
         grid = gridmod.load(info.grid_path())
         planes = {p: grid.plane(p) for p in gridmod.PLANES}
@@ -651,11 +673,18 @@ class Project:
     @staticmethod
     def cell_height(row):
         """Ground height (px) at a cell's centre: flat kinds use their sample,
-        slopes along x or y the middle of theirs, steps the higher side."""
+        slopes along x or y the middle of theirs, the rest the highest of the
+        samples their kind reads (an unread sample is 0, and would lift a
+        square below level 0 to 0). As static/editor.js's cellHeightPx."""
         if not row:
             return 0
         k, a, b, c = row[0] & 15, row[1], row[2], row[3]
-        h = a if k == 0 else (a + b) / 2 if k in (1, 2) else max(a, b, c)
+        if k in (0, 14, 15):
+            h = a
+        elif k in (1, 2):
+            h = (a + b) / 2
+        else:
+            h = max(a, b, c) if k in _THREE_SAMPLES else max(a, b)
         return h * 8
 
     def ground_height(self, info, x, z, layer=0):

@@ -31,7 +31,6 @@ from .sceneedit import EVENTS_END, EXITS_END, SceneEditor
 
 EVENT_EXIT, EVENT_TOUCH = 0x1, 0x2
 ANY_KIND = 0xFF
-_SCRIPT_CACHE = {}  # overlay id -> {function address: kinds}
 
 
 _FILE_CACHE = {}  # scene .c path -> (mtime, defined table symbols, {function: kinds}, docs, text)
@@ -196,11 +195,28 @@ class DoorEditor(SceneEditor):
                                           for z in range(h) for x in range(w))
         return cells
 
+    def _window_cells(self, info):
+        """{collision code: [[gx, gz], ...]} over layer 0's window, in its
+        order; kept until the grid changes. Shared: don't change it."""
+        ox, oz = self.project.layer_origin(info, 0)
+        key = ("window-cells", ox + info.bounds[0] // 2, oz + info.bounds[1] // 2, *info.size)
+
+        def scan(path):
+            col = self.project.load_grid(info, "collision").cells
+            cells = {}
+            for gx, gz in self._window(info):
+                cells.setdefault(col[gz][gx], []).append([gx, gz])
+            return cells
+        return self.project._parsed(info.grid_path(), scan, key=key)
+
     def _script_kinds(self, overlay):
         """{function address: exit kinds it asks for} for the overlay's scene
         scripts, read from the scene's C source: Import_EventSetExitRequest(k)."""
-        if overlay.id in _SCRIPT_CACHE:
-            return _SCRIPT_CACHE[overlay.id]
+        # Kept with this build of the overlay (a build moves its functions) until
+        # the scene sources change.
+        key = ("script-kinds", self.project.tbs, sources_generation(self.project.tbs))
+        if key in overlay.memo:
+            return overlay.memo[key]
         by_name = {}
         for path in _scene_files(self.project.tbs, overlay.tables):
             for name, kinds in _script_index(path).items():
@@ -209,7 +225,7 @@ class DoorEditor(SceneEditor):
         for name, (addr, _, typ) in overlay.symbols.items():
             if typ == "FUNC" and name in by_name:
                 out[addr & ~1] = sorted(by_name[name])
-        _SCRIPT_CACHE[overlay.id] = out
+        overlay.memo[key] = out
         return out
 
     def _exit_kind(self, event_tables, code):
@@ -269,12 +285,7 @@ class DoorEditor(SceneEditor):
     def list(self, info):
         """{scene id: [{code, kind, cells, scene, entrance, label}]} for the
         map's doors (codes with an EVENT_EXIT event), per scene."""
-        col = self.project.load_grid(info, "collision").cells
-        cells = {}
-        for gx, gz in self._window(info):
-            v = col[gz][gx]
-            if 1 <= v <= 239:
-                cells.setdefault(v, []).append([gx, gz])
+        cells = {v: c for v, c in self._window_cells(info).items() if 1 <= v <= 239}
         ov = self._read_overrides()
         out = {}
         for sc in self.scenes.for_rows(self._map_rows(info)):

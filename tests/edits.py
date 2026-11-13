@@ -10,6 +10,7 @@ import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from gsmap.project import Project  # noqa: E402
+from gsmap.walk import Walk  # noqa: E402
 
 root = sys.argv[1] if len(sys.argv) > 1 else os.path.expanduser("~/gs_project/alchemy-port")
 failed = 0
@@ -70,5 +71,50 @@ with tempfile.TemporaryDirectory() as tmp:
         check("a height that was never made is refused", False)
     except ValueError:
         check("a height that was never made is refused", True)
+    # Malformed new heights are refused with nothing written, not a crash.
+    shapes_before = open(info.source("SHAPES", "shapes.tsv")).read()
+    for bad in ({"0": [0, 1, 0, 0]}, [[0, 1, 0]], [[0, 300, 0, 0]], [[16, 1, 0, 0]], [["0", 1, 0, 0]],
+                [[0, 1.5, 0, 0]], [5], [None]):
+        try:
+            p.apply_edits(info, [{"plane": "shape", "x": x, "y": y, "value": len(saved)}], new_shapes=bad)
+            ok = False
+        except ValueError:
+            ok = True
+        except Exception as e:  # noqa: BLE001
+            ok, bad = False, f"{bad!r} ({type(e).__name__})"
+        check(f"malformed new height {bad!r} is refused", ok)
+    check("refused heights leave shapes.tsv alone", open(info.source("SHAPES", "shapes.tsv")).read() == shapes_before)
+    check("refused heights leave the square alone", p.load_grid(Project(tmp).maps["002"], "shape").cells[y][x] == base)
+    # Signed and unsigned samples name the same row.
+    out = p.apply_edits(info, [{"plane": "shape", "x": x, "y": y, "value": len(saved)}],
+                        new_shapes=[[3, -2, 254, 0]])
+    for bad in ([5], "abc", [[0, 1, 0]]):
+        try:
+            Walk(p, info, [], [], shapes=bad)
+            ok = False
+        except ValueError:
+            ok = True
+        except Exception:  # noqa: BLE001
+            ok = False
+        check(f"walking checks refuse malformed new height {bad!r}", ok)
+    check("negative levels are saved as the game's bytes", p.shape_rows(Project(tmp).maps["002"])[-1] == [3, -2, -2, 0])
+
+    # Another save added a row after the editor numbered its new heights:
+    # they are still read by the editor's own numbering, not the file's.
+    p = Project(tmp)
+    info = p.maps["002"]
+    seen = len(p.shape_rows(info))
+    p.apply_edits(info, [{"plane": "shape", "x": 10, "y": 10, "value": seen}], new_shapes=[[0, 77, 0, 0]])
+    out = p.apply_edits(p.maps["002"], [{"plane": "shape", "x": 11, "y": 10, "value": seen}],
+                        new_shapes=[[0, 88, 0, 0]], shapes_base=seen)
+    rows = p.shape_rows(Project(tmp).maps["002"])
+    v = p.load_grid(Project(tmp).maps["002"], "shape").cells[10][11]
+    check("a height saved after the table grew elsewhere keeps its own level", rows[v] == [0, 88, 0, 0] and rows[seen] == [0, 77, 0, 0])
+    try:
+        p.apply_edits(p.maps["002"], [{"plane": "shape", "x": 12, "y": 10, "value": 999}],
+                      new_shapes=[[0, 1, 0, 0]], shapes_base=999)
+        check("a table smaller than the editor saw is refused", False)
+    except ValueError:
+        check("a table smaller than the editor saw is refused", True)
 
 sys.exit(1 if failed else 0)

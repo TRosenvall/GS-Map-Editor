@@ -163,6 +163,23 @@ def make_handler(project, token=None, local_only=True):
                 state["warming"] = False
         threading.Thread(target=work, daemon=True).start()
 
+    def sharing(n):
+        """Maps drawn from any of map n's grid, heights or blocks: a save to
+        one of those files changes what they show too."""
+        here = project.maps[n]
+        files = {here.grid_path(), here.source("SHAPES", "shapes.tsv"),
+                 here.source("CELL_PICTURES", "cell_pictures.tsv")}
+        return {o.number for o in project.maps.values()
+                if {o.grid_path(), o.source("SHAPES", "shapes.tsv"),
+                    o.source("CELL_PICTURES", "cell_pictures.tsv")} & files}
+
+    def drop_scene_change(n):
+        """After a chest, door or event save: what map n's files gave, and
+        every walking graph, since an overlay's tables (which events, doors and
+        arrival points say) serve the other maps of its scenes too."""
+        same = sharing(n)
+        cache.drop(lambda k: k[0] == "walk" or (k[1] in same and k[0] != "atlas"))  # tiles are unchanged
+
     def walk_for(n, sid, table=None, edits=(), shapes=()):
         """The walking graph of map n for scene sid, kept until a save changes
         anything (or built afresh around unsaved edits)."""
@@ -179,17 +196,27 @@ def make_handler(project, token=None, local_only=True):
         """One user action: serialised, all its files land or none do, and it
         can be undone (and then redone) afterwards. `where` is the map number,
         or "world", so undo can show the place it changes."""
+        undone = []
         with write_lock:
-            with fsio.transaction(project.root, history, label or N_("your last change"), where) as txn:
-                try:
-                    yield txn
-                except BaseException:
+            try:
+                with fsio.transaction(project.root, history, label or N_("your last change"), where) as txn:
+                    try:
+                        yield txn
+                    except BaseException:
+                        undone.append(txn)
+                        raise
+                    if txn.aborted:
+                        undone.append(txn)
+            finally:
+                if undone:
+                    # Its files are back as they were (the transaction has ended):
+                    # what was read from them meanwhile, here or by a request
+                    # running beside it, is wrong now.
                     project._sheet_cache.clear()
                     state["world"] = None
-                    raise
-                if txn.aborted:
-                    project._sheet_cache.clear()
-                    state["world"] = None
+                    if undone[0].kept:
+                        cache.drop(lambda k: True)
+                state["conn"] = None  # an index a request rebuilt while this wrote may be stale
 
     def warm_up():
         """Do the slow first-time reads now, so the first click needn't wait."""
@@ -254,6 +281,16 @@ def make_handler(project, token=None, local_only=True):
             out.append(dict(sc, getters={k: o.getter_name(k) for k in o.getters}, tables=tables))
         return out
     write_lock = threading.Lock()
+    job_lock = threading.Lock()
+
+    def claim_job():
+        """A new export or patch job, made the running one; None if one already runs."""
+        with job_lock:
+            job = state.get("export")
+            if job and not job["done"]:
+                return None
+            job = state["export"] = {"done": False, "ok": None, "log": [], "result": None, "error": None}
+            return job
     # Bundled toolchain first (the app), then Homebrew; see gsmap/setup.py.
     build_env = setupmod.build_env()
 
@@ -519,15 +556,21 @@ def make_handler(project, token=None, local_only=True):
                 m = re.fullmatch(r"/api/map/(\w+)/events", path)
                 if m and m.group(1) in project.maps:
                     q = parse_qs(urlsplit(self.path).query)
+                    try:
+                        sid = int(q["scene"][0])
+                    except (KeyError, ValueError):
+                        return self.send_json({"error": "no scene given"}, 400)
+                    sc_ = next((s_ for s_ in scenes().scenes if s_["id"] == sid), None)
+                    if sc_ is None:
+                        return self.send_json({"error": "no such scene"}, 404)
                     ee = EventEditor(project, scenes(), names)
                     try:
-                        d = ee.describe(project.maps[m.group(1)], int(q["scene"][0]), q.get("table", [None])[0])
+                        d = ee.describe(project.maps[m.group(1)], sid, q.get("table", [None])[0])
                     except ValueError as e:
                         return self.send_json({"error": str(e)}, 409)
-                    sc_ = next(s_ for s_ in scenes().scenes if s_["id"] == int(q["scene"][0]))
                     d["shared_with"] = [names.scene_label(s_["id"]) for s_ in scenes().scenes
                                         if s_["overlay"] == sc_["overlay"] and s_["id"] != sc_["id"]]
-                    d["regions"] = ee.regions(int(q["scene"][0]))
+                    d["regions"] = ee.regions(sid)
                     return self.send_json(d)
                 if path == "/api/flags":
                     fn = flag_names(project.root)
@@ -647,7 +690,12 @@ def make_handler(project, token=None, local_only=True):
                 length = int(self.headers.get("Content-Length", "0"))
                 if length > MAX_REQUEST:
                     return self.send_json({"error": tr("That file is too big.")}, 413)
-                body = json.loads(self.rfile.read(length) or b"{}")
+                try:
+                    body = json.loads(self.rfile.read(length) or b"{}")
+                except ValueError:
+                    body = None
+                if not isinstance(body, dict):
+                    return self.send_json({"error": "the request isn't a JSON object"}, 400)
                 if path == "/api/language":
                     try:
                         i18n.choose(body.get("lang"))
@@ -660,7 +708,7 @@ def make_handler(project, token=None, local_only=True):
                     with writing(N_("moving a chest") if body.get("markers") and not body.get("edits") else N_("your painting"), n):
                         try:
                             result = project.apply_edits(
-                                project.maps[n], body.get("edits", []), body.get("markers", []), body.get("shapes")
+                                project.maps[n], body.get("edits", []), body.get("markers", []), body.get("shapes"), body.get("shapes_base")
                             )
                         except ValueError as e:
                             fsio.abort()
@@ -712,7 +760,7 @@ def make_handler(project, token=None, local_only=True):
                         except ValueError as e:
                             fsio.abort()
                             return self.send_json({"error": str(e)}, 409)
-                        cache.drop(lambda k: k[1] == n and k[0] != "atlas")  # tiles are unchanged
+                        drop_scene_change(n)
                     return self.send_json({"ok": True, **r})
                 if path in ("/api/history/undo", "/api/history/redo"):
                     redo = path.endswith("redo")
@@ -728,7 +776,7 @@ def make_handler(project, token=None, local_only=True):
                     n = m.group(1)
                     try:
                         w = walk_for(n, int(body["scene"]), body.get("table"), body.get("edits") or (), body.get("shapes") or ())
-                    except (KeyError, ValueError, StopIteration) as e:
+                    except (KeyError, ValueError, StopIteration, IndexError, TypeError) as e:  # a bad unsaved edit too
                         return self.send_json({"error": tr("Can't work out where people can walk here: {why}", why=e)}, 409)
                     if not m.group(2):
                         return self.send_json({"size": [w.w, w.h], "cells": w.cells(), "slide": bool(w.slide),
@@ -880,7 +928,7 @@ def make_handler(project, token=None, local_only=True):
                         except (ValueError, KeyError) as e:
                             fsio.abort()
                             return self.send_json({"error": str(e)}, 409)
-                        cache.drop(lambda k: k[1] == n and k[0] != "atlas")  # tiles are unchanged
+                        drop_scene_change(n)
                     return self.send_json({"ok": True, **r})
                 m = re.fullmatch(r"/api/map/(\w+)/door", path)
                 if m and m.group(1) in project.maps:
@@ -902,7 +950,7 @@ def make_handler(project, token=None, local_only=True):
                         except ValueError as e:
                             fsio.abort()
                             return self.send_json({"error": str(e)}, 409)
-                        cache.drop(lambda k: k[1] == n and k[0] != "atlas")  # tiles are unchanged
+                        drop_scene_change(n)
                     return self.send_json({"ok": True, **r})
                 m = re.fullmatch(r"/api/map/(\w+)/import-image", path)
                 if m and m.group(1) in project.maps:
@@ -918,7 +966,8 @@ def make_handler(project, token=None, local_only=True):
                             fsio.abort()
                             return self.send_json({"error": str(e)}, 409)
                         if body.get("apply"):
-                            cache.drop(lambda k: k[1] == n)
+                            same = sharing(n)
+                            cache.drop(lambda k: k[1] in same)
                     return self.send_json(report)
                 if path == "/api/export":
                     job = state.get("export")
@@ -933,8 +982,9 @@ def make_handler(project, token=None, local_only=True):
                     if keep is None and os.path.exists(base + ".bps"):
                         return self.send_json({"exists": os.path.basename(base) + ".bps",
                                                "instead": os.path.basename(patchmod.file_base(EXPORTS, name, True)) + ".bps"})
-                    job = {"done": False, "ok": None, "log": [], "result": None, "error": None}
-                    state["export"] = job
+                    job = claim_job()
+                    if job is None:  # another started meanwhile (a double click)
+                        return self.send_json({"error": tr("an export is already running")}, 409)
 
                     def work():
                         try:
@@ -959,8 +1009,9 @@ def make_handler(project, token=None, local_only=True):
                     rom = body.get("rom")
                     rom = base64.b64decode(rom.split(",", 1)[-1]) if rom else None
                     name = os.path.splitext(os.path.basename(body.get("name", "mod")))[0]
-                    job = {"done": False, "ok": None, "log": [], "result": None, "error": None}
-                    state["export"] = job
+                    job = claim_job()
+                    if job is None:
+                        return self.send_json({"error": tr("an export or patch is still running")}, 409)
 
                     def work():
                         try:

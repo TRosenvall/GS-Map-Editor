@@ -6,6 +6,7 @@ Run: python3 tests/safety.py [path/to/built/alchemy]
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -331,6 +332,8 @@ with tempfile.TemporaryDirectory() as tmp:
         check("a block value too big is refused", True)
 
     # ---- an alchemy update can't jam the mod
+    if not Overrides(tmp).data["tables"]:  # a fresh checkout: make one edit to follow
+        chests.set_contents(room, x, z, {"coins": 77})
     ov = Overrides(tmp)
     key = next(iter(ov.data["tables"]))
     t = dict(ov.data["tables"][key])
@@ -430,7 +433,10 @@ with tempfile.TemporaryDirectory() as tmp:
     # ---- image import
     shared = [m for m in p.maps.values() if m.resources and m.number in ("005", "032", "003")]
     check("maps sharing even one tile sheet can't take an import", not any(own_tileset(p, m) for m in shared))
-    check("the sandbox can", own_tileset(p, sandbox))
+    from gsmap.tileset import own_tileset_maps
+    lone = own_tileset_maps(p)  # the mod's sandbox has its own sheets; the stock game has a few such places
+    check("a place with its own sheets can", (own_tileset(p, sandbox) if sandbox and sandbox.number in lone else
+                                              bool(lone) and own_tileset(p, p.maps[lone[0]])), lone)
 
     # ---- a layout the editor can't read says so
     os.remove(os.path.join(tmp, "games/tbs/src/gamepak"))
@@ -438,7 +444,7 @@ with tempfile.TemporaryDirectory() as tmp:
     directory = os.path.join(tmp, "games/tbs/src/gamepak/resource_directory.s")
     text = read(directory)
     with open(directory, "w", encoding="utf-8") as f:
-        f.write(text.replace("\tunused 20\n", "\twhatever Something\n\tunused 20\n"))
+        f.write(re.sub(r"\tunused \d+\n", lambda m: "\twhatever Something\n" + m.group(0), text, count=1))
     try:
         Project(tmp).directory_entries()
         check("an unknown directory line is refused, not skipped", False)
