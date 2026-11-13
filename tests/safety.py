@@ -514,6 +514,40 @@ with tempfile.TemporaryDirectory() as tmp:
     worldmod.remove_icon(w, p, s, n, mine[0]["actor"])
     check("removing every new icon puts the tables back", read(os.path.join(tmp, "games/tbs/src/mod/overrides.json")) == before_ov)
 
+# ---- the world map's battles: a zone rewritten as it was stays byte for byte
+from gsmap import encounters as enc  # noqa: E402
+with tempfile.TemporaryDirectory() as etmp:
+    for rel in (enc.ZONES, enc.RULES, enc.FORMATIONS, enc.ENEMY_IDS, "games/tbs/text/en.po"):
+        os.makedirs(os.path.dirname(os.path.join(etmp, rel)), exist_ok=True)
+        shutil.copy(os.path.join(source, rel), os.path.join(etmp, rel))
+    zones_path = os.path.join(etmp, enc.ZONES)
+    original = read(zones_path)
+    e = enc.Encounters(etmp)
+    regions = e.regions()
+    check("every world region has battles listed", regions and all(r["zones"] and r["zones"][0]["groups"] for r in regions
+                                                                     if r["region"]), regions[:1])
+    check("enemies are named as the game names them", "Vermin" in e.formation_label(regions[0]["zones"][0]["groups"][0]["formation"]))
+    for z in sorted(e.world_zones()):
+        zz = e.zones[z]
+        e.zones[z] = dict(zz, rate=-1)  # force a rewrite
+        e.set_zone(z, zz["rate"], [{"formation": f, "weight": w} for f, w in zip(zz["formations"], zz["weights"])])
+    check("rewriting every world zone as it was changes nothing", read(zones_path) == original)
+    zone = regions[0]["zones"][0]["zone"]
+    e.set_zone(zone, 40, [{"formation": regions[0]["zones"][0]["groups"][1]["formation"], "weight": 7}])
+    again = enc.Encounters(etmp)
+    check("a changed zone reads back", again.zones[zone]["rate"] == 40 and again.zones[zone]["weights"] == [7])
+    for bad in ({"formation": 0, "weight": 1}, {"formation": 20, "weight": 0}):
+        try:
+            again.set_zone(zone, 10, [bad])
+            check("an empty group or a zero chance is refused", False)
+        except ValueError:
+            check("an empty group or a zero chance is refused", True)
+    try:
+        again.set_zone(1, 10, [{"formation": 20, "weight": 1}])
+        check("a zone that isn't the world map's is refused", False)
+    except ValueError:
+        check("a zone that isn't the world map's is refused", True)
+
 # ---- hostile patches fail quickly and plainly
 src = bytes(range(256)) * 16
 

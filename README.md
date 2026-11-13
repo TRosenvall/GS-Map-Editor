@@ -325,7 +325,7 @@ Choose the world map at the top of the place list. Press **← Places** to go ba
 | **View** | V | Hover to see a spot's region and what it does. Click a town, dungeon or blue step spot to see where it leads. |
 | **Ground** | G | Paint ground blocks. ⌥-click picks up a block, and recent blocks stay at hand. |
 | **Overlay** | O | Paint mountains, trees and coastline. Walking depends on the tiles of both layers. |
-| **Regions** | R | Paint encounter regions. Each has its own random battles, and each is named after the towns inside it. |
+| **Regions** | R | Paint encounter regions. Each has its own random battles, and each is named after the towns inside it. Under **Battles here**, change how often battles come and which groups of enemies appear, on open ground and in forests. |
 | **Towns** | T | Drag a town or dungeon to move it. Click one to change where it leads. **Place a new icon…** adds one, with a picture the game's own towns use; icons you added can be removed. |
 | **Step spots** | P | Blue squares lead somewhere when stepped on. Click one to change where it leads or remove it, or click any other square to make a new one. |
 
@@ -423,7 +423,7 @@ On Windows and Linux, use Ctrl for ⌘ and Alt for ⌥.
 - **The Lost Age**, and editions other than English.
 - **Windows or Linux** as a packaged app.
 - **Brand new places:** there's no button for adding one.
-- **Battles and game data:** monsters, encounter tables, items, shops and music can't be edited, though you can paint which encounter region a world map spot belongs to.
+- **Battles and game data:** monsters, items, shops and music can't be edited, nor the battles inside places. On the world map you can choose each region's groups of enemies and how often they come, from the groups the game has.
 - **Story scripts:** you can change what people say and when, and add simple events, but not write cutscenes.
 - **The pause-screen map.**
 

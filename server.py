@@ -35,6 +35,7 @@ from gsmap.scenes import Scenes
 from gsmap.chests import ChestEditor
 from gsmap.doors import DoorEditor
 from gsmap.checks import Checker
+from gsmap.encounters import Encounters
 from gsmap.events import EventEditor, flag_names, flag_label, search_targets
 from gsmap.connections import Connections
 from gsmap import world as worldmod
@@ -461,6 +462,15 @@ def make_handler(project, token=None, local_only=True):
                                            "regions": worldmod.region_names(w, places, names),
                                            "blocks": len(w.block_tiles),
                                            "icon_sprites": worldmod.icon_sprites(project, scenes(), names)})
+                if path == "/api/world/encounters":
+                    w = world()
+                    try:
+                        enc = Encounters(project.root)
+                    except (OSError, ValueError) as e:
+                        return self.send_json({"error": tr("Can't read the world map's battles: {why}", why=e)}, 409)
+                    places = worldmod.world_places(w, project, scenes(), names)
+                    return self.send_json({"regions": enc.regions(worldmod.region_names(w, places, names)),
+                                           "formations": enc.formation_choices()})
                 m = re.fullmatch(r"/api/world/(chunk|walk|kind)/(\d+)/(\d+)\.png", path)
                 if m:
                     what, cx, cy = m.group(1), int(m.group(2)), int(m.group(3))
@@ -710,6 +720,15 @@ def make_handler(project, token=None, local_only=True):
                         touched = {(int(e["gx"]) // 16, int(e["gy"]) // 16) for e in body.get("edits", [])}
                         cache.drop(lambda k: k[0] == "world" and k[1] in ("chunk", "walk", "kind") and (k[2], k[3]) in touched)
                     return self.send_json({"ok": True, "saved": len(body.get("edits", [])), "before": before})
+                if path == "/api/world/encounters":
+                    with writing(N_("changing a region's battles"), "world"):
+                        try:
+                            changed = Encounters(project.root).set_zone(int(body["zone"]), int(body["rate"]),
+                                                                        list(body["groups"]))
+                        except (ValueError, KeyError, TypeError, OSError) as e:
+                            fsio.abort()
+                            return self.send_json({"error": str(e)}, 409)
+                    return self.send_json({"ok": True, "changed": changed})
                 if path == "/api/world/step":
                     a = body.get("action")
                     with writing(N_("adding a step spot") if a == "add" else N_("removing a step spot"), "world"):

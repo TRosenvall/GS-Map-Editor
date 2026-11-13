@@ -59,6 +59,10 @@
   #recent canvas, #pickCv { image-rendering: pixelated; border: 1px solid var(--line); cursor: pointer; }
   .kinds button { display: flex; gap: 6px; align-items: center; width: 100%; text-align: left; margin-bottom: 4px; }
   .kinds button.on { border-color: var(--accent); background: var(--sel); }
+  .battle { border: 1px solid var(--line, #3334); border-radius: 6px; padding: 8px; margin: 8px 0; }
+  .battle .grp { display: flex; gap: 4px; align-items: center; margin: 3px 0; }
+  .battle .grp select { flex: 1; min-width: 0; }
+  .battle .grp input { width: 46px; }
   .kinds i { width: 14px; height: 14px; border-radius: 3px; display: inline-block; border: 1px solid #0006; flex: none; }
   footer { grid-column: 1 / 3; padding: 4px 12px; background: var(--panel); border-top: 1px solid var(--line); color: var(--muted); min-height: 24px; }
   .ok { color: var(--good); } .err { color: var(--bad); } .warn { color: var(--accent); }
@@ -115,6 +119,7 @@
     <div id="atlasWrap" style="margin-top:6px"><img id="atlas" alt=""></div>
   </div>
   <div class="pane kinds" id="kindPane" style="display:none"></div>
+  <div class="pane" id="battlePane" style="display:none"></div>
   <div class="pane" id="newIconPane" style="display:none">
     <div class="note">New town icon</div>
     <div class="row"><img id="newIconImg" alt="" style="height:32px;image-rendering:pixelated"><select id="newIconSprite"></select></div>

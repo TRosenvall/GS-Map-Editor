@@ -251,6 +251,7 @@ function showPane(which) {
   $('#blockPane').style.display = which === 'block' ? '' : 'none';
   $('#kindPane').style.display = which === 'kind' ? '' : 'none';
   $('#iconPane').style.display = which === 'icon' ? '' : 'none';
+  $('#battlePane').style.display = which === 'kind' ? '' : 'none';
 }
 function setTool(t) {
   W.tool = t; W.sel = null;
@@ -258,7 +259,7 @@ function setTool(t) {
   $('#toolTitle').textContent = HELP[t][0]; $('#toolHelp').textContent = HELP[t][1];
   if (t === 'ground' || t === 'overlay') {
     showPane('block'); $('#atlas').src = `/api/world/atlas/${layerOf()}.png?cols=18`; drawPick(); drawRecent();
-  } else if (t === 'region') { showPane('kind'); if (!$('#ovKind').checked) { $('#ovKind').checked = true; buildTiles(); } }
+  } else if (t === 'region') { showPane('kind'); if (!$('#ovKind').checked) { $('#ovKind').checked = true; buildTiles(); } if (W.data) buildBattles(); }
   else showPane(null);
   W.placing = null;
   $('#newIconPane').style.display = t === 'icons' ? '' : 'none';
@@ -320,6 +321,46 @@ function buildKinds() {
     b.onclick = () => { W.kind = +k; buildKinds(); };
     pane.appendChild(b);
   }
+  if (W.tool === 'region') buildBattles();
+}
+
+// The region's random battles (gsmap/encounters.py): per zone (open ground,
+// forests) how often they come, and which groups of enemies with what chance.
+async function buildBattles() {
+  const pane = $('#battlePane');
+  if (!W.enc) W.enc = await api('/api/world/encounters');
+  if (W.enc.error) { pane.innerHTML = `<div class="note err">${esc(W.enc.error)}</div>`; pane.style.display = ''; return; }
+  const reg = W.enc.regions.find(r => r.region === W.kind);
+  pane.style.display = '';
+  if (!reg) { pane.innerHTML = `<div class="note">${T('No random battles here.')}</div>`; return; }
+  const choices = W.enc.formations.map(f => `<option value="${f.formation}">${esc(f.label)}${W.adv ? ` [${f.formation}]` : ''}</option>`).join('');
+  pane.innerHTML = `<div class="note"><b>${T('Battles here')}</b></div>` + reg.zones.map((z, zi) => `
+    <div class="battle" data-z="${zi}">
+      <div><b>${esc(z.where)}</b> <span class="note">${esc(z.environments.join(', '))} · ${T('made for level {n}', { n: z.level })}</span></div>
+      <label class="note">${T('How often (0 = never, higher is more often)')} <input type="number" min="0" max="100" class="rate" value="${z.rate}" style="width:56px"></label>
+      <div class="note">${T('Groups of enemies, and how likely each is')}</div>
+      <div class="grps">${z.groups.map(g => groupRow(choices, g)).join('')}</div>
+      <div class="row"><button class="add">${T('Add a group')}</button><button class="save primary">${T('Save')}</button></div>
+    </div>`).join('');
+  for (const box of pane.querySelectorAll('.battle')) {
+    const z = reg.zones[+box.dataset.z];
+    box.querySelectorAll('.grp select').forEach((s, i) => { s.value = z.groups[i].formation; });
+    box.querySelector('.add').onclick = () => {
+      if (box.querySelectorAll('.grp').length >= 8) return status(`<span class="warn">${T('A zone holds at most 8 groups.')}</span>`);
+      box.querySelector('.grps').insertAdjacentHTML('beforeend', groupRow(choices, { formation: W.enc.formations[0].formation, weight: 4 }));
+    };
+    box.querySelector('.grps').onclick = e => { if (e.target.closest('.drop')) e.target.closest('.grp').remove(); };
+    box.querySelector('.save').onclick = async () => {
+      const groups = [...box.querySelectorAll('.grp')].map(g => ({ formation: +g.querySelector('select').value, weight: +g.querySelector('input').value }));
+      const r = await api('/api/world/encounters', { zone: z.zone, rate: +box.querySelector('.rate').value, groups });
+      if (r.error) return status(`<span class="err">${esc(r.error)}</span>`);
+      W.enc = null; await buildBattles(); refreshUndoSave();
+      status(r.changed ? `<span class="ok">${T("Saved the region's battles.")}</span> ${T('Press ▶ Play to try it.')}` : T('Nothing changed.'));
+    };
+  }
+}
+function groupRow(choices, g) {
+  return `<div class="grp"><select>${choices}</select><input type="number" min="1" max="255" value="${g.weight}" title="${T('How likely, compared with the other groups')}"><button class="drop" title="${T('Remove this group')}">×</button></div>`;
 }
 
 // ---- undo, build, play --------------------------------------------------------------------
@@ -329,7 +370,7 @@ function updateButtons() {
   $('#undo').disabled = !HIST.last; $('#undo').title = localWords(historyTitle(false) + (HIST.last ? ' (⌘Z)' : ''));
   $('#redo').disabled = !HIST.next; $('#redo').title = localWords(historyTitle(true) + (HIST.next ? ' (⇧⌘Z)' : ''));
 }
-async function reloadWorld() { await loadPlaces(); W.ver++; buildTiles(); }
+async function reloadWorld() { W.enc = null; await loadPlaces(); W.ver++; buildTiles(); }
 function placeLabel(n) { const m = W.maps?.find(x => x.number === n); return m ? (m.label || m.folder) : null; }
 $('#undo').onclick = () => historyStep(false, reloadWorld);
 $('#redo').onclick = () => historyStep(true, reloadWorld);

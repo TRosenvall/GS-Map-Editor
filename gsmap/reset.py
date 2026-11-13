@@ -147,10 +147,11 @@ def reset_map(project, scenes, names, info, settings=None, shared_too=False):
 
 
 def reset_world(project, scenes, names, settings=None):
-    """The world map: its painted blocks, and its towns' places and links."""
+    """The world map: its painted blocks, its towns' places and links, and its battles."""
     root = project.root
     base = _base(root, settings)
-    changed = sum(_restore(root, base, rel) for rel in (layout.WORLD_BLOCKS, layout.WORLD_CELLS, layout.WORLD_COLLISION))
+    from .encounters import ZONES
+    changed = sum(_restore(root, base, rel) for rel in (layout.WORLD_BLOCKS, layout.WORLD_CELLS, layout.WORLD_COLLISION, ZONES))
     from .world import WORLD_SCENE
     dropped, shared = _drop_tables(root, scenes, names, project, {WORLD_SCENE}, True)
     text = _drop_unused_text(root, base)
