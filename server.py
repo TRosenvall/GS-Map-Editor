@@ -781,7 +781,8 @@ def make_handler(project, token=None, local_only=True):
                     return self.send_json({"ok": True, "changed": changed})
                 if path == "/api/world/step":
                     a = body.get("action")
-                    with writing(N_("adding a step spot") if a == "add" else N_("removing a step spot"), "world"):
+                    label = {"add": N_("adding a step spot"), "extend": N_("widening a step spot")}.get(a, N_("removing a step spot"))
+                    with writing(label, "world"):
                         w = world()
                         try:
                             gx, gy = int(body["gx"]), int(body["gy"])
@@ -790,6 +791,8 @@ def make_handler(project, token=None, local_only=True):
                                                       int(body["target_scene"]), int(body["target_entrance"]))
                             elif a == "remove":
                                 r = worldmod.remove_step(w, project, scenes(), names, gx, gy)
+                            elif a == "extend":
+                                r = worldmod.extend_step(w, project, scenes(), names, gx, gy, int(body["code"]))
                             else:
                                 return self.send_json({"error": "unknown step action"}, 400)
                         except (ValueError, KeyError) as e:

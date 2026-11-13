@@ -504,6 +504,14 @@ with tempfile.TemporaryDirectory() as tmp:
     Checker(p, s, n)._world_issues(lambda *a, **k: found.append((a[1], a[5])), lambda sid: {7} if sid == vale else set(), False)
     check("Check says when a world spot leads to an arrival point that isn't there",
           ("world-no-arrival", f"step:{made['code']}") in found, found)
+    beside = next((spot[0] + d, spot[1]) for d in (1, -1, 2, -2) if not (w.cell(spot[0] + d, spot[1])[0] >> 16) & 0xFF)
+    widened = worldmod.extend_step(w, p, s, n, beside[0], beside[1], made["code"])
+    check("a step spot can cover more squares", widened["cells"] == 2, widened)
+    try:
+        worldmod.extend_step(w, p, s, n, beside[0], beside[1] + 1, worldmod.ICON_TRIGGER + 1)
+        check("only a step spot's own code can be spread", False)
+    except ValueError:
+        check("only a step spot's own code can be spread", True)
     worldmod.remove_step(w, p, s, n, spot[0], spot[1])
     check("removing it puts the world back", read(w.blocks_path) == before_world)
     check("and the scene tables", read(os.path.join(tmp, "games/tbs/src/mod/overrides.json")) == before_ov)

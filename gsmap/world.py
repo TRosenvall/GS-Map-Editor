@@ -595,3 +595,20 @@ def remove_icon(world, project, scenes, names, actor):
     main_table = next(t for t in placements if t[1] == layout.WORLD_PLACEMENTS)
     de._save(ov, [main_table] + events + exits)
     return {"actor": int(actor)}
+
+
+def extend_step(world, project, scenes, names, gx, gy, code):
+    """Make world cell (gx, gy) part of the step spot with this code, so the
+    spot covers more than one square (as a wide entrance does)."""
+    from .doors import EVENT_EXIT
+    de, o, ov = _step_tables(project, scenes, names)
+    if not (0 <= gx < 256 and 0 <= gy < 256):
+        raise ValueError(tr("cell {x},{y} is outside the world", x=gx, y=gy))
+    if (world.cell(gx, gy)[0] >> 16) & 0xFF:
+        raise ValueError(tr("Something already happens on that square. Pick another, or change that spot."))
+    code = int(code)
+    if not 1 <= code < ICON_TRIGGER or not any(
+            r["trigger"] == code and r["control"] & 0xF == EVENT_EXIT for _, _, rs in de._tables([o], ov, "events") for r in rs):
+        raise ValueError(tr("That square isn't a step spot."))
+    apply_world_edits(world, [{"gx": gx, "gy": gy, "layer": 0, "code": code}])
+    return {"code": code, "cells": len(_cells_with_code(world, code))}

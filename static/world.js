@@ -93,7 +93,7 @@ function selectIcon(ic) {
     : T('Leads to <b>{place}</b>, arrival point {n}.', { place: esc(lead.label), n: lead.entrance })
       + (W.adv ? ` <span class="note">${T('(trigger {trigger}, exit kind {kind})', { trigger: 100 + ic.actor, kind: lead.kind })}</span>` : '');
   $('#iconLink').style.display = lead ? '' : 'none';
-  $('#iconLink').textContent = T('Change where it leads…'); $('#stepRemove').style.display = 'none';
+  $('#iconLink').textContent = T('Change where it leads…'); $('#stepRemove').style.display = 'none'; $('#stepWiden').style.display = 'none';
   $('#iconRemove').style.display = ic.added && W.tool === 'icons' ? '' : 'none';
   showPane('icon'); drawMarks();
 }
@@ -105,6 +105,7 @@ function selectStep(st) {
   $('#iconLink').style.display = st.lead.scripted ? 'none' : '';
   $('#iconLink').textContent = T('Change where it leads…');
   $('#stepRemove').style.display = W.tool === 'steps' && !st.lead.scripted ? '' : 'none';
+  $('#stepWiden').style.display = W.tool === 'steps' && st.code < 100 ? '' : 'none';
   $('#iconRemove').style.display = 'none';
   showPane('icon'); drawMarks();
 }
@@ -113,9 +114,15 @@ function selectNewStep(gx, gy) {
   W.sel = { newStep: { gx, gy } };
   $('#iconInfo').innerHTML = T('Not a step spot. Make one here, leading anywhere in the game.');
   $('#iconLink').style.display = ''; $('#iconLink').textContent = T('Make a step spot here…');
-  $('#stepRemove').style.display = 'none'; $('#iconRemove').style.display = 'none';
+  $('#stepRemove').style.display = 'none'; $('#iconRemove').style.display = 'none'; $('#stepWiden').style.display = 'none';
   showPane('icon'); drawMarks();
 }
+// Widening a spot: each square clicked next joins it, until another tool or Esc.
+$('#stepWiden').onclick = () => {
+  const st = W.sel?.step; if (!st) return;
+  W.widen = st.code;
+  status(T('Click squares to add them to this spot. Press Esc when you\'re done.'));
+};
 $('#stepRemove').onclick = async () => {
   const st = W.sel?.step; if (!st || !confirm(T('Remove this step spot?'))) return;
   const r = await api('/api/world/step', { action: 'remove', gx: st.gx, gy: st.gy });
@@ -189,6 +196,12 @@ $('#world').addEventListener('mousedown', async e => {
   if (W.tool === 'steps') {
     if (gx < 0 || gy < 0 || gx > 255 || gy > 255) return;
     const code = ((await cells(gx, gy))[0] >>> 16) & 0xff;
+    if (W.widen != null && !code) {
+      const r = await api('/api/world/step', { action: 'extend', gx, gy, code: W.widen });
+      if (r.error) return status(`<span class="err">${esc(r.error)}</span>`);
+      W.cells = {}; await loadPlaces();
+      return status(`<span class="ok">${T('The spot now covers {n} squares.', { n: r.cells })}</span> ${T('Press Esc when you\'re done.')}`);
+    }
     if (!code) return selectNewStep(gx, gy);
     const st = W.data.places.steps.find(s => s.gx === gx && s.gy === gy);
     if (st) return selectStep(st);
@@ -254,7 +267,7 @@ function showPane(which) {
   $('#battlePane').style.display = which === 'kind' ? '' : 'none';
 }
 function setTool(t) {
-  W.tool = t; W.sel = null;
+  W.tool = t; W.sel = null; W.widen = null;
   for (const b of document.querySelectorAll('#tools button')) b.classList.toggle('on', b.dataset.tool === t);
   $('#toolTitle').textContent = HELP[t][0]; $('#toolHelp').textContent = HELP[t][1];
   if (t === 'ground' || t === 'overlay') {
@@ -458,6 +471,7 @@ $('#advanced').onchange = () => { W.adv = $('#advanced').checked; document.body.
 window.addEventListener('keydown', e => {
   const dialog = openDialog();
   if (dialog) { if (e.key === 'Escape') dialog.style.display = 'none'; return; }
+  if (e.key === 'Escape' && W.widen != null) { W.widen = null; status(T('Done adding squares.')); return; }
   if (isTyping(e.target)) return;  // typing isn't a shortcut
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); (e.shiftKey ? $('#redo') : $('#undo')).click(); return; }
   const t = { v: 'view', g: 'ground', o: 'overlay', r: 'region', t: 'icons', p: 'steps' }[e.key.toLowerCase()];
