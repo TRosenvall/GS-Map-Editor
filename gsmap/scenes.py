@@ -147,6 +147,8 @@ class Overlay:
         self.getters = {
             k: struct.unpack_from("<I", self.image, off)[0] for k, off in GETTER_OFFSETS.items()
         }
+        self.memo = {}  # answers worked out from this build of the overlay (sceneedit.scene_tables)
+        self._funcs = None  # function address -> its first name, for getter_name
         self.tables = {}
         # In address order, the order the game's own source lays them out, so
         # "the scene's first table" doesn't depend on what symbols are named.
@@ -173,11 +175,13 @@ class Overlay:
         return t["rows"]
 
     def getter_name(self, kind):
-        addr = self.getters[kind] & ~1
-        for name, (a, _, typ) in self.symbols.items():
-            if typ == "FUNC" and (a & ~1) == addr:
-                return name
-        return None
+        if self._funcs is None:
+            funcs = {}
+            for name, (a, _, typ) in self.symbols.items():
+                if typ == "FUNC":
+                    funcs.setdefault(a & ~1, name)  # the first, as a search in symbol order finds
+            self._funcs = funcs
+        return self._funcs.get(self.getters[kind] & ~1)
 
 
 class Scenes:

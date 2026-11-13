@@ -310,6 +310,9 @@ def make_handler(project, token=None, local_only=True):
             except FileNotFoundError:
                 planes[plane] = None
         w, h = info.size
+        family = tilesetmod.block_family(project, info)
+        marker_path, marker_table = project.load_markers(info)
+        grid_path = info.grid_path()
         return {
             "number": n,
             "folder": os.path.relpath(info.folder, project.root),
@@ -336,24 +339,22 @@ def make_handler(project, token=None, local_only=True):
                 open(info.source("CELL_PICTURES", "cell_pictures.tsv"), "rb").read()
             ).hexdigest()[:16],
             "shares_grid": sorted(o.number for o in project.maps.values()
-                                  if o is not info and o.grid_path() == info.grid_path()),
-            "family": tilesetmod.block_family(project, info)[0],
-            "family_size": tilesetmod.block_family(project, info)[1],
+                                  if o is not info and o.grid_path() == grid_path),
+            "family": family[0],
+            "family_size": family[1],
             "retired": sorted(tilesetmod.retired_blocks(project, info)),
             "own_tileset": tilesetmod.own_tileset(project, info),
             "markers": [
                 {"index": i, "x": r[0], "z": r[1], "id": r[2]}
-                for i, r in enumerate((project.load_markers(info)[1] or type("T", (), {"rows": []})).rows)
+                for i, r in enumerate((marker_table or type("T", (), {"rows": []})).rows)
                 if tuple(r[:3]) != (0xFF, 0xFF, 0xFF)
             ],
-            "markers_editable": (lambda p, t: t is not None and len(project.marker_users(p)) == 1)(
-                *project.load_markers(info)
-            ),
+            "markers_editable": marker_table is not None and len(project.marker_users(marker_path)) == 1,
             "grids": planes,
             # heights for drawing ground-level things where the game shows them
             "shapes": project.shape_rows(info) if os.path.exists(info.source("SHAPES", "shapes.tsv")) else [],
             # 0xfff cells numbered as the game numbers them at load
-            "blocks": project.resolve_placeholders(planes["metatile"]) if planes["metatile"] else None,
+            "blocks": project.resolved_blocks(info) if planes["metatile"] else None,
         }
 
     def png(img):

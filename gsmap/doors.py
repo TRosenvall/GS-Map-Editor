@@ -21,6 +21,8 @@ doors are painted.
 import glob
 import os
 import re
+import threading
+import time
 
 from . import layout
 from .i18n import tr
@@ -32,10 +34,19 @@ ANY_KIND = 0xFF
 _SCRIPT_CACHE = {}  # overlay id -> {function address: kinds}
 
 
-_FILE_CACHE = {}  # scene .c path -> (mtime, defined table symbols, {function: kinds})
+_FILE_CACHE = {}  # scene .c path -> (mtime, defined table symbols, {function: kinds}, docs, text)
 _SOURCES = {}  # game source root -> its scene sources
+# Which scene sources define which tables is asked thousands of times by one
+# whole-game check, and asking the disk each time (a stat per source file, a
+# hundred files) was most of its time. The sources are looked at again when
+# FRESH seconds have passed since they last were; the editor never writes them.
+FRESH = 2.0
+_CHECKED = {}  # game source root -> time.monotonic() of the last look
+_GENERATION = {}  # game source root -> count of changes seen to its scene sources
+_LOCK = threading.Lock()
 _EXIT_NAMES = {}  # scene_exits.h path -> {exit name: kind}
 _REQUEST = layout.EXIT_REQUEST
+_WINDOWS = {}  # (left, top, width, height) in grid cells -> its cells, as DoorEditor._window gives them
 
 
 def _named_numbers(text):
@@ -103,11 +114,14 @@ def _scan(path):
             funcs[m.group(2)] = kinds
         if m.group(1):
             docs[m.group(2)] = " ".join(l[3:].strip() for l in m.group(1).splitlines()).strip()
-    _FILE_CACHE[path] = (mtime, tables, funcs, docs)
+    _FILE_CACHE[path] = (mtime, tables, funcs, docs, text)
     return _FILE_CACHE[path]
 
 
 def _source_text(path):
+    hit = _FILE_CACHE.get(path)
+    if hit is not None and hit[0] == os.path.getmtime(path):
+        return hit[4]
     with open(path, encoding="utf-8") as f:
         return f.read()
 
@@ -116,23 +130,46 @@ def script_docs(tbs, overlay):
     """{function address: (name, its /// comment)} for an overlay's functions."""
     docs = {}
     for path in _scene_files(tbs, overlay.tables):
-        docs.update(_scan(path)[3])
+        docs.update(_FILE_CACHE[path][3])
     return {addr & ~1: (name, docs.get(name, "")) for name, (addr, _, typ) in overlay.symbols.items()
             if typ == "FUNC"}
 
 
+def _sources(tbs):
+    """The scene sources, each scanned as it is now (or within FRESH seconds)."""
+    with _LOCK:
+        if tbs not in _SOURCES:
+            root = tbs[:-len(layout.SRC)]
+            _SOURCES[tbs] = [p for folder in layout.SCENE_SOURCES
+                             for p in glob.glob(os.path.join(root, folder, "**", "*.c"), recursive=True)]
+        now = time.monotonic()
+        if now - _CHECKED.get(tbs, -FRESH) >= FRESH:
+            changed = False
+            for p in _SOURCES[tbs]:
+                before = _FILE_CACHE.get(p)
+                changed |= _scan(p) is not before
+            if changed:
+                _GENERATION[tbs] = _GENERATION.get(tbs, 0) + 1
+            _CHECKED[tbs] = time.monotonic()
+        return _SOURCES[tbs]
+
+
+def sources_generation(tbs):
+    """A number that changes whenever the scene sources do (seen within FRESH
+    seconds): what's worked out from them can be kept until it moves."""
+    _sources(tbs)
+    return _GENERATION.get(tbs, 0)
+
+
 def _scene_files(tbs, table_names):
     """Scene sources defining any of these tables."""
-    if tbs not in _SOURCES:
-        root = tbs[:-len(layout.SRC)]
-        _SOURCES[tbs] = [p for folder in layout.SCENE_SOURCES
-                         for p in glob.glob(os.path.join(root, folder, "**", "*.c"), recursive=True)]
     names = set(table_names)
-    return [p for p in _SOURCES[tbs] if _scan(p)[1] & names]
+    return [p for p in _sources(tbs) if _FILE_CACHE[p][1] & names]
 
 
 def _script_index(path):
-    return _scan(path)[2]
+    """{function: exit kinds} of a source _scene_files just gave."""
+    return _FILE_CACHE[path][2]
 
 
 def script_exit_kinds(tbs, overlay):
@@ -148,11 +185,16 @@ class DoorEditor(SceneEditor):
     # ---- reading -------------------------------------------------------------
 
     def _window(self, info):
-        """Grid cells of layer 0's visible window, as (gx, gz)."""
+        """Grid cells of layer 0's visible window, as (gx, gz). Shared: don't change it."""
         ox, oz = self.project.layer_origin(info, 0)
         w, h = info.size
         bx, bz = info.bounds[0] // 2, info.bounds[1] // 2
-        return [((ox + bx + x) % 128, (oz + bz + z) % 128) for z in range(h) for x in range(w)]
+        key = (ox + bx, oz + bz, w, h)
+        cells = _WINDOWS.get(key)
+        if cells is None:
+            cells = _WINDOWS[key] = tuple(((ox + bx + x) % 128, (oz + bz + z) % 128)
+                                          for z in range(h) for x in range(w))
+        return cells
 
     def _script_kinds(self, overlay):
         """{function address: exit kinds it asks for} for the overlay's scene

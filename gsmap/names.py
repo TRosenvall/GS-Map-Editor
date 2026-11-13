@@ -318,13 +318,13 @@ class Names:
             return over["rows"] if over else o.rows(name)
 
         from .doors import script_exit_kinds
-        from .getters import tables_for_scene
+        from .sceneedit import scene_tables
         tbs = os.path.join(self.root, layout.SRC)
         script_kinds = {}
         for sc in scene_list:
             o = scenes.overlay(sc["overlay"])
             exit_tables = [rows(o, n) for n, t in o.tables.items() if t["kind"] == "exits" and t["editable"]]
-            only = tables_for_scene(tbs, o, "events", sc["name"])  # this room's, not its overlay's others
+            only = scene_tables(tbs, o, "events", sc["name"])  # this room's, not its overlay's others
             for name, t in o.tables.items():
                 if t["kind"] != "events" or not t["editable"] or (only is not None and name not in only):
                     continue

@@ -101,9 +101,14 @@ def parse(text):
         tokens = row.split()
         if ax + len(tokens) > w:
             raise ValueError(f"grid row {i} has {len(tokens)} cells, more than its {w}")
-        for j, token in enumerate(tokens):
-            x = ax + j
-            pictures[y][x], behaviors[y][x], shapes[y][x] = _cell(token)
+        pic, beh, shp = pictures[y], behaviors[y], shapes[y]
+        x = ax
+        for token in tokens:
+            if ":" in token:
+                pic[x], beh[x], shp[x] = _cell(token)
+            else:  # most cells: a picture alone (as _cell reads it)
+                pic[x], beh[x], shp[x] = int(token, 16), 0, 0
+            x += 1
     return g
 
 

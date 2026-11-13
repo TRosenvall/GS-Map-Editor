@@ -15,6 +15,8 @@ class Connections:
         self.project, self.scenes, self.names = project, scenes, names
         self.doors = DoorEditor(project, scenes, names)
         self._index = None
+        self._doors = {}  # map number -> DoorEditor.list, kept as long as the index
+        self._scene = {s["id"]: s for s in reversed(scenes.scenes)}  # the first row of each id
 
     def _exits(self, scene):
         """Unique (kind, scene, entrance) exits in every exit table of the
@@ -43,7 +45,7 @@ class Connections:
         return self._index
 
     def _map_of(self, scene_id, row_to_map):
-        sc = next((s for s in self.scenes.scenes if s["id"] == scene_id), None)
+        sc = self._scene.get(scene_id)
         return row_to_map.get(sc["layered_row"]) if sc else None
 
     def _place(self, scene_id, row_to_map):
@@ -59,7 +61,9 @@ class Connections:
         info = self.project.maps.get(me["map"]) if me["map"] else None
         if info is not None:
             try:
-                for d in self.doors.list(info).get(scene_id, []):
+                if info.number not in self._doors:
+                    self._doors[info.number] = self.doors.list(info)
+                for d in self._doors[info.number].get(scene_id, []):
                     cells.setdefault(d["kind"], {"cell": d["cells"][0], "scripted": d["scripted"]})
             except (ValueError, FileNotFoundError):
                 pass

@@ -43,6 +43,20 @@ def copy_rows(rows):
     return [{**r, "exits": [dict(e) for e in r["exits"]]} if "exits" in r else dict(r) for r in rows]
 
 
+def scene_tables(tbs, overlay, kind, scene_name):
+    """getters.tables_for_scene, kept on the overlay until it or the scene
+    sources change: reading a getter's C is slow, and every map asks."""
+    from .doors import sources_generation
+    from .getters import tables_for_scene
+    key = (tbs, kind, scene_name, sources_generation(tbs))
+    memo = overlay.memo
+    if key not in memo:
+        found = tables_for_scene(tbs, overlay, kind, scene_name)
+        memo[key] = tuple(found) if found is not None else None
+    found = memo[key]
+    return list(found) if found is not None else None
+
+
 class SceneEditor:
     def __init__(self, project, scenes, names, stock=False):
         """stock: read the scenes' own tables, ignoring the editor's overrides
@@ -77,10 +91,9 @@ class SceneEditor:
 
     def _names_for(self, overlay, kind, scene_ids):
         """The table names of `kind` these scenes can load, or None for all."""
-        from .getters import tables_for_scene
         names = set()
         for s in self._scene_rows(scene_ids).get(overlay.id, []):
-            found = tables_for_scene(self.project.tbs, overlay, kind, s["name"])
+            found = scene_tables(self.project.tbs, overlay, kind, s["name"])
             if found is None:
                 return None
             names |= set(found)

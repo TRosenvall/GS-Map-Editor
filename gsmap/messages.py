@@ -93,8 +93,13 @@ class Messages:
         return e["text"] if e else None
 
     def _block(self):
-        b, e = self.text.find(BEGIN), self.text.find(END)
-        return (b, e) if b >= 0 and e > b else (None, None)
+        # Searching 65,000 lines for the markers is slow, and bad_lines asks
+        # once per message: keep the answer for this version of the text.
+        if getattr(self, "_block_of", None) is not self.text:
+            b, e = self.text.find(BEGIN), self.text.find(END)
+            self._block_at = (b, e) if b >= 0 and e > b else (None, None)
+            self._block_of = self.text
+        return self._block_at
 
     def owned(self, n):
         b, e = self._block()

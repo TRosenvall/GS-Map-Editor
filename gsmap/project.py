@@ -37,6 +37,9 @@ from . import table as tablemod
 
 EDITION = "TBS_EDITION_EN"
 EMPTY = 0xFFF
+# Every value a cell holding a placeholder can have (cells are 16 bits): a
+# quick test of whether a grid row holds any.
+_PLACEHOLDERS = frozenset((top << 12) | EMPTY for top in range(16))
 
 
 INTERNATIONAL = 1  # EDITION_INTERNATIONAL for the English edition
@@ -89,6 +92,21 @@ def _kept_lines(text, defined):
     return out
 
 
+_KEPT = {}  # map.s path -> ((mtime, size), its English edition's lines); a map is opened often
+
+
+def _kept_file_lines(path):
+    """_kept_lines of a file for the English edition, read again only when the
+    file changes. Shared: treat the list as read-only."""
+    st = os.stat(path)
+    stamp = (st.st_mtime_ns, st.st_size)
+    hit = _KEPT.get(path)
+    if hit is None or hit[0] != stamp:
+        with open(path, encoding="utf-8") as f:
+            hit = _KEPT[path] = (stamp, _kept_lines(f.read(), {EDITION}))
+    return hit[1]
+
+
 def _preprocess(text, defined):
     return "\n".join(line for _, line in _kept_lines(text, defined))
 
@@ -114,7 +132,7 @@ class Markers:
 
     def _lines(self):
         """The list's lines, label excluded, end line included."""
-        kept = _kept_lines(open(self.path, encoding="utf-8").read(), {EDITION})
+        kept = _kept_file_lines(self.path)
         start = next(i for i, (_, line) in enumerate(kept) if re.match(r"\.LField_\w*_MARKERS:", line.strip()))
         out = []
         for number, line in kept[start + 1:]:
@@ -349,13 +367,19 @@ class Project:
         img = Image.open(self.palette_path(info)).convert("RGB")
         return [[img.getpixel((x, y)) for x in range(16)] for y in range(img.height)]
 
-    def _parsed(self, path, parse):
-        """A parsed file, kept until it changes. Shared: treat it as read-only."""
-        stamp = os.stat(path).st_mtime_ns
+    def _parsed(self, path, parse, key=None):
+        """A parsed file, kept until it changes. Shared: treat it as read-only.
+        `key` tells apart several things worked out from one file; they're
+        dropped with it (_parse_cache.pop(path) after a save)."""
+        st = os.stat(path)
+        stamp = (st.st_mtime_ns, st.st_size)
         hit = self._parse_cache.get(path)
         if hit is None or hit[0] != stamp:
-            hit = self._parse_cache[path] = (stamp, parse(path))
-        return hit[1]
+            hit = self._parse_cache[path] = (stamp, {})
+        made = hit[1]
+        if key not in made:
+            made[key] = parse(path)
+        return made[key]
 
     def load_grid(self, info, plane):
         return self._parsed(info.grid_path(), gridmod.load).plane(plane)
@@ -389,6 +413,7 @@ class Project:
         count = len(mt.rows)
         atlas = Image.new("RGBA", (32 * 16, ((count + 31) // 32) * 16), (0, 0, 0, 0))
         tiles = {}  # most blocks reuse the same few tile entries
+        paths = {}  # char block -> its sheet, looked up once
         for i, entries in enumerate(mt.rows):
             ox, oy = (i % 32) * 16, (i // 32) * 16
             for k, e in enumerate(entries):
@@ -401,7 +426,9 @@ class Project:
                 block = a // 512
                 if not 1 <= block <= 3:
                     continue  # block 0 is window tiles; 4+ is not BG VRAM
-                path = self.label_path(blocks[block - 1])
+                if block not in paths:
+                    paths[block] = self.label_path(blocks[block - 1])
+                path = paths[block]
                 if path is None or (e >> 12) >= len(palette):
                     continue  # palette rows 14/15 belong to the UI
                 sheet = self._sheet_rgba(path, e >> 12, palette)
@@ -425,12 +452,12 @@ class Project:
         the k-th one, row-major, becomes block k with its top nibble kept."""
         out, k = [], 0
         for row in cells:
-            r = []
-            for v in row:
-                if (v & 0xFFF) == EMPTY:
-                    v = (v & 0xF000) | k
-                    k += 1
-                r.append(v)
+            r = list(row)
+            if not _PLACEHOLDERS.isdisjoint(r):
+                for i, v in enumerate(r):
+                    if (v & 0xFFF) == EMPTY:
+                        r[i] = (v & 0xF000) | k
+                        k += 1
             out.append(r)
         return out
 
@@ -576,7 +603,7 @@ class Project:
     def shape_rows(self, info):
         """[kind, h0, h1, h2] per shape id, heights signed, in 8-px units
         (field/field/terrain.c: a sample is in eight-pixel units)."""
-        t = tablemod.load(info.source("SHAPES", "shapes.tsv"))
+        t = self._parsed(info.source("SHAPES", "shapes.tsv"), tablemod.load)
         return [[r[0]] + [v - 256 if v > 127 else v for v in r[1:4]] for r in t.rows]
 
     @staticmethod
@@ -602,7 +629,10 @@ class Project:
         return self.cell_height(rows[v] if v < len(rows) else None)
 
     def resolved_blocks(self, info):
-        return self.resolve_placeholders(self.load_grid(info, "metatile").cells)
+        """The block plane with placeholders numbered, kept until the grid
+        changes. Shared: treat it as read-only."""
+        return self._parsed(info.grid_path(), lambda path: self.resolve_placeholders(
+            self.load_grid(info, "metatile").cells), key="resolved")
 
     def render_layer(self, info, li, blocks=None, atlas=None):
         """One layer's window (header bounds) as transparent RGBA."""
@@ -610,20 +640,23 @@ class Project:
         blocks = blocks or self.resolved_blocks(info)
         atlas = atlas or self.metatile_atlas(info, info.char_base[li])
         count = (atlas.width // 16) * (atlas.height // 16)
-        tiles = [
-            atlas.crop(((m % 32) * 16, (m // 32) * 16, (m % 32) * 16 + 16, (m // 32) * 16 + 16))
-            for m in range(count)
-        ]
+        tiles = {}  # cut from the atlas as they're first used
         lx, ly = self.layer_origin(info, li)
         left, top = info.bounds[0] // 2, info.bounds[1] // 2
-        out = Image.new("RGBA", (w * 16, h * 16), (0, 0, 0, 0))
+        # Each cell is drawn once, over nothing: paste the tiles side by side,
+        # then composite the whole layer over transparency in one go, which
+        # gives every pixel what compositing tile by tile gave it.
+        laid = Image.new("RGBA", (w * 16, h * 16), (0, 0, 0, 0))
         for y in range(h):
             row = blocks[(ly + top + y) % 128]
             for x in range(w):
                 b = row[(lx + left + x) % 128] & 0xFFF
                 if b < count:
-                    out.alpha_composite(tiles[b], (x * 16, y * 16))
-        return out
+                    tile = tiles.get(b)
+                    if tile is None:
+                        tile = tiles[b] = atlas.crop(((b % 32) * 16, (b // 32) * 16, (b % 32) * 16 + 16, (b // 32) * 16 + 16))
+                    laid.paste(tile, (x * 16, y * 16))
+        return Image.alpha_composite(Image.new("RGBA", (w * 16, h * 16), (0, 0, 0, 0)), laid)
 
     def render(self, info, layers=(0, 1, 2)):
         """Composite the visible map, back layer first. Returns RGBA image."""
@@ -633,6 +666,10 @@ class Project:
         order = sorted(
             (i for i in layers if info.priority[i] != 0), key=lambda i: -info.priority[i]
         )
+        atlases = {}  # layers on one char base draw from the same atlas
         for li in order:
-            out.alpha_composite(self.render_layer(info, li, blocks))
+            base = info.char_base[li]
+            if base not in atlases:
+                atlases[base] = self.metatile_atlas(info, base)
+            out.alpha_composite(self.render_layer(info, li, blocks, atlases[base]))
         return out

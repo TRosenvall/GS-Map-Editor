@@ -57,13 +57,25 @@ def GIT_PATIENT_ARGS(folder):
     return GIT_LIMITS + ["-C", folder]
 
 
+_settings_cache = {}
+
+
 def load_settings():
+    """The settings, a fresh copy each call (callers change and save it). Kept
+    while the file stays the same: every translated message in a background job
+    asks which language was chosen, which once meant thousands of reads."""
+    import copy
     try:
-        with open(SETTINGS, encoding="utf-8") as f:
-            settings = json.load(f)
+        st = os.stat(SETTINGS)
+        key = (SETTINGS, st.st_mtime_ns, st.st_size)
+        if _settings_cache.get("key") != key:
+            with open(SETTINGS, encoding="utf-8") as f:
+                settings = json.load(f)
+            _settings_cache.update(key=key, value=settings if isinstance(settings, dict) else {})
     except (OSError, ValueError):
+        _settings_cache.clear()
         return {}
-    return settings if isinstance(settings, dict) else {}
+    return copy.deepcopy(_settings_cache["value"])
 
 
 def save_settings(s):

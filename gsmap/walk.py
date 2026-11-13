@@ -41,6 +41,10 @@ DIRS = ((1, 0), (-1, 0), (0, 1), (0, -1))
 SOUTH, NORTH = (0, 1), (0, -1)
 # The five probes of a step, as (cos, sin) turns of the heading.
 PROBES = tuple((math.cos(math.radians(a)), math.sin(math.radians(a))) for a in (0, 22.5, -22.5, 45, -45))
+# Each heading's probes as offsets from where the walker stands, worked out the
+# way Walk._step_ok always has: 8 * (dx * c - dz * s), 8 * (dz * c + dx * s).
+PROBE_OFFSETS = {(dx, dz): tuple((8 * (dx * c - dz * s), 8 * (dz * c + dx * s)) for c, s in PROBES)
+                 for dx, dz in DIRS}
 
 TABLES = f"{layout.SRC}/field/terrain_tables.c"
 
@@ -168,7 +172,9 @@ class Walk:
         self.entrances = entrances
         self.slide = {e["trigger"] for e in events
                       if e["kind"] == "touch" and "slide" in (e.get("script") or "").lower()}
-        self._hcache = {}
+        self._heights = {}  # shape id -> its 16x16 heights, row-major (16.16 pixels)
+        self._before = {}  # arrival lattice point -> (reach, standing) with no one in the way
+        self._standable = {}  # lattice point -> whether standing() keeps it
         self._build()
 
     # ---- the map, in map pixels ------------------------------------------------------
@@ -187,14 +193,18 @@ class Walk:
     def ground(self, x, z):
         """Ground height at map pixel (x, z), 16.16 pixels."""
         x, z = int(x), int(z)
-        key = (x, z)
-        h = self._hcache.get(key)
-        if h is None:
-            gx, gz = self.grid_cell(x, z)
-            v = self.shp[gz][gx]
-            h = height_at(self.rows[v] if v < len(self.rows) else None, x & 15, z & 15, self.lerp, self.index)
-            self._hcache[key] = h
-        return h
+        v = self.shp[(self.oz + z // 16) % 128][(self.ox + x // 16) % 128]
+        heights = self._heights.get(v)
+        if heights is None:
+            heights = self._shape_heights(v)
+        return heights[(z & 15) * 16 + (x & 15)]
+
+    def _shape_heights(self, v):
+        """height_at over every pixel of a cell of shape v, row-major."""
+        row = self.rows[v] if v < len(self.rows) else None
+        heights = self._heights[v] = [height_at(row, px, pz, self.lerp, self.index)
+                                      for pz in range(16) for px in range(16)]
+        return heights
 
     def ground_px(self, x, z):
         return self.ground(x, z) / FIXED
@@ -212,10 +222,22 @@ class Walk:
         return -STEP_DOWN <= d <= STEP_UP
 
     def _step_ok(self, x, z, dx, dz):
+        # _clear for each probe, written out: this runs for every lattice point.
         g = self.ground(x, z)
-        for c, s in PROBES:
-            px, pz = x + 8 * (dx * c - dz * s), z + 8 * (dz * c + dx * s)
-            if not self._clear(math.floor(px), math.floor(pz), g):
+        x0, z0 = self.x0, self.z0
+        x1, z1 = x0 + self.w * 16, z0 + self.h * 16
+        col, shp, ox, oz, heights = self.col, self.shp, self.ox, self.oz, self._heights
+        floor = math.floor
+        for ax, az in PROBE_OFFSETS[(dx, dz)]:
+            px, pz = floor(x + ax), floor(z + az)
+            if not (x0 <= px < x1 and z0 <= pz < z1):
+                return False
+            gx, gz = (ox + px // 16) % 128, (oz + pz // 16) % 128
+            if col[gz][gx] == WALL:
+                return False
+            v = shp[gz][gx]  # self.ground(px, pz), written out
+            d = (heights.get(v) or self._shape_heights(v))[(pz & 15) * 16 + (px & 15)] - g
+            if not -STEP_DOWN <= d <= STEP_UP:
                 return False
         return True
 
@@ -290,32 +312,52 @@ class Walk:
                 self.starts.append((e, self._node(e["x"], e["z"])))
         self.reach = self.flood()
 
+    def _near(self, x, z, reach):
+        """Lattice points within `reach` pixels of (x, z): every point the
+        graph has is one (x0 + 8i, z0 + 8j), so this is all a test of
+        distance can find. A sorted list of (point, distance)."""
+        out = []
+        i0 = math.ceil((x - reach - self.x0) / GRID)
+        j0 = math.ceil((z - reach - self.z0) / GRID)
+        for j in range(j0, math.floor((z + reach - self.z0) / GRID) + 1):
+            for i in range(i0, math.floor((x + reach - self.x0) / GRID) + 1):
+                p = (self.x0 + i * GRID, self.z0 + j * GRID)
+                out.append((p, math.hypot(p[0] - x, p[1] - z)))
+        return out
+
     def flood(self, blocked=None, starts=None):
         """Lattice points reachable from the arrival points (or `starts`),
         never coming within BUMP of `blocked` (a map pixel point)."""
-        def ok(p):
-            return blocked is None or math.hypot(p[0] - blocked[0], p[1] - blocked[1]) >= BUMP
+        # Only graph points are ever added, and those are lattice points, so
+        # the ones too near `blocked` can be listed beforehand.
+        near = {p for p, d in self._near(*blocked, BUMP) if d < BUMP} if blocked is not None else ()
+        edges = self.edges
         seen = set()
         q = collections.deque()
         for n in (starts if starts is not None else [s for _, s in self.starts]):
-            if n in self.edges and n not in seen:
+            if n in edges and n not in seen:
                 seen.add(n)
                 q.append(n)
+        add, push, pop = seen.add, q.append, q.popleft
         while q:
-            n = q.popleft()
-            for m, _ in self.edges.get(n, ()):
-                if m not in seen and m in self.edges and ok(m):
-                    seen.add(m)
-                    q.append(m)
+            n = pop()
+            for m, _ in edges.get(n, ()):
+                if m not in seen and m in edges and m not in near:
+                    add(m)
+                    push(m)
         return seen
 
     def standing(self, reach=None):
         """Reachable points where the party can stop: not partway along a slide."""
         reach = self.reach if reach is None else reach
         out = set()
+        known = self._standable
         for n in reach:
-            # On a slide cell only where a slide ends.
-            if self.behavior(*n) not in self.slide or n in self.slide_ends:
+            ok = known.get(n)
+            if ok is None:
+                # On a slide cell only where a slide ends.
+                ok = known[n] = self.behavior(*n) not in self.slide or n in self.slide_ends
+            if ok:
                 out.add(n)
         return out
 
@@ -326,6 +368,13 @@ class Walk:
         g = self.ground_px(x, z)
         return [s for s in standing
                 if math.hypot(s[0] - x, s[1] - z) <= TALK_REACH and abs(self.ground_px(*s) - g) <= TALK_HEIGHT]
+
+    def _can_talk(self, x, z, standing):
+        """bool(talk_points(x, z, standing)) for a set of lattice points,
+        looking only at the points within reach."""
+        g = self.ground_px(x, z)
+        return any(d <= TALK_REACH and p in standing and abs(self.ground_px(*p) - g) <= TALK_HEIGHT
+                   for p, d in self._near(x, z, TALK_REACH))
 
     def targets(self):
         """What must stay reachable: [(label, test(standing) -> bool)]."""
@@ -466,16 +515,23 @@ class Walk:
         for _, start in self.starts:
             if math.hypot(start[0] - x, start[1] - z) < BUMP:
                 continue  # an arrival on top of them: the game moves on
-            before = self.flood(starts=[start])
+            # Without anyone in the way it's the same every time: keep it.
+            if start not in self._before:
+                reach = self.flood(starts=[start])
+                self._before[start] = (reach, self.standing(reach))
+            before, sb = self._before[start]
+            # Nowhere near anything reachable: nothing can be cut off.
+            if not any(d < BUMP and p in before for p, d in self._near(x, z, BUMP)):
+                continue
             after = self.flood(blocked=(x, z), starts=[start])
             if len(after) >= len(before):
                 continue
-            sb, sa = self.standing(before), self.standing(after)
+            sa = self.standing(after)
             for k, (label, cells, how) in enumerate(targets):
                 if self.target_reached(cells, how, before, sb) and not self.target_reached(cells, how, after, sa):
                     lost[("target", k)] = label
             for k, (name, px, pz) in enumerate(people):
-                if self.talk_points(px, pz, sb) and not self.talk_points(px, pz, sa):
+                if self._can_talk(px, pz, sb) and not self._can_talk(px, pz, sa):
                     lost[("person", k)] = ("person", name)
             if len(before) - len(after) > 4 * (BUMP // GRID + 1) ** 2:
                 lost.setdefault("part", tr("part of this place"))

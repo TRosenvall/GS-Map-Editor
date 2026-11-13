@@ -92,7 +92,12 @@ def own_tileset(project, info):
     files, since a set's label can be built from another set's sheet; one
     shared sheet is enough for an import to change how another map looks."""
     mine = _sheets(project, info)
-    return bool(mine) and not any(m is not info and mine & _sheets(project, m) for m in project.maps.values())
+    # Another map shares a sheet when one of its labels names a file in `mine`
+    # (files that exist, so the existence test _sheets makes can be skipped).
+    return bool(mine) and not any(
+        m is not info and any(project.symbols.get(label or "") in mine
+                              for row in [m.resources] + m.alternates if row for label in row["blocks"] if label)
+        for m in project.maps.values())
 
 
 def _tile(img, t):
