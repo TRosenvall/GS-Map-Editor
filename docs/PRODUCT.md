@@ -18,15 +18,15 @@ The engine layer that exists today stays the foundation. That covers the file fo
 
 | Journey | Screen / interaction | Engine pieces (exist?) |
 |---|---|---|
-| Explore the game's places | **World view:** overworld plus every town/dungeon, with connections drawn | Renderer ✅, Connections view ✅ (place by place), overworld renderer (research prototype) |
-| Repaint part of a map | **Paint:** tile palette by theme, brushes, fill, copy/paste regions | Block painting ✅; fill/copy/regions ❌ |
+| Explore the game's places | **World view:** overworld plus every town/dungeon, with connections drawn | Renderer ✅, Connections view ✅ (place by place), Atlas ✅ (every place at once), Go there ✅ (follow a door), overworld ✅ |
+| Repaint part of a map | **Paint:** tile palette by theme, brushes, fill, copy/paste regions | Block painting ✅; Fill ✅; copy and paste (Stamp) ✅ |
 | Change where you can walk | **Walkability brush:** walkable / blocked / ledge / ladder / water, shown as a clean overlay | Collision painting ✅; **named codes ❌ (research)** |
 | Move a door / change where it leads | Click a door, then pick the destination by clicking on the target map | ✅ Doors tool |
 | Add/move a chest or Psynergy stone | Drop a chest; pick contents (item picker with icons, coins, mimic) | ✅ Chest tool (items, coins); stones move only |
-| Place/move people | Drag NPCs with sprite previews; see and edit what they say | Positions ✅; **sprite previews ❌, dialogue lookup ❌** |
+| Place/move people | Drag NPCs with sprite previews; see and edit what they say | Positions ✅; sprite previews ✅; what they say on hover ✅; add and remove ✅ |
 | Try it | **Play:** build plus open the emulator at that map | One-click Play ✅ (saves, checks, builds, opens at the place being edited) |
 | Share it | **Export mod:** a patch file plus a description | ✅ BPS from stock build to mod build |
-| Undo mistakes / start over | History panel; "reset this map" | Undo ✅ (session only); persistent history ❌ |
+| Undo mistakes / start over | History panel; "reset this map" | Undo and Redo ✅ (last 30 saved actions, kept between sessions); Reset place ✅ |
 
 ## Naming layer (research needed, mostly lookups)
 
@@ -62,9 +62,9 @@ The engine layer that exists today stays the foundation. That covers the file fo
    - plain-language validation;
    - the world/connections view.
 2. **Packaging spike (macOS):** ✅ app bundle and first-run setup (downloads alchemy, builds once). ✅ bundled toolchain (no Homebrew). Remaining: signing/notarizing (needs a Developer ID), Apple Silicon native build, a test on a truly fresh Mac. Success = a fresh Mac goes from zero to "Play" without a terminal.
-3. **Patch export** ✅ (BPS, checked against rom.sha1). Import (applying others' patches in the app) still to do.
-4. **Overworld editing** (stages 4–5 of SPEC.md) in the player UI.
-5. **Windows and Linux packaging.**
+3. **Patch export** ✅ (BPS, checked against rom.sha1). Applying others' patches ✅ (the Patcher).
+4. **Overworld editing** ✅ (stages 4–5 of SPEC.md): ground, overlay, regions and their battles, town icons (moved, linked, added), step spots.
+5. **Windows and Linux packaging.** Windows runs through WSL from an installer script (early test); Linux runs from source.
 
 ## Risks
 
