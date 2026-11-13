@@ -213,9 +213,14 @@ class Checker:
             ox, oz = p.layer_origin(info, li)
             bx, bz = info.bounds[0] // 2, info.bounds[1] // 2
             w, h = info.size
+            cols = [(ox + bx + x) % 128 for x in range(w)]
             for z in range(h):
-                for x in range(w):
-                    b = blocks[(oz + bz + z) % 128][(ox + bx + x) % 128] & 0xFFF
+                row = blocks[(oz + bz + z) % 128]
+                values = [row[c] & 0xFFF for c in cols]
+                # Most rows are fine: look at their few distinct blocks first.
+                if not values or (max(values) < count and not retired.intersection(values)):
+                    continue
+                for x, b in enumerate(values):
                     if b >= count:
                         missing.append([x, z])
                     elif b in retired:
@@ -240,8 +245,13 @@ class Checker:
             cells = p.load_grid(info, "shape").cells
         except FileNotFoundError:
             return
-        bad = sum(1 for z in range(info.bounds[1] // 2, info.bounds[3] // 2) for x in range(info.bounds[0] // 2, info.bounds[2] // 2)
-                  if cells[z % 128][x % 128] >= rows)
+        cols = [x % 128 for x in range(info.bounds[0] // 2, info.bounds[2] // 2)]
+        bad = 0
+        for z in range(info.bounds[1] // 2, info.bounds[3] // 2):
+            row = cells[z % 128]
+            values = [row[c] for c in cols]
+            if values and max(values) >= rows:
+                bad += sum(1 for v in values if v >= rows)
         if bad:
             add("error", "height-missing", info,
                 tr("{n} square(s) here use a height this place doesn't have, so the game reads nonsense "

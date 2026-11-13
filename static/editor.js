@@ -265,15 +265,32 @@ function ctxSetup(ctx) {
 function drawAll() {
   const m = S.map; if (!m) return;
   const z = +$('#zoom').value, [w, h] = m.size, cv = $('#cv'), ctx = cv.getContext('2d');
-  cv.width = w * 16 * z; cv.height = h * 16 * z; ctxSetup(ctx);
-  const ov = $('#ov'); ov.width = cv.width; ov.height = cv.height;
+  const ov = $('#ov'), W = w * 16 * z, H = h * 16 * z;
+  if (cv.width !== W || cv.height !== H) {
+    cv.width = W; cv.height = H; ov.width = W; ov.height = H;
+  } else {
+    // Same size: clear rather than reallocate, and start from a fresh state as a resize would.
+    for (const c of [ctx, ov.getContext('2d')]) {
+      c.setTransform(1, 0, 0, 1, 0, 0); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
+      c.setLineDash([]); c.clearRect(0, 0, W, H);
+    }
+  }
+  ctxSetup(ctx);
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) drawCell(ctx, x, y);
   drawGroundOverlays(ctx); drawStand(ctx);
   markPending(ctx); drawMarkers(ctx); drawDoors(ctx); drawEvents(ctx); drawPoints(ctx);
 }
 
+// A whole redraw at most once a frame: dragging a brush with an overlay on
+// would otherwise redraw the map for every square it crosses.
+let redrawQueued = false;
+function drawAllSoon() {
+  if (redrawQueued) return;
+  redrawQueued = true;
+  requestAnimationFrame(() => { redrawQueued = false; drawAll(); });
+}
 function redrawCells(cells) {
-  if ($('#ovCollision').checked || $('#ovShape').checked || $('#ovStand').checked) return drawAll();  // raised squares overlap other cells
+  if ($('#ovCollision').checked || $('#ovShape').checked || $('#ovStand').checked) return drawAllSoon();  // raised squares overlap other cells
   const ctx = $('#cv').getContext('2d'); ctxSetup(ctx);
   for (const [x, y] of cells) drawCell(ctx, x, y);
   markPending(ctx); drawMarkers(ctx); drawDoors(ctx); drawEvents(ctx); drawPoints(ctx);

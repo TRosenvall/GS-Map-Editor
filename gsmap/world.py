@@ -73,6 +73,8 @@ class World:
         self.block_tiles = [flat[i:i + 4] for i in range(0, len(flat) - 3, 4)]
         self.attr = parse_collision(open(self.attr_path, encoding="utf-8").read())  # 0x000-0x7ff lower tiles, 0x800-0xfff upper
         self._tiles = {}
+        self._blocks = {}  # (set, layer) -> {block: 16x16 picture}
+        self._nibbles = {}  # "upper"/"lower" -> each tile's 16 walkability values
         self._snowy = {}
 
     # ---- cells -------------------------------------------------------------------
@@ -128,11 +130,18 @@ class World:
         return self._tiles[key]
 
     def block_image(self, block, layer, set_name="a"):
-        tiles = self._tile_images(set_name, layer)
-        img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
-        if block < len(self.block_tiles):
-            for k, t in enumerate(self.block_tiles[block]):
-                img.alpha_composite(tiles[t], ((k & 1) * 8, (k >> 1) * 8))
+        """A block's 16x16 picture, made once per set and layer. Shared: read only.
+        Its tiles never overlap and their alpha is all or nothing, so drawing it
+        whole is the same, pixel for pixel, as drawing its four tiles."""
+        cache = self._blocks.setdefault((set_name, layer), {})
+        img = cache.get(block)
+        if img is None:
+            tiles = self._tile_images(set_name, layer)
+            img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+            if block < len(self.block_tiles):
+                for k, t in enumerate(self.block_tiles[block]):
+                    img.alpha_composite(tiles[t], ((k & 1) * 8, (k >> 1) * 8))
+            cache[block] = img
         return img
 
     def is_snowy(self, cx, cy):
@@ -155,17 +164,28 @@ class World:
         set_name = "b" if snowy else "a"
         c = self.chunk_of(cx, cy, snowy)
         img = Image.new("RGBA", (256, 256), (0, 0, 0, 255))
+        count = len(self.block_tiles)
         for layer in layers:
-            tiles = self._tile_images(set_name, layer)
             base = c + LAYER1 * layer
             for y in range(16):
                 for x in range(16):
                     b = self.word(base, x, y) & 0xFFFF
-                    if b >= len(self.block_tiles):
-                        continue
-                    for k, t in enumerate(self.block_tiles[b]):
-                        img.alpha_composite(tiles[t], (x * 16 + (k & 1) * 8, y * 16 + (k >> 1) * 8))
+                    if b < count:
+                        img.alpha_composite(self.block_image(b, layer, set_name), (x * 16, y * 16))
         return img
+
+    def shown_words(self):
+        """(gx, gy, layer-0 word) for every world cell as shown, chunk by chunk:
+        cell() for all 65,536 cells, without working out each one's chunk anew."""
+        for cy in range(WORLD_CHUNKS):
+            for cx in range(WORLD_CHUNKS):
+                c = self.shown_chunk(cx, cy)
+                r0, c0 = (c // 32) * 16, (c % 32) * 16
+                for y in range(16):
+                    row = self.rows[r0 + y]
+                    gy = cy * 16 + y
+                    for x in range(16):
+                        yield cx * 16 + x, gy, row[c0 + x]
 
     # ---- walkability and regions -------------------------------------------------------
 
@@ -174,20 +194,37 @@ class World:
         byte = self.attr[(0x800 if upper else 0) + tile * 8 + py * 2 + px // 2]
         return (byte >> 4) if px & 1 else (byte & 0xF)
 
+    def _tile_nibbles(self, upper):
+        """Each tile's 16 walkability values (row by row, as _nibble reads them),
+        worked out once per layer."""
+        key = "upper" if upper else "lower"
+        if key not in self._nibbles:
+            tiles = (len(self.attr) // 2) // 8
+            self._nibbles[key] = [[self._nibble(upper, t, px, py) for py in range(4) for px in range(4)]
+                                  for t in range(tiles)]
+        return self._nibbles[key]
+
     def walk_grid(self, cx, cy):
-        """64x64 walkability values (one per 4x4 world px) for chunk (cx, cy), set A."""
+        """64x64 walkability values (one per 4x4 world px) for chunk (cx, cy), set A.
+        Overlay wins, then ground, else 7."""
         c = self.chunk_of(cx, cy)
         out = [[7] * 128 for _ in range(128)]
+        upper, lower = self._tile_nibbles(True), self._tile_nibbles(False)
+        count = len(self.block_tiles)
         for y in range(16):
             for x in range(16):
-                lo = self.block_tiles[self.word(c, x, y) & 0xFFFF] if (self.word(c, x, y) & 0xFFFF) < len(self.block_tiles) else [0] * 4
+                lb = self.word(c, x, y) & 0xFFFF
                 hb = self.word(c + LAYER1, x, y) & 0xFFFF
-                hi = self.block_tiles[hb] if hb < len(self.block_tiles) else [0] * 4
+                lo = self.block_tiles[lb] if lb < count else [0] * 4
+                hi = self.block_tiles[hb] if hb < count else [0] * 4
                 for k in range(4):
+                    hn, ln = upper[hi[k]], lower[lo[k]]
+                    top, left = y * 8 + (k >> 1) * 4, x * 8 + (k & 1) * 4
                     for py in range(4):
+                        row = out[top + py]
                         for px in range(4):
-                            v = self._nibble(True, hi[k], px, py) or self._nibble(False, lo[k], px, py) or 7
-                            out[y * 8 + (k >> 1) * 4 + py][x * 8 + (k & 1) * 4 + px] = v
+                            i = py * 4 + px
+                            row[left + px] = hn[i] or ln[i] or 7
         return out
 
     def render_walk(self, cx, cy):
@@ -247,12 +284,14 @@ def world_places(world, project, scenes, names, stock=False):
     for i, (actor, r) in enumerate(zip(actor_numbers(main), main)):
         icons.append({"actor": actor, "row": i, "sprite": r["sprite"], "x": r["x"] >> 16, "z": r["z"] >> 16,
                       "lead": lead(ICON_TRIGGER + actor), "added": i >= stock})
-    steps = []
-    for gy in range(256):
-        for gx in range(256):
-            code = (world.cell(gx, gy)[0] >> 16) & 0xFF
-            if 1 <= code <= 239:
-                steps.append({"gx": gx, "gy": gy, "code": code, "lead": lead(code)})
+    steps, leads = [], {}
+    for gx, gy, w in world.shown_words():
+        code = (w >> 16) & 0xFF
+        if 1 <= code <= 239:
+            if code not in leads:
+                leads[code] = lead(code)
+            steps.append({"gx": gx, "gy": gy, "code": code, "lead": leads[code]})
+    steps.sort(key=lambda st: (st["gy"], st["gx"]))  # the order the cell-by-cell scan gave
     arrivals = []
     for _, _, rs in de._tables([o], ov, "entrances", need=False):
         for r in rs:
@@ -405,7 +444,7 @@ def _step_tables(project, scenes, names):
 
 
 def _cells_with_code(world, code):
-    return [(gx, gy) for gy in range(256) for gx in range(256) if (world.cell(gx, gy)[0] >> 16) & 0xFF == code]
+    return sorted(((gx, gy) for gx, gy, w in world.shown_words() if (w >> 16) & 0xFF == code), key=lambda c: (c[1], c[0]))
 
 
 def _used_kinds(de, o, events, exits):
