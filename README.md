@@ -205,7 +205,7 @@ The editor handles the rest, including the flag that remembers a chest has been 
 
 ## Events: people, signs and messages
 
-Press **Events** (E). The panel lists everything that happens in this place, in words: what people say, Mind Read thoughts, signs, step messages, searches and exit areas.
+Press **Events** (E). The panel lists everything that happens in this place, in words: what people say, Mind Read thoughts, signs, step messages, searches and exit areas. People show on the map as themselves; hover over someone to see what they say.
 
 **Story stage** at the top matters. Many places change as the story moves on, and each stage has its own people and events. Choose the stage you want to edit.
 

@@ -646,6 +646,16 @@ $('#cv').addEventListener('mousemove', e => {
   const l = layer(), [gx, gy] = g0 || gridXY(l, x, y);
   const col = m.grids.collision?.[gy]?.[gx], mk = (m.markers || []).find(k => k.x === gx && k.z === gy);
   const what = mk ? `<b>${(S.legend[String(mk.id)] || [T('Chest')])[0]}</b>` : `<b>${collisionName(col)}</b>`;
+  // Over a person in Events: who it is and what they say.
+  if (S.tool === 'events' && EV.data) {
+    const near = EV.data.people.map(p => { const [ex, ey] = entityXY(p.x, p.z); return [Math.hypot(ex - S.mouse[0], ey - S.mouse[1]), p]; })
+      .sort((a, b) => a[0] - b[0])[0];
+    if (near && near[0] < 10) {
+      const p = near[1], line = EV.data.events.find(e => e.actor === p.actor && e.kind === 'talk' && e.text);
+      const who = `<b>${esc(p.name || T('This person'))}</b>`;
+      return status(line ? T('{who} says: “{text}”', { who, text: esc(shortText(line.text)) }) : T("{who} doesn't say anything here yet.", { who }));
+    }
+  }
   status(S.advanced
     ? T('cell {cell} (ground {ground}) · blocks {blocks} · {what} · height {height} ({px} px) on L{layer}', {
       cell: `<b>${x},${y}</b>`, ground: `${gx},${gy}`, blocks: parts.join(' '), what,
@@ -747,6 +757,12 @@ function drawPoints(ctx) {
     }
   });
   ctx.lineWidth = 1;
+}
+
+// A line of game text for one status line: its markup dropped, at most 120 characters.
+function shortText(text) {
+  const plain = String(text).replace(/\{[^}]*\}/g, ' ').replace(/\s+/g, ' ').trim();
+  return plain.length > 120 ? plain.slice(0, 119) + '…' : plain;
 }
 
 function spriteImage(id) {
@@ -1238,6 +1254,11 @@ function drawEvents(ctx) {
   for (const p of EV.data.people) {
     const [ex, ey] = entityXY(p.x, p.z), x = ex * z, y = ey * z;
     const on = sel && sel.actor === p.actor, talks = EV.data.events.some(e => e.actor === p.actor && e.kind === 'talk');
+    const img = spriteImage(p.sprite);
+    if (img && img.complete && img.naturalWidth) {
+      const w = img.naturalWidth * z, h = img.naturalHeight * z;
+      ctx.drawImage(img, x - w / 2, y - h + 4 * z, w, h);  // feet at the point, as Move people draws them
+    }
     ctx.beginPath(); ctx.arc(x, y, 7 * z, 0, Math.PI * 2);
     ctx.lineWidth = 2; ctx.strokeStyle = on ? '#e0b84a' : talks ? '#58a6ff' : '#8b93a3'; ctx.stroke();
     if (z >= 2) { const t = p.name || T('person'); const tw = ctx.measureText(t).width; ctx.fillStyle = '#000b'; ctx.fillRect(x - tw / 2 - 3, y + 8 * z, tw + 6, 4 * z + 6); ctx.fillStyle = '#fff'; ctx.fillText(t, x, y + 8 * z + 2); }
