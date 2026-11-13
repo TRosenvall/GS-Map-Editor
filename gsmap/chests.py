@@ -3,7 +3,8 @@
 A chest is four things that must agree (docs/research/local-connections.md §3):
 
   1. a `treasure_spot x, z, code` line in the map's map.s, which places the
-     chest object; the game considers codes 100..239 and at most 10 markers;
+     chest object; the game considers codes 100..239 and places at most 10
+     chests and Psynergy Stones per scene (placed_codes counts them);
   2. the collision code `code` at that cell, which is what searching reads;
   3. a `SEARCH(SEARCH_CHEST)` event {0x13, code, flag, FIND_*} in the scene's
      event table, which says what's inside; the marker loader takes the

@@ -1,4 +1,4 @@
-<!-- translated from docs/DEVELOPING.md @ eb8752708913 -->
+<!-- translated from docs/DEVELOPING.md @ a2a351788bee -->
 # GS Map Editor entwickeln
 
 *Dies ist eine Übersetzung der englischen [DEVELOPING.md](../DEVELOPING.md). Wenn sich die beiden unterscheiden, ist die englische Fassung aktuell.*
@@ -91,7 +91,7 @@ Lokale Karten, The Broken Seal, englische Edition. Wie man sie benutzt, steht in
   - Eine Tür ändert sich in jedem Story-Abschnitt der Szene, über Ausgangs- und Ereignis-Overrides. Die `.c`-Dateien der Szenen bleiben unberührt.
 - **Truhen** (K): Klick auf eine freie Stelle, wähl einen Gegenstand (mit seinem Symbol) oder eine Menge Münzen und **Truhe hinzufügen**. Klick auf eine Truhe, um ihren Inhalt zu ändern oder sie zu entfernen.
   - Eine Aktion schreibt alles, was eine Truhe braucht: die Markierung, den Kollisionscode des Felds, ein `SEARCH(SEARCH_CHEST)`-Ereignis in der Ereignistabelle der Szene (als Override, sodass die `.c`-Dateien der Szenen unberührt bleiben) und ein neues „Geöffnet“-Flag aus dem freien Truhenbereich.
-  - Der Code ist einer, den keine Ereignistabelle der Szenen dieser Karte benutzt und den keine Karte, die diese Tabellen teilt, in ihrer Kollision hat, sodass nichts anderes untersuchbar wird. Höchstens 10 Truhen und Steine pro Karte.
+  - Der Code ist einer, den keine Ereignistabelle der Szenen dieser Karte benutzt und den keine Karte, die diese Tabellen teilt, in ihrer Kollision hat, sodass nichts anderes untersuchbar wird. Das Spiel platziert höchstens 10 Truhen und Psynergie-Steine pro Szene; andere Stellen zum Untersuchen zählen nicht.
   - Eine Truhe ist eine `treasure_spot`-Zeile in der `map.s` der Karte, im Teil der Datei für die englische Edition.
 - **Truhen und Psynergie-Steine:** zum Verschieben ziehen. Die Markierungszeile und die Kollisionscodes beider Felder werden zusammen aktualisiert, und Speichervorgänge, die die Regel Markierung/Kollision verletzen, werden abgelehnt.
 - **Szenentabellen:** Wähl für jede Szene, die die Karte nutzt, eine Tabelle.
@@ -101,7 +101,7 @@ Lokale Karten, The Broken Seal, englische Edition. Wie man sie benutzt, steht in
 - **Prüfen:** sieht sich jede Karte nach Problemen an, die deine Änderungen im Spiel verursachen würden, und benennt sie in einfachen Worten, jeweils mit einer Lösung und einem Knopf **Anzeigen**, der die Stelle öffnet:
   - Türen, die nirgendwohin führen oder zu einem Ankunftspunkt, den es nicht gibt;
   - Truhen, die sich nicht öffnen lassen, keinen Inhalt haben, sich wegen eines temporären Flags wieder füllen oder sich ein „Geöffnet“-Flag teilen;
-  - mehr als 10 Truhen und Steine auf einer Karte; Felder, die fehlende oder ausgemusterte Blöcke benutzen;
+  - mehr als 10 Truhen und Psynergie-Steine in einer Szene; Felder, die fehlende oder ausgemusterte Blöcke benutzen;
   - Änderungen an Szenentabellen, die nicht mehr zum Spielquellcode passen (nach einem alchemy-Update).
   - Das Originalspiel hat eigene Eigenheiten (heute 115, z. B. 83 übrig gebliebene Türen). Jedes Problem wird auch im unveränderten Spiel gesucht, und diese werden ausgeblendet, außer du fragst danach.
   - **Bauen** führt zuerst die Prüfung aus und fragt nach, bevor mit Problemen gebaut wird.

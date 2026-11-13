@@ -1,4 +1,4 @@
-<!-- translated from docs/DEVELOPING.md @ eb8752708913 -->
+<!-- translated from docs/DEVELOPING.md @ a2a351788bee -->
 # Sviluppare GS Map Editor
 
 *Questa è una traduzione del file inglese [DEVELOPING.md](../DEVELOPING.md); se i due differiscono, vale quello inglese.*
@@ -91,7 +91,7 @@ Mappe locali, The Broken Seal, edizione inglese. Per come usarle, vedi il [READM
   - Una porta cambia in tutte le fasi della storia della scena, tramite override di uscite ed eventi. I file `.c` delle scene non vengono toccati.
 - **Forzieri** (K): clicca un punto vuoto, scegli un oggetto (con la sua icona) o una quantità di monete, e **Aggiungi forziere**. Clicca un forziere per cambiarne il contenuto o rimuoverlo.
   - Una sola azione scrive tutto ciò che serve a un forziere: il marcatore, il codice di collisione della cella, un evento `SEARCH(SEARCH_CHEST)` nella tabella degli eventi della scena (come override, così i file `.c` delle scene restano intatti) e un nuovo flag "aperto" preso dall'intervallo libero dei forzieri.
-  - Il codice è uno che nessuna tabella degli eventi delle scene della mappa usa, e che nessuna mappa che condivide quelle tabelle ha nella sua collisione, così nient'altro diventa ispezionabile. Al massimo 10 forzieri e pietre per mappa.
+  - Il codice è uno che nessuna tabella degli eventi delle scene della mappa usa, e che nessuna mappa che condivide quelle tabelle ha nella sua collisione, così nient'altro diventa ispezionabile. Il gioco piazza al massimo 10 forzieri e Psynergy Stone per scena; gli altri punti da esaminare non contano.
   - Un forziere è una riga `treasure_spot` nel `map.s` della mappa, nella parte del file dell'edizione inglese.
 - **Forzieri e Psynergy Stone:** trascina per spostarli. La riga del marcatore e i codici di collisione di entrambe le celle si aggiornano insieme, e i salvataggi che violano la regola marcatore/collisione vengono rifiutati.
 - **Tabelle delle scene:** per ogni scena che usa la mappa, scegli una tabella.
@@ -101,7 +101,7 @@ Mappe locali, The Broken Seal, edizione inglese. Per come usarle, vedi il [READM
 - **Controlla:** esamina ogni mappa alla ricerca di problemi che le tue modifiche causerebbero nel gioco e li descrive a parole semplici, ciascuno con una soluzione e un pulsante **Mostra** che apre il punto:
   - porte che non portano da nessuna parte, o a un punto di arrivo che non esiste;
   - forzieri che non si possono aprire, non hanno nulla definito, si riempiono di nuovo a causa di un flag temporaneo, o condividono un flag "aperto";
-  - più di 10 forzieri e pietre in una mappa; celle che usano blocchi mancanti o ritirati;
+  - più di 10 forzieri e Psynergy Stone in una scena; celle che usano blocchi mancanti o ritirati;
   - modifiche alle tabelle delle scene che non corrispondono più al sorgente del gioco (dopo un aggiornamento di alchemy).
   - Il gioco originale ha stranezze sue (115 oggi, per esempio 83 porte rimaste inutilizzate). Ogni problema viene cercato anche nel gioco non modificato, e quelli trovati lì sono nascosti a meno che tu non li chieda.
   - **Compila** esegue prima il controllo e chiede conferma prima di compilare con dei problemi.

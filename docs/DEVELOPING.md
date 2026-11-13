@@ -88,7 +88,7 @@ Local maps, The Broken Seal, English edition. For how to use these, see the [REA
   - A door changes in every story stage of the scene, through exit and event overrides. Scene `.c` files are untouched.
 - **Chests** (K): click an empty spot, pick an item (with its icon) or an amount of coins, and **Add chest**. Click a chest to change what's inside or remove it.
   - One action writes everything a chest needs: the marker, the cell's collision code, a `SEARCH(SEARCH_CHEST)` event in the scene's event table (as an override, so scene `.c` files stay untouched) and a fresh "opened" flag from the free chest range.
-  - The code is one no event table of the map's scenes uses, and no map sharing those tables has in its collision, so nothing else becomes searchable. At most 10 chests and stones per map.
+  - The code is one no event table of the map's scenes uses, and no map sharing those tables has in its collision, so nothing else becomes searchable. The game places at most 10 chests and Psynergy Stones per scene; other search spots don't count.
   - A chest is a `treasure_spot` line in the map's `map.s`, in the English edition's part of the file.
 - **Chests and Psynergy stones:** drag to move. The marker row and both cells' collision codes update together, and saves that break the marker/collision rule are refused.
 - **Scene tables:** for every scene using the map, pick a table.
@@ -98,7 +98,7 @@ Local maps, The Broken Seal, English edition. For how to use these, see the [REA
 - **Check:** looks over every map for problems your changes would cause in the game and says them in plain words, each with a fix and a **Show** button that opens the spot:
   - doors that lead nowhere, or to an arrival point that doesn't exist;
   - chests that can't be opened, have nothing defined, refill because of a temporary flag, or share an "opened" flag;
-  - more than 10 chests and stones on a map; cells using missing or retired blocks;
+  - more than 10 chests and Psynergy Stones in a scene; cells using missing or retired blocks;
   - edits to scene tables that no longer match the game source (after an alchemy update).
   - The original game has quirks of its own (115 today, e.g. 83 leftover doors). Each issue is also looked for in the unmodified game, and those are hidden unless you ask for them.
   - **Build** runs the check first and asks before building with problems.

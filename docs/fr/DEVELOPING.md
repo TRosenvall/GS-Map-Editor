@@ -1,4 +1,4 @@
-<!-- translated from docs/DEVELOPING.md @ eb8752708913 -->
+<!-- translated from docs/DEVELOPING.md @ a2a351788bee -->
 # Développer GS Map Editor
 
 *Ceci est une traduction du document anglais [DEVELOPING.md](../DEVELOPING.md) ; en cas de différence, c'est la version anglaise qui fait foi.*
@@ -91,7 +91,7 @@ Cartes locales, The Broken Seal, édition anglaise. Pour savoir comment les util
   - Une porte change dans toutes les étapes de l'histoire de la scène, par des remplacements de sorties et d'événements. Les fichiers `.c` des scènes ne sont pas touchés.
 - **Coffre** (K) : cliquez sur une case vide, choisissez un objet (avec son icône) ou une quantité de pièces, puis **Ajouter un coffre**. Cliquez sur un coffre pour changer son contenu ou le supprimer.
   - Une seule action écrit tout ce dont un coffre a besoin : le marqueur, le code de collision de la case, un événement `SEARCH(SEARCH_CHEST)` dans la table d'événements de la scène (sous forme de remplacement, pour que les fichiers `.c` des scènes restent intacts) et un nouveau drapeau « ouvert » pris dans la plage libre des coffres.
-  - Le code est un code qu'aucune table d'événements des scènes de la carte n'utilise, et qu'aucune carte partageant ces tables n'a dans sa collision, donc rien d'autre ne devient fouillable. Au maximum 10 coffres et pierres par carte.
+  - Le code est un code qu'aucune table d'événements des scènes de la carte n'utilise, et qu'aucune carte partageant ces tables n'a dans sa collision, donc rien d'autre ne devient fouillable. Le jeu place au plus 10 coffres et Pierres de Psynergie par scène ; les autres endroits à fouiller ne comptent pas.
   - Un coffre est une ligne `treasure_spot` dans le `map.s` de la carte, dans la partie du fichier propre à l'édition anglaise.
 - **Coffres et Pierres de Psynergie :** faites-les glisser pour les déplacer. La ligne du marqueur et les codes de collision des deux cases sont mis à jour ensemble, et les enregistrements qui enfreignent la règle marqueur/collision sont refusés.
 - **Tables de scène :** pour chaque scène qui utilise la carte, choisissez une table.
@@ -101,7 +101,7 @@ Cartes locales, The Broken Seal, édition anglaise. Pour savoir comment les util
 - **Vérifier :** examine toutes les cartes à la recherche des problèmes que vos modifications causeraient dans le jeu et les décrit en termes simples, chacun avec une correction et un bouton **Afficher** qui ouvre l'endroit :
   - portes qui ne mènent nulle part, ou vers un point d'arrivée qui n'existe pas ;
   - coffres qui ne peuvent pas être ouverts, qui n'ont rien de défini, qui se remplissent à nouveau à cause d'un drapeau temporaire, ou qui partagent un drapeau « ouvert » ;
-  - plus de 10 coffres et pierres sur une carte ; cases utilisant des blocs manquants ou retirés ;
+  - plus de 10 coffres et Pierres de Psynergie dans une scène ; cases utilisant des blocs manquants ou retirés ;
   - modifications de tables de scène qui ne correspondent plus à la source du jeu (après une mise à jour d'alchemy).
   - Le jeu original a ses propres bizarreries (115 aujourd'hui, p. ex. 83 portes résiduelles). Chaque problème est aussi recherché dans le jeu non modifié, et ceux-là sont masqués à moins que vous ne les demandiez.
   - **Compiler** lance d'abord la vérification et demande confirmation avant de compiler s'il y a des problèmes.

@@ -1,4 +1,4 @@
-<!-- translated from docs/DEVELOPING.md @ eb8752708913 -->
+<!-- translated from docs/DEVELOPING.md @ a2a351788bee -->
 # Desarrollo de GS Map Editor
 
 *Esta es una traducción del documento en inglés [DEVELOPING.md](../DEVELOPING.md); si los dos difieren, el inglés es el actualizado.*
@@ -91,7 +91,7 @@ Mapas locales, The Broken Seal, edición inglesa. Para saber cómo usarlas, cons
   - Una puerta cambia en todas las etapas de la historia de la escena, mediante sustituciones de salidas y eventos. Los archivos `.c` de escena no se tocan.
 - **Cofres** (K): haz clic en un sitio vacío, elige un objeto (con su icono) o una cantidad de monedas, y **Añadir cofre**. Haz clic en un cofre para cambiar su contenido o quitarlo.
   - Una sola acción escribe todo lo que necesita un cofre: el marcador, el código de colisión de la celda, un evento `SEARCH(SEARCH_CHEST)` en la tabla de eventos de la escena (como sustitución, para que los archivos `.c` de escena no se toquen) y una marca de "abierto" nueva del rango libre para cofres.
-  - El código es uno que no usa ninguna tabla de eventos de las escenas del mapa, y que ningún mapa que comparta esas tablas tiene en su colisión, así que nada más se vuelve examinable. Como máximo 10 cofres y piedras por mapa.
+  - El código es uno que no usa ninguna tabla de eventos de las escenas del mapa, y que ningún mapa que comparta esas tablas tiene en su colisión, así que nada más se vuelve examinable. El juego coloca como máximo 10 cofres y Piedras de Psinergía por escena; los demás sitios que examinar no cuentan.
   - Un cofre es una línea `treasure_spot` en el `map.s` del mapa, en la parte del archivo de la edición inglesa.
 - **Cofres y Piedras de Psinergía:** arrastra para mover. La fila del marcador y los códigos de colisión de ambas celdas se actualizan juntos, y se rechazan los guardados que rompan la regla marcador/colisión.
 - **Tablas de escena:** para cada escena que usa el mapa, elige una tabla.
@@ -101,7 +101,7 @@ Mapas locales, The Broken Seal, edición inglesa. Para saber cómo usarlas, cons
 - **Revisar:** examina todos los mapas en busca de problemas que tus cambios causarían en el juego y los explica en palabras sencillas, cada uno con un arreglo y un botón **Mostrar** que abre el sitio:
   - puertas que no llevan a ningún sitio, o a un punto de llegada que no existe;
   - cofres que no se pueden abrir, que no tienen nada definido, que se rellenan por una marca temporal o que comparten una marca de "abierto";
-  - más de 10 cofres y piedras en un mapa; celdas que usan bloques que faltan o retirados;
+  - más de 10 cofres y Piedras de Psinergía en una escena; celdas que usan bloques que faltan o retirados;
   - ediciones de tablas de escena que ya no coinciden con el código fuente del juego (tras una actualización de alchemy).
   - El juego original tiene sus propias rarezas (115 hoy, p. ej. 83 puertas sobrantes). Cada problema se busca también en el juego sin modificar, y esos se ocultan salvo que los pidas.
   - **Compilar** ejecuta primero la revisión y pregunta antes de compilar con problemas.
