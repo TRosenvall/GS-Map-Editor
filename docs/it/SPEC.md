@@ -1,4 +1,4 @@
-<!-- translated from docs/SPEC.md @ 32cfd669a030 -->
+<!-- translated from docs/SPEC.md @ a658d8254020 -->
 # gs-mapedit: specifica dell'editor e piano di sviluppo
 
 *Questa è una traduzione del file inglese [SPEC.md](../SPEC.md); se i due differiscono, vale quello inglese.*
@@ -79,7 +79,7 @@ Il grafo delle uscite è: codice di collisione / script / regione → tipo di us
 La lista di controllo è in `local-connections.md` §6:
 - 25 slot liberi nella directory delle risorse, fissati a 0x08320000;
 - aggiungere righe a `gMaps` (`map/maps.c`) e `scenes.s`;
-- aggiungere la riga della mappa a `objects.tsv` prima degli overlay, più l'overlay, la musica, il nome dell'area e le regole degli incontri;
+- aggiungere la riga della mappa a `ld_script.ld` prima degli overlay, più l'overlay, la musica, il nome dell'area e le regole degli incontri;
 - gruppo ≤ 0x7f, id di scena < 511.
 
 **Lo spazio nella ROM è il vero limite:** da 3,5 a 43 KB liberi alla fine degli 8 MB, a seconda dell'edizione. Una vera nuova mappa probabilmente significa far crescere la ROM oltre gli 8 MB, cosa non testata.

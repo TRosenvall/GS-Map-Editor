@@ -1,4 +1,4 @@
-<!-- translated from README.md @ b21e30165e76 -->
+<!-- translated from README.md @ 74d539debb27 -->
 # GS Map Editor
 
 [English](README.md) · **Español** · [Deutsch](README.de.md) · [Français](README.fr.md) · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -11,7 +11,7 @@ El editor funciona sobre [alchemy](https://github.com/PascalPixel/alchemy), un p
 
 > **Versión preliminar: se buscan testers.** El editor cubre la edición inglesa de The Broken Seal, en macOS y, como prueba temprana, en Windows. Se ha probado sobre todo en un solo Mac con Intel, y la versión de Windows nunca se ha ejecutado en un PC con Windows de verdad, así que cada informe ayuda, incluido "me funcionó": [descárgalo](https://github.com/TRosenvall/GS-Map-Editor/releases), pruébalo y [cuéntanos qué tal fue](https://github.com/TRosenvall/GS-Map-Editor/issues/new?template=bug_report.md). Guarda una copia de seguridad de cualquier mod que te importe.
 
-**Versión de alchemy:** este editor está probado con el commit de alchemy [`0c937e7df0`](https://github.com/PascalPixel/alchemy/commit/0c937e7df0b71b23760fbd19d048e99dd3969490) (2026-11-11). La instalación descarga exactamente ese commit. Alchemy cambia rápido, así que puede que una copia más nueva no funcione hasta que el editor se ponga al día.
+**Versión de alchemy:** este editor está probado con el commit de alchemy [`5ca23b1fe1`](https://github.com/PascalPixel/alchemy/commit/5ca23b1fe1774f954aacfbd7db35c8c9b9a59184) (2026-11-12). La instalación descarga exactamente ese commit. Alchemy cambia rápido, así que puede que una copia más nueva no funcione hasta que el editor se ponga al día.
 
 ## Contenido
 

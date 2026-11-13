@@ -14,7 +14,7 @@ import time
 import zlib
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from gsmap import fsio, grid, patch, preflight  # noqa: E402
+from gsmap import fsio, grid, layout, patch, preflight  # noqa: E402
 from gsmap import tileset as tilesetmod  # noqa: E402
 from gsmap.chests import ChestEditor  # noqa: E402
 from gsmap.doors import DoorEditor  # noqa: E402
@@ -47,7 +47,9 @@ def fixture(tmp):
         if os.path.exists(os.path.join(real, name)):
             shutil.copytree(os.path.join(real, name), os.path.join(tbs, name))
     shutil.copy(os.path.join(real, "text/en.po"), os.path.join(tbs, "text/en.po"))
-    shutil.copy(os.path.join(real, "objects.tsv"), os.path.join(tbs, "objects.tsv"))
+    for name in ("ld_script.ld", "objects.tsv"):
+        if os.path.exists(os.path.join(real, name)):
+            shutil.copy(os.path.join(real, name), os.path.join(tbs, name))
     os.makedirs(os.path.join(tbs, "src/system"))
     shutil.copy(os.path.join(real, "src/system/main_routine.c"), os.path.join(tbs, "src/system/main_routine.c"))
     for name in ("src/scene", "src/debug", "src/field", "src/game", "src/gamepak", "include"):
@@ -396,7 +398,7 @@ with tempfile.TemporaryDirectory() as tmp:
 
     # ---- hook
     main = os.path.join(tmp, "games/tbs/src/system/main_routine.c")
-    objects = os.path.join(tmp, "games/tbs/objects.tsv")
+    objects = os.path.join(tmp, layout.object_list(tmp)[0])
     a, b = read(main), read(objects)
     ensure_hook(tmp)
     check("the hook isn't installed twice", read(main) == a and read(objects) == b)

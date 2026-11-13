@@ -1,4 +1,4 @@
-<!-- translated from docs/SPEC.md @ 32cfd669a030 -->
+<!-- translated from docs/SPEC.md @ a658d8254020 -->
 # gs-mapedit : spécification de l'éditeur et plan de construction
 
 *Ceci est une traduction du document anglais [SPEC.md](../SPEC.md) ; en cas de différence, c'est la version anglaise qui fait foi.*
@@ -79,7 +79,7 @@ Le graphe des sorties est : code de collision / script / région → type de sor
 La liste de contrôle se trouve dans `local-connections.md` §6 :
 - 25 emplacements libres dans le répertoire de ressources, épinglés à 0x08320000 ;
 - ajouter des lignes à `gMaps` (`map/maps.c`) et à `scenes.s` ;
-- ajouter la ligne de la carte à `objects.tsv` avant les overlays, plus l'overlay, la musique, le nom de zone et les règles de rencontres ;
+- ajouter la ligne de la carte à `ld_script.ld` avant les overlays, plus l'overlay, la musique, le nom de zone et les règles de rencontres ;
 - groupe ≤ 0x7f, id de scène < 511.
 
 **L'espace en ROM est la vraie limite :** 3,5 à 43 Ko de libre à la fin des 8 Mo, selon l'édition. Une vraie nouvelle carte implique probablement d'agrandir la ROM au-delà de 8 Mo, ce qui n'a pas été testé.

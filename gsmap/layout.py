@@ -3,6 +3,8 @@ calls them. When upstream reorganises, this file is where the fix goes, and
 gsmap/preflight.py is what says so. Paths are relative to the checkout.
 """
 
+import os
+
 SRC = "games/tbs/src"
 INCLUDE = "games/tbs/include"
 
@@ -51,10 +53,27 @@ MOD = f"{SRC}/mod"
 HOOK_FILE = f"{SRC}/system/main_routine.c"
 HOOK_AFTER = "  Overlay_Load(table[gMainRoutineWork.next].resourceId, &gOverlayArea);\n"
 HOOK_CALL = "  MOD_SCENE_LOADED(gMainRoutineWork.next, &gOverlayArea);\n"
-OBJECTS = "games/tbs/objects.tsv"
-OBJECTS_AFTER = f"main\trom_tail_02\t{SRC}/system/overlay/overlays\n"
-OBJECTS_ROWS = (f"main\trom_tail_02\t{MOD}/mod\t.text\n"
-                f"main\trom_tail_02\t{MOD}/mod\t.rodata\n")
+# Where the mod's object joins the link: last in the Game Pak, after the
+# scene overlays. Alchemy lists objects in its linker script; copies set up
+# before 2026-11-12 list them in objects.tsv instead.
+OBJECT_LISTS = (
+    ("games/tbs/ld_script.ld",
+     f'        "*/{SRC}/system/overlay/overlays.o"(.data .overlays)\n',
+     f'        "*/{MOD}/mod.o"(.text)\n'
+     f'        "*/{MOD}/mod.o"(.rodata)\n'),
+    ("games/tbs/objects.tsv",
+     f"main\trom_tail_02\t{SRC}/system/overlay/overlays\n",
+     f"main\trom_tail_02\t{MOD}/mod\t.text\n"
+     f"main\trom_tail_02\t{MOD}/mod\t.rodata\n"),
+)
+
+
+def object_list(root):
+    """(path, the line the mod's rows follow, the rows) for this checkout."""
+    for entry in OBJECT_LISTS:
+        if os.path.exists(os.path.join(root, entry[0])):
+            return entry
+    return OBJECT_LISTS[0]
 MOD_INCLUDES = ("types.h", "field/scene.h", "field/scene_tables.h", "frame.h", "main_routine_work.h",
                 "module/field/event_commands.h", "field_work.h", "scene_ids.h", "scene_exits.h", "module/game/game.h",
                 "module/window/window.h", "module/system/system.h", "system.h", "game.h", "field.h", "window.h")

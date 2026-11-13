@@ -76,7 +76,7 @@ The exit graph is: collision code / script / region → exit kind → exit table
 The checklist is in `local-connections.md` §6:
 - 25 spare resource-directory slots, pinned at 0x08320000;
 - append rows to `gMaps` (`map/maps.c`) and `scenes.s`;
-- add the map row to `objects.tsv` before the overlays, plus the overlay, music, area-name and encounter rules;
+- add the map row to `ld_script.ld` before the overlays, plus the overlay, music, area-name and encounter rules;
 - group ≤ 0x7f, scene ids < 511.
 
 **ROM space is the real limit:** 3.5–43 KB free at the 8 MB end, depending on edition. A real new map probably means growing the ROM past 8 MB, which is untested.

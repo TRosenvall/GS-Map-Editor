@@ -148,17 +148,19 @@ def ensure_hook(root):
         last = list(re.finditer(r"^#include .*\n", text, re.M))[-1]
         return text[:last.end()] + HOOK_INCLUDE + text[last.end():]
 
+    objects_path, after, rows = layout.object_list(root)
+
     def objects(text):
-        if layout.OBJECTS_ROWS in text:
+        if rows in text:
             return text
-        if layout.OBJECTS_AFTER not in text:
+        if after not in text:
             raise ValueError(tr("this version of the game source lists its objects differently; the editor needs updating for it"))
-        return text.replace(layout.OBJECTS_AFTER, layout.OBJECTS_AFTER + layout.OBJECTS_ROWS, 1)
+        return text.replace(after, after + rows, 1)
 
     # Both are worked out before either is written, so a source this editor
     # can't hook is reported with nothing changed.
     changes = {}
-    for rel, change in ((layout.HOOK_FILE, hook), (layout.OBJECTS, objects)):
+    for rel, change in ((layout.HOOK_FILE, hook), (objects_path, objects)):
         path = os.path.join(root, rel)
         with open(path, encoding="utf-8", newline="") as f:
             text = f.read()

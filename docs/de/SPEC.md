@@ -1,4 +1,4 @@
-<!-- translated from docs/SPEC.md @ 32cfd669a030 -->
+<!-- translated from docs/SPEC.md @ a658d8254020 -->
 # gs-mapedit: Editor-Spezifikation und Bauplan
 
 *Dies ist eine Übersetzung der englischen [SPEC.md](../SPEC.md). Wenn sich die beiden unterscheiden, ist die englische Fassung aktuell.*
@@ -79,7 +79,7 @@ Der Ausgangsgraph ist: Kollisionscode / Skript / Region → Ausgangsart → Ausg
 Die Checkliste steht in `local-connections.md` §6:
 - 25 freie Plätze im Ressourcenverzeichnis, festgelegt bei 0x08320000;
 - Zeilen an `gMaps` (`map/maps.c`) und `scenes.s` anhängen;
-- die Kartenzeile vor den Overlays zu `objects.tsv` hinzufügen, plus Overlay, Musik, Gebietsname und Kampfregeln;
+- die Kartenzeile vor den Overlays zu `ld_script.ld` hinzufügen, plus Overlay, Musik, Gebietsname und Kampfregeln;
 - Gruppe ≤ 0x7f, Szenen-IDs < 511.
 
 **ROM-Platz ist die eigentliche Grenze:** 3.5–43 KB frei am 8-MB-Ende, je nach Edition. Eine echte neue Karte bedeutet wahrscheinlich, das ROM über 8 MB hinaus zu vergrößern, was ungetestet ist.

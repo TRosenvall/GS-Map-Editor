@@ -1,4 +1,4 @@
-<!-- translated from README.md @ b21e30165e76 -->
+<!-- translated from README.md @ 74d539debb27 -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · [Deutsch](README.de.md) · [Français](README.fr.md) · [Italiano](README.it.md) · **日本語**
@@ -11,7 +11,7 @@
 
 > **プレビュー版: テスターを募集しています。** このエディターが対応しているのは The Broken Seal の英語版で、macOS と、試験的に Windows で動きます。これまで主に1台の Intel Mac でテストしてきただけで、Windows 版はまだ実際の Windows PC で動かしたことがありません。そのため、「うまく動いた」という報告も含めて、どんな報告も助かります: [ダウンロード](https://github.com/TRosenvall/GS-Map-Editor/releases)して試し、[結果を教えてください](https://github.com/TRosenvall/GS-Map-Editor/issues/new?template=bug_report.md)。大切な MOD は必ずバックアップしておいてください。
 
-**alchemy のバージョン:** このエディターは alchemy のコミット [`0c937e7df0`](https://github.com/PascalPixel/alchemy/commit/0c937e7df0b71b23760fbd19d048e99dd3969490)（2026-11-11）でテストしています。セットアップではちょうどそのコミットをダウンロードします。alchemy は変化が速いので、新しいコピーはエディターが追いつくまで動かないことがあります。
+**alchemy のバージョン:** このエディターは alchemy のコミット [`5ca23b1fe1`](https://github.com/PascalPixel/alchemy/commit/5ca23b1fe1774f954aacfbd7db35c8c9b9a59184)（2026-11-12）でテストしています。セットアップではちょうどそのコミットをダウンロードします。alchemy は変化が速いので、新しいコピーはエディターが追いつくまで動かないことがあります。
 
 ## 目次
 

@@ -45,6 +45,7 @@ def _check(root):
         with open(os.path.join(root, rel), encoding="utf-8", errors="replace") as f:
             return f.read()
 
+    objects_path, objects_after, objects_rows = layout.object_list(root)
     for rel, problem in ((layout.MAPS, tr("Can't find the maps ({path}).")),
                          (layout.MAP_TABLE, tr("Can't find the map list ({path}).")),
                          (layout.DIRECTORY, tr("Can't find the resource directory ({path}).")),
@@ -55,7 +56,7 @@ def _check(root):
                          (layout.WORLD_CELLS, tr("Can't find the world map's blocks ({path}).")),
                          (layout.WORLD_COLLISION, tr("Can't find the world map's walkability ({path}).")),
                          (layout.WORLD_GRAPHICS, tr("Can't find the world map's art ({path}).")),
-                         (layout.OBJECTS, tr("Can't find the object list ({path}).")),
+                         (objects_path, tr("Can't find the object list ({path}).")),
                          (layout.HOOK_FILE, tr("Can't find the code that loads scenes ({path}).")),
                          (layout.FLAG_NAMES, tr("Can't find the flag names ({path}).")),
                          (layout.SPRITE_NAMES, tr("Can't find the sprite names ({path}).")),
@@ -108,9 +109,9 @@ def _check(root):
     if layout.HOOK_CALL not in source and layout.HOOK_AFTER not in source:
         problems.append(tr("Can't find where scenes get loaded in {path}, so edits to people, doors "
                            "and events couldn't reach the game.", path=layout.HOOK_FILE))
-    objects = read(layout.OBJECTS)
-    if layout.OBJECTS_ROWS not in objects and layout.OBJECTS_AFTER not in objects:
-        problems.append(tr("Can't find the place for the mod in {path}.", path=layout.OBJECTS))
+    objects = read(objects_path)
+    if objects_rows not in objects and objects_after not in objects:
+        problems.append(tr("Can't find the place for the mod in {path}.", path=objects_path))
 
     # Maps, all the way down to the art they draw.
     from .project import Project, DirectoryError

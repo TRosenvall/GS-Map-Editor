@@ -1,4 +1,4 @@
-<!-- translated from docs/SPEC.md @ 32cfd669a030 -->
+<!-- translated from docs/SPEC.md @ a658d8254020 -->
 # gs-mapedit: especificación del editor y plan de construcción
 
 *Esta es una traducción del documento en inglés [SPEC.md](../SPEC.md); si los dos difieren, el inglés es el actualizado.*
@@ -79,7 +79,7 @@ El grafo de salidas es: código de colisión / script / región → tipo de sali
 La lista de comprobación está en `local-connections.md` §6:
 - 25 huecos libres en el directorio de recursos, fijados en 0x08320000;
 - añadir filas al final de `gMaps` (`map/maps.c`) y `scenes.s`;
-- añadir la fila del mapa a `objects.tsv` antes de los overlays, más el overlay, la música, el nombre de zona y las reglas de encuentros;
+- añadir la fila del mapa a `ld_script.ld` antes de los overlays, más el overlay, la música, el nombre de zona y las reglas de encuentros;
 - grupo ≤ 0x7f, ids de escena < 511.
 
 **El espacio en la ROM es el verdadero límite:** de 3,5 a 43 KB libres al final de los 8 MB, según la edición. Un mapa nuevo de verdad probablemente implique hacer crecer la ROM por encima de 8 MB, algo sin probar.
