@@ -73,6 +73,7 @@ function loadImage(src) {
 }
 
 async function openMap(n) {
+  for (const k in PEOPLE_LINES) delete PEOPLE_LINES[k];  // what people say may have changed
   if (S.map && S.map.number !== n) EV.stage = null;  // a story stage belongs to one map's tables
   if (!await saveFirst()) return;
   $('#status').textContent = T('Loading map {n}…', { n });
@@ -646,6 +647,24 @@ $('#cv').addEventListener('mousemove', e => {
   const l = layer(), [gx, gy] = g0 || gridXY(l, x, y);
   const col = m.grids.collision?.[gy]?.[gx], mk = (m.markers || []).find(k => k.x === gx && k.z === gy);
   const what = mk ? `<b>${(S.legend[String(mk.id)] || [T('Chest')])[0]}</b>` : `<b>${collisionName(col)}</b>`;
+  // Over a person in Move people: who it is and, once their lines are loaded, what they say.
+  if (S.tool === 'points') {
+    const t = table();
+    if (t && t.kind === 'placements') {
+      const rows = rowsOf(t);
+      const near = rows.map((r, i) => { if (r.sprite < 0) return null; const [x, y] = pointPx(t, r); return [Math.hypot(x - S.mouse[0], y - S.mouse[1]), i]; })
+        .filter(Boolean).sort((a, b) => a[0] - b[0])[0];
+      if (near && near[0] < 10) {
+        const i = near[1], actor = actorNumber(rows, i), who = `<b>${esc(S.names.spriteById?.[rows[i].sprite]?.name || T('This person'))}</b>`;
+        const lines = peopleLines(t);
+        if (lines) {
+          const line = lines.find(e => e.actor === actor && e.kind === 'talk' && e.text);
+          return status(line ? T('{who} says: “{text}”', { who, text: esc(shortText(line.text)) }) : T("{who} doesn't say anything here yet.", { who }));
+        }
+        return status(who);
+      }
+    }
+  }
   // Over a person in Events: who it is and what they say.
   if (S.tool === 'events' && EV.data) {
     const near = EV.data.people.map(p => { const [ex, ey] = entityXY(p.x, p.z); return [Math.hypot(ex - S.mouse[0], ey - S.mouse[1]), p]; })
@@ -757,6 +776,23 @@ function drawPoints(ctx) {
     }
   });
   ctx.lineWidth = 1;
+}
+
+// What the people of a placements table say, for hovering in Move people: the
+// events of the story stage that goes with the table, fetched once per table.
+// null until loaded, or when no stage pairs with it.
+const PEOPLE_LINES = {};
+function peopleLines(t) {
+  const sc = scene(), key = `${S.map.number}:${sc.id}:${t.symbol}`;
+  if (key in PEOPLE_LINES) return PEOPLE_LINES[key];
+  PEOPLE_LINES[key] = null;
+  (async () => {
+    for (const guess of [t.symbol.replace('ActorPlacements', 'Triggers'), null]) {
+      const r = await api(`/api/map/${S.map.number}/events?scene=${sc.id}` + (guess ? `&table=${encodeURIComponent(guess)}` : ''));
+      if (!r.error && r.people_table === t.symbol) { PEOPLE_LINES[key] = r.events; return; }
+    }
+  })();
+  return null;
 }
 
 // A line of game text for one status line: its markup dropped, at most 120 characters.

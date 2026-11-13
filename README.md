@@ -283,7 +283,7 @@ Press **Move people** (P).
 2. Drag them on the map. Hold ⇧ as you let go to snap to the nearest 8 pixels.
 3. Save.
 
-Arrival points are where the party appears on entering a place.
+Arrival points are where the party appears on entering a place. Hover over a person to see who they are and what they say.
 
 ## Stamp: copy and paste
 
