@@ -16,8 +16,11 @@ async function api(path, body) {
   const opt = body === undefined ? {} : {
     method: 'POST', headers: { 'Content-Type': 'application/json', 'X-GSMap': '1' }, body: JSON.stringify(body) };
   const busy = body === undefined ? null : setTimeout(() => document.body.classList.add('busy'), 200);
-  const r = await fetch(path, opt);
-  let j; try { j = await r.json(); } catch (e) { j = { error: `HTTP ${r.status}` }; }
+  let j;
+  try {
+    const r = await fetch(path, opt);
+    try { j = await r.json(); } catch (e) { j = { error: `HTTP ${r.status}` }; }
+  } catch (e) { j = { error: T('The editor stopped answering. Is it still running?') }; }
   if (busy) { clearTimeout(busy); document.body.classList.remove('busy'); if (!path.includes('history')) refreshUndoSave(); }
   return j;
 }
@@ -116,7 +119,7 @@ function forgetPlace() {
   $('#evSpot').style.display = 'none';
   importData = null; $('#importBox').style.display = 'none';
   S.chestAt = null; $('#chestForm').style.display = 'none';
-  S.doorAt = null; $('#doorForm').style.display = 'none';
+  S.doorAt = null; $('#doorForm').style.display = 'none'; S.arrivalMark = null;
   if (S.tool === 'stamp') S.sel = null;
 }
 
@@ -441,7 +444,6 @@ function paintAt(x, y) {
 // Fill: every square connected to the one clicked (sideways, not diagonally)
 // that has the same block on this layer, or the same walkability or height,
 // takes the brush. Only squares this place shows are filled. One undo step.
-const FILL_LIMIT = 128 * 128;
 function fillAt(x, y) {
   const m = S.map, l = layer(), tool = S.tool;
   if (x < 0 || y < 0 || x >= m.size[0] || y >= m.size[1]) return;
@@ -459,27 +461,25 @@ function fillAt(x, y) {
     read = (gx, gy) => g[gy][gx];
     write = (gx, gy) => { if (!(tool === 'collision' && m.markers?.some(k => k.x === gx && k.z === gy))) setValue(tool, gx, gy, value); };
   }
-  // The squares this place shows, by grid cell, and the window cell each is drawn at.
-  const shown = new Map();
-  for (let wy = 0; wy < m.size[1]; wy++) for (let wx = 0; wx < m.size[0]; wx++) {
-    const [gx, gy] = gridXY(l, wx, wy); shown.set(`${gx},${gy}`, [wx, wy]);
-  }
+  // The grid cells this place shows (at most 128 by 128: windows wrap), so the fill is bounded.
+  const shown = new Set();
+  for (let wy = 0; wy < m.size[1]; wy++) for (let wx = 0; wx < m.size[0]; wx++) shown.add(gridXY(l, wx, wy).join(','));
   const [sx, sy] = tool === 'block' || !S.mouse ? gridXY(l, x, y) : (groundAt(l, S.mouse[0], S.mouse[1]) || gridXY(l, x, y));
   const from = read(sx, sy);
   if (from === value) return;
-  const seen = new Set([`${sx},${sy}`]), queue = [[sx, sy]], cells = [];
-  while (queue.length && cells.length < FILL_LIMIT) {
-    const [gx, gy] = queue.shift();
-    cells.push([gx, gy]);
+  const seen = new Set([`${sx},${sy}`]), queue = [[sx, sy]];
+  for (let i = 0; i < queue.length; i++) {
+    const [gx, gy] = queue[i];
     for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
       const nx = (gx + dx + 128) % 128, ny = (gy + dy + 128) % 128, k = `${nx},${ny}`;
       if (seen.has(k) || !shown.has(k) || read(nx, ny) !== from) continue;
       seen.add(k); queue.push([nx, ny]);
     }
   }
-  for (const [gx, gy] of cells) write(gx, gy);
+  for (const [gx, gy] of queue) write(gx, gy);
   drawAll();
-  status(cells.length === 1 ? T('Filled 1 square. Save to keep it.') : T('Filled {n} squares. Save to keep them.', { n: cells.length }));
+  const n = S.stroke.length;  // squares holding a chest or stone keep their walkability
+  status(!n ? T('Nothing changed.') : n === 1 ? T('Filled 1 square. Save to keep it.') : T('Filled {n} squares. Save to keep them.', { n }));
 }
 
 function eyedrop(x, y) {
@@ -667,10 +667,9 @@ $('#cv').addEventListener('mousemove', e => {
   }
   // Over a person in Events: who it is and what they say.
   if (S.tool === 'events' && EV.data) {
-    const near = EV.data.people.map(p => { const [ex, ey] = entityXY(p.x, p.z); return [Math.hypot(ex - S.mouse[0], ey - S.mouse[1]), p]; })
-      .sort((a, b) => a[0] - b[0])[0];
-    if (near && near[0] < 10) {
-      const p = near[1], line = EV.data.events.find(e => e.actor === p.actor && e.kind === 'talk' && e.text);
+    const p = personAt(S.mouse[0], S.mouse[1]);
+    if (p) {
+      const line = EV.data.events.find(e => e.actor === p.actor && e.kind === 'talk' && e.text);
       const who = `<b>${esc(p.name || T('This person'))}</b>`;
       return status(line ? T('{who} says: “{text}”', { who, text: esc(shortText(line.text)) }) : T("{who} doesn't say anything here yet.", { who }));
     }
@@ -1313,13 +1312,27 @@ function drawEvents(ctx) {
   }
   ctx.restore();
 }
+// The person at window pixel (sx, sy) in Events: under the cursor's picture of
+// them (drawn feet at their point, as drawEvents does), or within 10 pixels of
+// their feet; the nearest when several overlap. null when nobody's there.
+function personAt(sx, sy) {
+  let best = null;
+  for (const p of EV.data.people) {
+    const [ex, ey] = entityXY(p.x, p.z), img = spriteImage(p.sprite);
+    const d = Math.hypot(ex - sx, ey - sy);
+    const w = img?.naturalWidth || 0, h = img?.naturalHeight || 0;
+    const onPicture = w && sx >= ex - w / 2 && sx <= ex + w / 2 && sy >= ey - h + 4 && sy <= ey + 4;
+    if ((onPicture || d < 10) && (!best || d < best[0])) best = [d, p];
+  }
+  return best && best[1];
+}
 function evClick(e, x, y) {
   if (!EV.data) return;
   const [sx, sy] = mousePx(e), [px, pz] = groundPx(sx, sy);
-  const near = EV.data.people.map(p => { const [ex, ey] = entityXY(p.x, p.z); return [Math.hypot(ex - sx, ey - sy), p]; }).sort((a, b) => a[0] - b[0])[0];
+  const p = personAt(sx, sy);
   $('#evSpot').style.display = 'flex';
-  if (near && near[0] < 10) {
-    const p = near[1], talks = EV.data.events.some(ev => ev.actor === p.actor && ev.kind === 'talk');
+  if (p) {
+    const talks = EV.data.events.some(ev => ev.actor === p.actor && ev.kind === 'talk');
     EV.filter = { actor: p.actor, label: `${p.name || T('This person')}` }; EV.spot = null;
     $('#evSpot').innerHTML = `<button id="evTalk" class="primary">${talks ? T('Add a line for a story moment…') : T('Make them say something…')}</button>`
       + (p.added ? `<button id="evRemovePerson">${T('Remove this person')}</button>` : '');
@@ -1635,7 +1648,8 @@ async function followDoor(sceneId, entrance, back) {
   if (r.error || r.map == null) return status(`<span class="err">${T("That place has no map to open.")}</span>`);
   if (!S.map || S.map.number !== r.map) await openMap(r.map);
   if (!S.map || S.map.number !== r.map) return;  // the place didn't open (unsaved changes kept, or an error)
-  if ([...$('#sceneSel').options].some(o => +o.value === sceneId)) { $('#sceneSel').value = String(sceneId); fillTables(); }
+  doorDeselect();  // the door followed belongs to where you came from
+  pickScene(sceneId);
   setTool('doors');
   const a = r.arrivals.find(x => x.entrance === entrance) || r.arrivals[0];
   S.arrivalMark = a ? { x: a.x, z: a.z, until: Date.now() + 4000 } : null;
@@ -1650,6 +1664,12 @@ async function followDoor(sceneId, entrance, back) {
   if (a) setTimeout(drawAll, 4100);
   status(T('Arrived at {place}, arrival point {n}.', { place: `<b>${esc(r.label)}</b>`, n: a ? a.entrance : 0 }));
 }
+// Show scene `id` of this place, as picking it from the menu does.
+function pickScene(id) {
+  const sel = $('#sceneSel');
+  if (sel.value === String(id) || ![...sel.options].some(o => +o.value === id)) return;
+  sel.value = String(id); sel.dispatchEvent(new Event('change'));
+}
 $('#doorGo').onclick = () => {
   const d = S.doorAt?.door, sc = scene(); if (!d || d.scene == null || !sc) return;
   const label = S.names.sceneById[sc.id]?.label || S.maps.find(m => m.number === S.map.number)?.label || T('Place {n}', { n: S.map.number });
@@ -1659,7 +1679,7 @@ $('#doorBack').onclick = async () => {
   const b = S.doorBack; if (!b) return;
   if (S.map?.number !== b.map) await openMap(b.map);
   if (S.map?.number !== b.map) return;
-  if ([...$('#sceneSel').options].some(o => +o.value === b.scene)) { $('#sceneSel').value = String(b.scene); fillTables(); }
+  pickScene(b.scene);
   setTool('doors'); S.doorBack = null; $('#doorBack').style.display = 'none';
   doorSelect(b.x, b.z);
   const w = groundXY(S.map.layers[0], b.x, b.z), z0 = +$('#zoom').value * 16;
@@ -1686,7 +1706,7 @@ function pkList() {
 $('#pkFilter').oninput = pkList;
 $('#pkList').onclick = e => { const id = e.target.closest('[data-id]')?.dataset.id; if (id != null) pkScene(+id, null); };
 async function pkScene(id, entrance) {
-  PK.scene = id; PK.entrance = entrance; pkList();
+  PK.scene = id; PK.entrance = entrance; pkList(); $('#pkMapWrap').scrollTo(0, 0);
   const r = await api(`/api/scene/${id}/arrivals`);
   if (PK.scene !== id) return;
   PK.info = r; $('#pkHint').style.display = 'none';
@@ -1901,18 +1921,21 @@ $('#connBtn').onclick = openConnections;
 $('#atlasBtn').onclick = async () => { if (await saveFirst()) location.href = '/atlas.html'; };
 
 // The place's random battles (gsmap/encounters.py, gScene_EncounterRules), in a dialog.
+const BT = { ask: null };
 async function openBattles() {
   const sc = scene(); if (!S.map || !sc) return status(`<span class="warn">${T('Open a place first.')}</span>`);
   const label = S.names.sceneById[sc.id]?.label || T('scene {n}', { n: sc.id });
   $('#btTitle').textContent = T('Battles in {place}', { place: label });
   $('#battles').style.display = 'flex'; $('#btPane').innerHTML = `<div class="note">${T('Loading…')}</div>`;
+  const ask = BT.ask = {};
   const r = await api(`/api/scene/${sc.id}/battles`);
+  if (BT.ask !== ask) return;  // opened again, for this or another place, meanwhile
   if (r.error) return $('#btPane').innerHTML = `<div class="err">${esc(r.error)}</div>`;
   if (!r.battles.length) return $('#btPane').innerHTML = `<div class="note" style="padding:12px 0">${T('No random battles in {place}.', { place: esc(label) })}</div>`;
   battleBoxes($('#btPane'), r.battles, r.formations, S.advanced, async (zone, rate, groups) => {
-    const s = await api('/api/battles', { zone, rate, groups, map: S.map.number });
+    const s = await api('/api/battles', { zone, rate, groups, map: S.map.number });  // api() refreshes Undo
     if (s.error) return status(`<span class="err">${esc(s.error)}</span>`);
-    await openBattles(); refreshUndoSave();
+    if ($('#battles').style.display !== 'none') await openBattles();
     status(s.changed ? `<span class="ok">${T("Saved this place's battles.")}</span> ${T('Press ▶ Play to try it.')}` : T('Nothing changed.'));
   });
 }

@@ -29,11 +29,12 @@
   /* The layer sliders fill in when a map opens: hold their room so the toolbar doesn't jump. */
   #layers { min-width: 240px; }
   header h1 { font-size: 14px; margin: 0; color: var(--accent); font-weight: 600; }
-  .group { display: flex; gap: 6px; align-items: center; }
+  .group { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  header button, header label { white-space: nowrap; }  /* each stays on one line; the bar wraps between them */
   .group label { display: flex; gap: 4px; align-items: center; color: var(--muted); }
   .layer { display: flex; gap: 4px; align-items: center; padding: 2px 6px; border: 1px solid var(--line); border-radius: 4px; }
   input[type=range] { width: 60px; }
-  select, input[type=search], input[type=text] { background: var(--bg); color: var(--text); border: 1px solid var(--line);
+  select, input[type=search], input[type=text], input[type=number] { background: var(--bg); color: var(--text); border: 1px solid var(--line);
            border-radius: 4px; padding: 3px 6px; font: inherit; }
   input[type=text] { width: 64px; font-family: ui-monospace, monospace; }
   button { background: #2a2f3a; color: var(--text); border: 1px solid var(--line); border-radius: 4px;

@@ -27,7 +27,7 @@ function centreOn(m, z) {
 }
 
 function draw() {
-  const box = $('#atlas'), svg = $('#links');
+  const box = $('#atlas');
   for (const el of box.querySelectorAll('.m')) el.remove();
   for (const m of A.data.maps) {
     const el = document.createElement('div');
@@ -47,22 +47,30 @@ function drawLinks() {
   const w = Math.max(...A.data.maps.map(m => m.x + m.w)), h = Math.max(...A.data.maps.map(m => m.y + m.h));
   svg.setAttribute('width', w); svg.setAttribute('height', h);
   for (const l of A.data.links) {
+    l.el = null;
     const a = A.byMap[l.from], b = A.byMap[l.to]; if (!a || !b) continue;
-    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    line.setAttribute('x1', a.x + l.fx); line.setAttribute('y1', a.y + l.fy);
-    line.setAttribute('x2', b.x + l.tx); line.setAttribute('y2', b.y + l.ty);
+    const line = l.el = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    placeLink(l);
     line.dataset.from = l.from; line.dataset.to = l.to;
     if (!l.door) line.classList.add('event');
     svg.appendChild(line);
   }
+  if (A.hover) highlight(A.hover);
+}
+function placeLink(l) {
+  const a = A.byMap[l.from], b = A.byMap[l.to];
+  l.el.setAttribute('x1', a.x + l.fx); l.el.setAttribute('y1', a.y + l.fy);
+  l.el.setAttribute('x2', b.x + l.tx); l.el.setAttribute('y2', b.y + l.ty);
 }
 function highlight(n) {
   for (const line of $('#links').children) line.classList.toggle('on', line.dataset.from === n || line.dataset.to === n);
   const near = new Set(A.data.links.filter(l => l.from === n || l.to === n).map(l => l.from === n ? l.to : l.from));
   for (const m of A.data.maps) { m.el.classList.toggle('on', m.map === n); m.el.classList.toggle('near', near.has(m.map)); }
   const m = A.byMap[n];
-  if (m) status(near.size ? T('{place} leads to or from {n} other places.', { place: `<b>${esc(m.label)}</b>`, n: near.size })
-    : T('{place} has no doors to other places.', { place: `<b>${esc(m.label)}</b>` }));
+  const place = m && `<b>${esc(m.label)}</b>`;
+  if (m) status(near.size > 1 ? T('{place} leads to or from {n} other places.', { place, n: near.size })
+    : near.size ? T('{place} leads to or from 1 other place.', { place })
+    : T('{place} has no doors to other places.', { place }));
 }
 
 // ---- moving around, moving places ---------------------------------------------------
@@ -72,6 +80,7 @@ $('#view').addEventListener('mousedown', e => {
   if (el) {
     const m = A.byMap[el.dataset.map];
     A.drag = { m, x0: e.clientX, y0: e.clientY, mx: m.x, my: m.y, moved: false };
+    A.hover = m.map; highlight(m.map);
   } else {
     A.pan = { x0: e.clientX, y0: e.clientY, ax: A.x, ay: A.y }; $('#view').classList.add('panning');
   }
@@ -84,7 +93,7 @@ window.addEventListener('mousemove', e => {
     if (Math.abs(dx) + Math.abs(dy) > 3 / A.z) d.moved = true;
     d.m.x = Math.round(d.mx + dx); d.m.y = Math.round(d.my + dy);
     d.m.el.style.left = d.m.x + 'px'; d.m.el.style.top = d.m.y + 'px';
-    drawLinks(); highlight(d.m.map);
+    for (const l of A.data.links) if (l.el && (l.from === d.m.map || l.to === d.m.map)) placeLink(l);  // only its own lines
     return;
   }
   const el = e.target.closest?.('.m');
@@ -112,11 +121,12 @@ $('#zoomOut').onclick = () => zoomAt(1 / 1.4, $('#view').clientWidth / 2, $('#vi
 $('#fit').onclick = fit;
 $('#showLinks').onchange = drawLinks;
 $('#find').oninput = () => {
+  if (!A.data?.maps) return;
   const q = $('#find').value.trim().toLowerCase();
   const hits = q ? A.data.maps.filter(m => m.label.toLowerCase().includes(q)) : [];
   for (const m of A.data.maps) m.el.classList.toggle('found', hits.includes(m));
   if (hits.length) { centreOn(hits[0]); highlight(hits[0].map); }
-  status(q ? (hits.length ? T('{n} places match.', { n: hits.length }) : T('No place matches.')) : '');
+  status(!q ? '' : hits.length > 1 ? T('{n} places match.', { n: hits.length }) : hits.length ? T('1 place matches.') : T('No place matches.'));
 };
 $('#resetLayout').onclick = async () => {
   if (!confirm(T('Put every place back where the atlas first laid it out?'))) return;

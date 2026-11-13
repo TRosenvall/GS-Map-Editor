@@ -122,8 +122,15 @@ function openDialog() {
 // where, note?, when?, shared?, level, rate, groups: [{formation, weight}]}];
 // save(zone, rate, groups) is called with a zone's new values.
 function battleBoxes(pane, zones, formations, advanced, save) {
-  const choices = formations.map(f => `<option value="${f.formation}">${esc(f.label)}${advanced ? ` [${f.formation}]` : ''}</option>`).join('');
-  const row = g => `<div class="grp"><select>${choices}</select><input type="number" min="1" max="255" value="${g.weight}" title="${T('How likely, compared with the other groups')}"><button class="drop" title="${T('Remove this group')}">×</button></div>`;
+  // One menu of every group (~380), built once and copied into each row: parsing
+  // it per row was slow. data-notr: enemy names are the game's, so i18n skips them.
+  const menu = document.createElement('select');
+  menu.dataset.notr = ''; menu.title = T('Which enemies');
+  menu.innerHTML = formations.map(f => `<option value="${f.formation}">${esc(f.label)}${advanced ? ` [${f.formation}]` : ''}</option>`).join('');
+  const row = g => `<div class="grp" data-f="${g.formation}"><select></select><input type="number" min="1" max="255" value="${g.weight}" title="${esc(T('How likely, compared with the other groups'))}"><button class="drop" title="${esc(T('Remove this group'))}">×</button></div>`;
+  const fillMenus = box => box.querySelectorAll('.grp[data-f]').forEach(grp => {
+    const s = menu.cloneNode(true); s.value = grp.dataset.f; grp.querySelector('select').replaceWith(s); delete grp.dataset.f;
+  });
   pane.innerHTML = `<div class="note"><b>${T('Battles here')}</b></div>` + zones.map((z, zi) => `
     <div class="battle" data-z="${zi}">
       <div><b>${esc(z.where)}</b> <span class="note">${z.note ? esc(z.note) + ' · ' : ''}${T('made for level {n}', { n: z.level })}</span></div>
@@ -136,13 +143,19 @@ function battleBoxes(pane, zones, formations, advanced, save) {
     </div>`).join('');
   for (const box of pane.querySelectorAll('.battle')) {
     const z = zones[+box.dataset.z];
-    box.querySelectorAll('.grp select').forEach((s, i) => { s.value = z.groups[i].formation; });
+    fillMenus(box);
     box.querySelector('.add').onclick = () => {
       if (box.querySelectorAll('.grp').length >= 8) return status(`<span class="warn">${T('A zone holds at most 8 groups.')}</span>`);
       box.querySelector('.grps').insertAdjacentHTML('beforeend', row({ formation: formations[0].formation, weight: 4 }));
+      fillMenus(box);
     };
     box.querySelector('.grps').onclick = e => { if (e.target.closest('.drop')) e.target.closest('.grp').remove(); };
-    box.querySelector('.save').onclick = () => save(z.zone, +box.querySelector('.rate').value,
-      [...box.querySelectorAll('.grp')].map(g => ({ formation: +g.querySelector('select').value, weight: +g.querySelector('input').value })));
+    box.querySelector('.save').onclick = async e => {
+      e.target.disabled = true;  // one save at a time; the pane is redrawn after it
+      try {
+        await save(z.zone, +box.querySelector('.rate').value,
+          [...box.querySelectorAll('.grp')].map(g => ({ formation: +g.querySelector('select').value, weight: +g.querySelector('input').value })));
+      } finally { e.target.disabled = false; }
+    };
   }
 }

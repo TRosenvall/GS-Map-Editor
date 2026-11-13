@@ -78,6 +78,7 @@ if (I18N_DATA.lang !== 'en' || !ON_MAC) {
 // A <select> that switches the editor's language, and reloads the page in it.
 function langPicker(select) {
   if (!select) return;
+  select.setAttribute('data-notr', '');  // each language keeps its own name, so anyone can find theirs
   select.innerHTML = Object.entries(I18N_DATA.langs).map(([code, name]) => `<option value="${code}">${name}</option>`).join('');
   select.value = I18N_DATA.lang;
   select.onchange = async () => {

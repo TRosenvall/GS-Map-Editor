@@ -24,7 +24,8 @@
            padding: 8px 12px; background: var(--panel); border-bottom: 1px solid var(--line); }
   header h1 { font-size: 14px; margin: 0; color: var(--accent); font-weight: 600; }
   header a { color: var(--muted); text-decoration: none; } header a:hover { color: var(--text); }
-  .group { display: flex; gap: 6px; align-items: center; }
+  .group { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  header button, header label { white-space: nowrap; }  /* each stays on one line; the bar wraps between them */
   .group label { display: flex; gap: 4px; align-items: center; color: var(--muted); }
   select, input[type=search], input[type=number] { background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 4px; padding: 3px 6px; font: inherit; }
   button { background: #2a2f3a; color: var(--text); border: 1px solid var(--line); border-radius: 4px; padding: 4px 10px; font: inherit; cursor: pointer; }
@@ -123,7 +124,7 @@
   <div class="pane" id="battlePane" style="display:none"></div>
   <div class="pane" id="newIconPane" style="display:none">
     <div class="note">New town icon</div>
-    <div class="row"><img id="newIconImg" alt="" style="height:32px;image-rendering:pixelated"><select id="newIconSprite"></select></div>
+    <div class="row"><img id="newIconImg" alt="" style="height:32px;image-rendering:pixelated"><select id="newIconSprite" data-notr></select></div>
     <div class="row"><button id="newIconGo">Place a new icon…</button></div>
   </div>
   <div class="pane" id="iconPane" style="display:none">

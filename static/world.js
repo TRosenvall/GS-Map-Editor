@@ -14,8 +14,10 @@ function status(h) { $('#status').innerHTML = h; }
 async function api(path, body) {
   const opt = body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-GSMap': '1' }, body: JSON.stringify(body) };
   const busy = body === undefined ? null : setTimeout(() => document.body.classList.add('busy'), 200);
-  const r = await fetch(path, opt);
-  try { return await r.json(); } catch (e) { return { error: `HTTP ${r.status}` }; }
+  try {
+    const r = await fetch(path, opt);
+    try { return await r.json(); } catch (e) { return { error: `HTTP ${r.status}` }; }
+  } catch (e) { return { error: T('The editor stopped answering. Is it still running?') }; }
   finally { if (busy) { clearTimeout(busy); document.body.classList.remove('busy'); if (!path.includes('history')) refreshUndoSave(); } }
 }
 const zoom = () => +$('#zoom').value;
@@ -95,9 +97,11 @@ function selectIcon(ic) {
   $('#iconLink').style.display = lead ? '' : 'none';
   $('#iconLink').textContent = T('Change where it leads…'); $('#stepRemove').style.display = 'none'; $('#stepWiden').style.display = 'none';
   $('#iconRemove').style.display = ic.added && W.tool === 'icons' ? '' : 'none';
+  $('#moveArrivals').closest('label').style.display = '';
   showPane('icon'); drawMarks();
 }
 function selectStep(st) {
+  if (W.widen !== st.code) W.widen = null;  // widening belongs to the spot it started on
   W.sel = { step: st, trigger: st.code };
   $('#iconInfo').innerHTML = st.lead.scene == null ? `<span class="err">${T('This spot leads nowhere.')}</span>`
     : T('Stepping here leads to <b>{place}</b>, arrival point {n}.', { place: esc(st.lead.label), n: st.lead.entrance })
@@ -106,7 +110,7 @@ function selectStep(st) {
   $('#iconLink').textContent = T('Change where it leads…');
   $('#stepRemove').style.display = W.tool === 'steps' && !st.lead.scripted ? '' : 'none';
   $('#stepWiden').style.display = W.tool === 'steps' && st.code < 100 ? '' : 'none';
-  $('#iconRemove').style.display = 'none';
+  $('#iconRemove').style.display = 'none'; $('#moveArrivals').closest('label').style.display = 'none';
   showPane('icon'); drawMarks();
 }
 // A square that isn't a step spot yet, in the Step spots tool.
@@ -115,6 +119,7 @@ function selectNewStep(gx, gy) {
   $('#iconInfo').innerHTML = T('Not a step spot. Make one here, leading anywhere in the game.');
   $('#iconLink').style.display = ''; $('#iconLink').textContent = T('Make a step spot here…');
   $('#stepRemove').style.display = 'none'; $('#iconRemove').style.display = 'none'; $('#stepWiden').style.display = 'none';
+  $('#moveArrivals').closest('label').style.display = 'none';
   showPane('icon'); drawMarks();
 }
 // Widening a spot: each square clicked next joins it, until another tool or Esc.
@@ -127,7 +132,7 @@ $('#stepRemove').onclick = async () => {
   const st = W.sel?.step; if (!st || !confirm(T('Remove this step spot?'))) return;
   const r = await api('/api/world/step', { action: 'remove', gx: st.gx, gy: st.gy });
   if (r.error) return status(`<span class="err">${esc(r.error)}</span>`);
-  W.cells = {}; await loadPlaces(); showPane(null);
+  W.sel = null; W.widen = null; W.cells = {}; await loadPlaces(); showPane(null);
   status(`<span class="ok">${T('Removed the step spot.')}</span> ${T('Press ▶ Play to try it.')}`);
 };
 let drag = null;
@@ -162,9 +167,16 @@ window.addEventListener('mouseup', async e => {
 });
 async function loadPlaces() {
   W.data = await api('/api/world');
-  if (W.data.error) { status(`<span class="err">${W.data.error}</span>`); return; }
+  if (W.data.error) { status(`<span class="err">${esc(W.data.error)}</span>`); return; }
   drawMarks(); buildKinds();
-  if (W.sel?.actor) { const ic = W.data.places.icons.find(i => i.actor === W.sel.actor); if (ic) selectIcon(ic); }
+  // What was selected, as the files now have it (a link, a size), or gone after an undo.
+  if (W.sel?.actor != null) {
+    const ic = W.data.places.icons.find(i => i.actor === W.sel.actor);
+    if (ic) selectIcon(ic); else { W.sel = null; showPane(null); drawMarks(); }
+  } else if (W.sel?.step) {
+    const st = W.data.places.steps.find(s => s.gx === W.sel.step.gx && s.gy === W.sel.step.gy);
+    if (st?.lead) selectStep(st); else { W.sel = null; W.widen = null; showPane(null); drawMarks(); }
+  }
 }
 
 // ---- painting ------------------------------------------------------------------------
@@ -204,7 +216,7 @@ $('#world').addEventListener('mousedown', async e => {
     }
     if (!code) return selectNewStep(gx, gy);
     const st = W.data.places.steps.find(s => s.gx === gx && s.gy === gy);
-    if (st) return selectStep(st);
+    if (st?.lead) return selectStep(st);
     return status(`<span class="warn">${T('Something already happens on that square. Pick another, or change that spot.')}</span>`);
   }
   if (W.tool === 'ground' || W.tool === 'overlay') {
@@ -217,6 +229,7 @@ $('#world').addEventListener('mousemove', async e => {
   const [gx, gy] = cellAt(e);
   if (stroke) { paintCell(gx, gy); return; }
   if (gx < 0 || gy < 0 || gx > 255 || gy > 255) return;
+  if (W.placing != null || W.widen != null) return;  // keep the instruction showing
   hover(gx, gy);
 });
 window.addEventListener('mouseup', async () => {
@@ -341,15 +354,17 @@ function buildKinds() {
 // forests) how often they come, and which groups of enemies with what chance.
 async function buildBattles() {
   const pane = $('#battlePane');
-  if (!W.enc) W.enc = await api('/api/world/encounters');
-  if (W.enc.error) { pane.innerHTML = `<div class="note err">${esc(W.enc.error)}</div>`; pane.style.display = ''; return; }
-  const reg = W.enc.regions.find(r => r.region === W.kind);
+  if (!W.enc) W.enc = api('/api/world/encounters');  // the request, shared by quick clicks
+  const enc = await W.enc;
+  if (W.tool !== 'region') return;  // another tool was picked meanwhile
+  if (enc.error) { W.enc = null; pane.innerHTML = `<div class="note err">${esc(enc.error)}</div>`; pane.style.display = ''; return; }
+  const reg = enc.regions.find(r => r.region === W.kind);
   pane.style.display = '';
   if (!reg) { pane.innerHTML = `<div class="note">${T('No random battles here.')}</div>`; return; }
-  battleBoxes(pane, reg.zones.map(z => ({ ...z, note: z.environments.join(', ') })), W.enc.formations, W.adv, async (zone, rate, groups) => {
-    const r = await api('/api/world/encounters', { zone, rate, groups });
+  battleBoxes(pane, reg.zones.map(z => ({ ...z, note: z.environments.join(', ') })), enc.formations, W.adv, async (zone, rate, groups) => {
+    const r = await api('/api/world/encounters', { zone, rate, groups });  // api() refreshes Undo
     if (r.error) return status(`<span class="err">${esc(r.error)}</span>`);
-    W.enc = null; await buildBattles(); refreshUndoSave();
+    W.enc = null; await buildBattles();
     status(r.changed ? `<span class="ok">${T("Saved the region's battles.")}</span> ${T('Press ▶ Play to try it.')}` : T('Nothing changed.'));
   });
 }
@@ -361,7 +376,13 @@ function updateButtons() {
   $('#undo').disabled = !HIST.last; $('#undo').title = localWords(historyTitle(false) + (HIST.last ? ' (⌘Z)' : ''));
   $('#redo').disabled = !HIST.next; $('#redo').title = localWords(historyTitle(true) + (HIST.next ? ' (⇧⌘Z)' : ''));
 }
-async function reloadWorld() { W.enc = null; await loadPlaces(); W.ver++; buildTiles(); }
+// After Undo or Redo: every picture may have changed, but the old ones stay up
+// until each new one has arrived, so the map never goes blank.
+async function reloadWorld() {
+  W.enc = null; W.cells = {};
+  await loadPlaces();
+  reloadChunks(new Set([...document.querySelectorAll('#world img')].map(img => img.dataset.k)));
+}
 function placeLabel(n) { const m = W.maps?.find(x => x.number === n); return m ? (m.label || m.folder) : null; }
 $('#undo').onclick = () => historyStep(false, reloadWorld);
 $('#redo').onclick = () => historyStep(true, reloadWorld);
@@ -385,9 +406,12 @@ $('#resetWorld').onclick = async () => {
 // ---- destination picker (as in the place editor) ----------------------------------------------
 const PK = {};
 function openPicker() {
-  const cur = W.sel?.actor ? W.data.places.icons.find(i => i.actor === W.sel.actor)?.lead : W.sel?.step?.lead;
+  const cur = W.sel?.actor != null ? W.data.places.icons.find(i => i.actor === W.sel.actor)?.lead : W.sel?.step?.lead;
   PK.scene = cur?.scene ?? null; PK.entrance = cur?.entrance ?? null;
   $('#pkFilter').value = ''; pkList(); $('#picker').style.display = 'flex';
+  // Nothing of the last place it showed may stay: its picture, its arrival points or its scroll.
+  $('#pkImg').removeAttribute('src'); $('#pkDots').innerHTML = $('#pkArrivals').innerHTML = '';
+  $('#pkHint').style.display = ''; $('#pkMapWrap').scrollTo(0, 0);
   if (PK.scene != null) pkScene(PK.scene, PK.entrance); else pkUpdate();
 }
 function pkList() {
@@ -400,7 +424,7 @@ function pkList() {
 $('#pkFilter').oninput = pkList;
 $('#pkList').onclick = e => { const id = e.target.closest('[data-id]')?.dataset.id; if (id != null) pkScene(+id, null); };
 async function pkScene(id, entrance) {
-  PK.scene = id; PK.entrance = entrance; pkList();
+  PK.scene = id; PK.entrance = entrance; pkList(); $('#pkMapWrap').scrollTo(0, 0);
   const r = await api(`/api/scene/${id}/arrivals`); if (PK.scene !== id) return;
   $('#pkHint').style.display = 'none'; const dots = $('#pkDots'); dots.innerHTML = '';
   $('#pkArrivals').innerHTML = r.arrivals.length ? '' : `<div class="note" style="padding:12px">${T('No arrival points listed; the party arrives at the default spot (0).')}</div>`;
@@ -430,8 +454,9 @@ $('#pkOk').onclick = async () => {
     : W.sel.newIcon ? await api('/api/world/icon', { action: 'add', ...W.sel.newIcon, ...body })
     : await api('/api/world/icon', { action: 'relink', trigger: W.sel.trigger, ...body });
   if (r.error) return status(`<span class="err">${esc(r.error)}</span>`);
-  if (W.sel.newStep) { W.cells = {}; showPane(null); }
-  if (W.sel.newIcon) { W.sel = null; showPane(null); }
+  // Show what was just made, selected (loadPlaces finds it in the new data).
+  if (W.sel.newStep) { W.cells = {}; W.sel = { step: W.sel.newStep }; }
+  if (W.sel.newIcon) W.sel = { actor: r.actor, trigger: r.trigger };
   await loadPlaces();
   status(`<span class="ok">${T('Now leads to <b>{place}</b>.', { place: esc(r.label) })}</span> ${T('Press ▶ Play to try it.')}`);
 };
@@ -450,6 +475,7 @@ window.addEventListener('keydown', e => {
   const dialog = openDialog();
   if (dialog) { if (e.key === 'Escape') dialog.style.display = 'none'; return; }
   if (e.key === 'Escape' && W.widen != null) { W.widen = null; status(T('Done adding squares.')); return; }
+  if (e.key === 'Escape' && W.placing != null) { W.placing = null; status(''); return; }
   if (isTyping(e.target)) return;  // typing isn't a shortcut
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); (e.shiftKey ? $('#redo') : $('#undo')).click(); return; }
   const t = { v: 'view', g: 'ground', o: 'overlay', r: 'region', t: 'icons', p: 'steps' }[e.key.toLowerCase()];
