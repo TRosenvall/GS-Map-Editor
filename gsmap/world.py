@@ -388,3 +388,79 @@ def move_icon(project, scenes, names, actor, x, z, move_arrivals=True):
     ov.save()
     generate(project.root, scenes, ov)
     return {"actor": actor, "x": x, "z": z, "arrivals_moved": sorted(moved)}
+
+
+# ---- step spots: world cells whose code leads somewhere ---------------------------------
+
+def _step_tables(project, scenes, names):
+    from .doors import DoorEditor
+    from .modgen import Overrides
+    de = DoorEditor(project, scenes, names)
+    sc = next(s for s in scenes.scenes if s["id"] == WORLD_SCENE)
+    o = scenes.overlay(sc["overlay"])
+    ov = Overrides(project.root)
+    return de, o, ov
+
+
+def _cells_with_code(world, code):
+    return [(gx, gy) for gy in range(256) for gx in range(256) if (world.cell(gx, gy)[0] >> 16) & 0xFF == code]
+
+
+def add_step(world, project, scenes, names, gx, gy, target_scene, target_entrance):
+    """Make world cell (gx, gy) a step spot leading to the target: a free code
+    in the cell, an exit event for it and the exit itself, as a door on a
+    place's map is made (doors.py)."""
+    from .doors import EVENT_EXIT
+    from .sceneedit import EVENTS_END
+    de, o, ov = _step_tables(project, scenes, names)
+    de._check_target(target_scene, target_entrance)
+    if not (0 <= gx < 256 and 0 <= gy < 256):
+        raise ValueError(tr("cell {x},{y} is outside the world", x=gx, y=gy))
+    if (world.cell(gx, gy)[0] >> 16) & 0xFF:
+        raise ValueError(tr("Something already happens on that square. Pick another, or change that spot."))
+    events = de._tables([o], ov, "events")
+    exits = de._tables([o], ov, "exits")
+    # Codes from 100 up are the town icons' triggers (100 + actor), so a new
+    # spot takes a low code no event and no cell uses yet.
+    taken = {r["trigger"] for _, _, rs in events for r in rs}
+    taken |= {(w >> 16) & 0xFF for row in world.rows[:LAYER1 // 2] for w in row}
+    code = next((c for c in range(1, ICON_TRIGGER) if c not in taken), None)
+    used = {e["kind"] for _, _, segs in exits for s in segs for e in s.get("exits", [])}
+    used |= {r["value"] for _, _, rs in events for r in rs if r["control"] & 0xF == EVENT_EXIT}
+    kind = next((k for k in range(0xFE, 0, -1) if k not in used), None)
+    if code is None or kind is None:
+        raise ValueError(tr("The world map has no room for more step spots."))
+    for _, _, rows in events:
+        end = next(i for i, r in enumerate(rows) if r["control"] == EVENTS_END)
+        rows.insert(end, {"control": EVENT_EXIT, "trigger": code, "condition": -1, "value": kind})
+    de._set_exit(exits, WORLD_SCENE, kind, target_scene, target_entrance)
+    apply_world_edits(world, [{"gx": gx, "gy": gy, "layer": 0, "code": code}])
+    de._save(ov, events + exits)
+    return {"code": code, "kind": kind, "label": names.scene_label(target_scene)}
+
+
+def remove_step(world, project, scenes, names, gx, gy):
+    """Clear the step spot at (gx, gy): every cell with its code, its exit
+    event and its exit. Spots a scene script opens can't go."""
+    from .doors import EVENT_EXIT
+    de, o, ov = _step_tables(project, scenes, names)
+    code = (world.cell(gx, gy)[0] >> 16) & 0xFF
+    if not code:
+        raise ValueError(tr("That square isn't a step spot."))
+    events = de._tables([o], ov, "events")
+    kind, scripted = de._exit_kind(events, code)
+    if scripted:
+        raise ValueError(tr("This spot is part of a story scene: you can change where it leads, but not remove it."))
+    if kind is not None:
+        exits = de._tables([o], ov, "exits")
+        for _, _, rows in events:
+            rows[:] = [r for r in rows if not (r["trigger"] == code and r["control"] & 0xF == EVENT_EXIT)]
+        if not any(r["control"] & 0xF == EVENT_EXIT and r["value"] == kind for _, _, rs in events for r in rs):
+            for _, _, segs in exits:
+                for seg in segs:
+                    if seg.get("scene") == WORLD_SCENE:
+                        seg["exits"] = [e for e in seg["exits"] if e["kind"] != kind]
+        de._save(ov, events + exits)
+    cells = _cells_with_code(world, code)
+    apply_world_edits(world, [{"gx": x, "gy": y, "layer": 0, "code": 0} for x, y in cells])
+    return {"code": code, "cells": len(cells)}

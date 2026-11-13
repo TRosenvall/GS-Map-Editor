@@ -8,6 +8,7 @@ const HELP = {
   overlay: [T('Paint overlay'), T('Mountains, trees and coastline sit on the overlay, drawn over the ground. Walking is decided by both layers\' tiles.')],
   region: [T('Encounter regions'), T('Each region has its own random battles. Pick one and paint; the region overlay turns on so you can see them.')],
   icons: [T('Towns and dungeons'), T('Drag a town to move it. Click one to change where it leads.')],
+  steps: [T('Step spots'), T('Blue squares lead somewhere when the party steps on them. Click one to change where it leads or remove it, or click any other square to make a new one.')],
 };
 function status(h) { $('#status').innerHTML = h; }
 async function api(path, body) {
@@ -67,10 +68,16 @@ function drawMarks() {
   for (const st of W.data.places.steps) {
     if (!st.lead) continue;
     const el = document.createElement('div');
-    el.className = 'step' + (st.lead.scene == null ? ' nowhere' : '');
+    el.className = 'step' + (st.lead.scene == null ? ' nowhere' : '') + (W.sel?.step && W.sel.step.gx === st.gx && W.sel.step.gy === st.gy ? ' sel' : '');
     Object.assign(el.style, { left: st.gx * 16 * z + 'px', top: st.gy * 16 * z + 'px', width: 16 * z + 'px', height: 16 * z + 'px' });
     el.title = st.lead.scene == null ? T('Leads nowhere') : T('{place}, arrival point {n}', { place: st.lead.label, n: st.lead.entrance });
-    el.onmousedown = e => { e.preventDefault(); if (W.tool === 'view' || W.tool === 'icons') { e.stopPropagation(); selectStep(st); } };
+    el.onmousedown = e => { e.preventDefault(); if (W.tool === 'view' || W.tool === 'icons' || W.tool === 'steps') { e.stopPropagation(); selectStep(st); } };
+    box.appendChild(el);
+  }
+  if (W.sel?.newStep) {  // the square a new step spot would go on
+    const el = document.createElement('div'), { gx, gy } = W.sel.newStep;
+    el.className = 'step sel';
+    Object.assign(el.style, { left: gx * 16 * z + 'px', top: gy * 16 * z + 'px', width: 16 * z + 'px', height: 16 * z + 'px', borderStyle: 'dashed' });
     box.appendChild(el);
   }
   if (W.adv) for (const a of W.data.places.arrivals) {
@@ -86,6 +93,7 @@ function selectIcon(ic) {
     : T('Leads to <b>{place}</b>, arrival point {n}.', { place: esc(lead.label), n: lead.entrance })
       + (W.adv ? ` <span class="note">${T('(trigger {trigger}, exit kind {kind})', { trigger: 100 + ic.actor, kind: lead.kind })}</span>` : '');
   $('#iconLink').style.display = lead ? '' : 'none';
+  $('#iconLink').textContent = T('Change where it leads…'); $('#stepRemove').style.display = 'none';
   showPane('icon'); drawMarks();
 }
 function selectStep(st) {
@@ -94,8 +102,25 @@ function selectStep(st) {
     : T('Stepping here leads to <b>{place}</b>, arrival point {n}.', { place: esc(st.lead.label), n: st.lead.entrance })
       + (W.adv ? ` <span class="note">${T('(code {code})', { code: st.code })}</span>` : '');
   $('#iconLink').style.display = st.lead.scripted ? 'none' : '';
+  $('#iconLink').textContent = T('Change where it leads…');
+  $('#stepRemove').style.display = W.tool === 'steps' && !st.lead.scripted ? '' : 'none';
   showPane('icon'); drawMarks();
 }
+// A square that isn't a step spot yet, in the Step spots tool.
+function selectNewStep(gx, gy) {
+  W.sel = { newStep: { gx, gy } };
+  $('#iconInfo').innerHTML = T('Not a step spot. Make one here, leading anywhere in the game.');
+  $('#iconLink').style.display = ''; $('#iconLink').textContent = T('Make a step spot here…');
+  $('#stepRemove').style.display = 'none';
+  showPane('icon'); drawMarks();
+}
+$('#stepRemove').onclick = async () => {
+  const st = W.sel?.step; if (!st || !confirm(T('Remove this step spot?'))) return;
+  const r = await api('/api/world/step', { action: 'remove', gx: st.gx, gy: st.gy });
+  if (r.error) return status(`<span class="err">${esc(r.error)}</span>`);
+  W.cells = {}; await loadPlaces(); showPane(null);
+  status(`<span class="ok">${T('Removed the step spot.')}</span> ${T('Press ▶ Play to try it.')}`);
+};
 let drag = null;
 function iconDown(e, ic) {
   if (W.tool !== 'view' && W.tool !== 'icons') return;
@@ -152,6 +177,14 @@ $('#world').addEventListener('mousedown', async e => {
     if (W.tool === 'region') { W.kind = (c[0] >>> 24) & 0x7f; buildKinds(); }
     else pickBlock(c[W.tool === 'ground' ? 0 : 1] & 0xffff);
     return;
+  }
+  if (W.tool === 'steps') {
+    if (gx < 0 || gy < 0 || gx > 255 || gy > 255) return;
+    const code = ((await cells(gx, gy))[0] >>> 16) & 0xff;
+    if (!code) return selectNewStep(gx, gy);
+    const st = W.data.places.steps.find(s => s.gx === gx && s.gy === gy);
+    if (st) return selectStep(st);
+    return status(`<span class="warn">${T('Something already happens on that square. Pick another, or change that spot.')}</span>`);
   }
   if (W.tool === 'ground' || W.tool === 'overlay') {
     if (W.block[layerOf()] == null) return status(`<span class="warn">${T('Pick a block first.')}</span>`);
@@ -331,8 +364,11 @@ $('#pkCancel').onclick = () => { $('#picker').style.display = 'none'; };
 $('#pkOk').onclick = async () => {
   $('#picker').style.display = 'none';
   const body = { target_scene: PK.scene, target_entrance: PK.entrance };
-  const r = await api('/api/world/icon', { action: 'relink', trigger: W.sel.trigger, ...body });
+  const r = W.sel.newStep
+    ? await api('/api/world/step', { action: 'add', ...W.sel.newStep, ...body })
+    : await api('/api/world/icon', { action: 'relink', trigger: W.sel.trigger, ...body });
   if (r.error) return status(`<span class="err">${esc(r.error)}</span>`);
+  if (W.sel.newStep) { W.cells = {}; showPane(null); }
   await loadPlaces();
   status(`<span class="ok">${T('Now leads to <b>{place}</b>.', { place: esc(r.label) })}</span> ${T('Press ▶ Play to try it.')}`);
 };
@@ -352,7 +388,7 @@ window.addEventListener('keydown', e => {
   if (dialog) { if (e.key === 'Escape') dialog.style.display = 'none'; return; }
   if (isTyping(e.target)) return;  // typing isn't a shortcut
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); (e.shiftKey ? $('#redo') : $('#undo')).click(); return; }
-  const t = { v: 'view', g: 'ground', o: 'overlay', r: 'region', t: 'icons' }[e.key.toLowerCase()];
+  const t = { v: 'view', g: 'ground', o: 'overlay', r: 'region', t: 'icons', p: 'steps' }[e.key.toLowerCase()];
   if (t && !e.metaKey && !e.ctrlKey) setTool(t);
 });
 (async () => {

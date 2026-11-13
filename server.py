@@ -709,6 +709,25 @@ def make_handler(project, token=None, local_only=True):
                         touched = {(int(e["gx"]) // 16, int(e["gy"]) // 16) for e in body.get("edits", [])}
                         cache.drop(lambda k: k[0] == "world" and k[1] in ("chunk", "walk", "kind") and (k[2], k[3]) in touched)
                     return self.send_json({"ok": True, "saved": len(body.get("edits", [])), "before": before})
+                if path == "/api/world/step":
+                    a = body.get("action")
+                    with writing(N_("adding a step spot") if a == "add" else N_("removing a step spot"), "world"):
+                        w = world()
+                        try:
+                            gx, gy = int(body["gx"]), int(body["gy"])
+                            if a == "add":
+                                r = worldmod.add_step(w, project, scenes(), names, gx, gy,
+                                                      int(body["target_scene"]), int(body["target_entrance"]))
+                            elif a == "remove":
+                                r = worldmod.remove_step(w, project, scenes(), names, gx, gy)
+                            else:
+                                return self.send_json({"error": "unknown step action"}, 400)
+                        except (ValueError, KeyError) as e:
+                            fsio.abort()
+                            state["world"] = None
+                            return self.send_json({"error": str(e)}, 409)
+                        cache.drop(lambda k: k[0] == "world" and k[1] in ("chunk", "walk", "kind"))
+                    return self.send_json({"ok": True, **r})
                 if path == "/api/world/icon":
                     de = DoorEditor(project, scenes(), names)
                     actor = int(body.get("actor", 0))

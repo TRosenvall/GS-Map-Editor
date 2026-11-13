@@ -327,6 +327,7 @@ Choose the world map at the top of the place list. Press **← Places** to go ba
 | **Overlay** | O | Paint mountains, trees and coastline. Walking depends on the tiles of both layers. |
 | **Regions** | R | Paint encounter regions. Each has its own random battles, and each is named after the towns inside it. |
 | **Towns** | T | Drag a town or dungeon to move it. Click one to change where it leads. |
+| **Step spots** | P | Blue squares lead somewhere when stepped on. Click one to change where it leads or remove it, or click any other square to make a new one. |
 
 - Tick **Walkability**, **Encounter regions** or **Places** to show those on the map.
 - When you move a town, **move its arrival points too** keeps you appearing next to it when you leave. It's on by default.
@@ -409,7 +410,7 @@ On Windows and Linux, use Ctrl for ⌘ and Alt for ⌥.
 | P | Move people | |
 | S | Stamp | |
 | F | Fill on or off, in Paint, Walkability and Height | |
-| G / O / R / T | | Ground / Overlay / Regions / Towns |
+| G / O / R / T / P | | Ground / Overlay / Regions / Towns / Step spots |
 | ⌘Z | Undo | Undo |
 | ⇧⌘Z | Redo | Redo |
 | ⌘S | Save | |

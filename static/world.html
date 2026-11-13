@@ -45,6 +45,7 @@
   .icon.nowhere span { color: var(--bad); }
   .step { position: absolute; border: 2px solid #58a6ff; background: #58a6ff33; pointer-events: auto; }
   .step.nowhere { border-color: var(--bad); background: #ff7b7233; }
+  .step.sel { border-color: #e0b84a; background: #e0b84a44; }
   .arr { position: absolute; transform: translate(-50%, -50%); width: 16px; height: 16px; border-radius: 8px; background: #7ee787; color: #000;
          font-size: 9px; font-weight: 700; text-align: center; line-height: 16px; pointer-events: none; }
   .pv { position: absolute; image-rendering: pixelated; outline: 1px solid var(--accent); }
@@ -93,6 +94,7 @@
     <button data-tool="overlay" title="Paint overlay blocks: mountains, trees, coast (O)">Overlay</button>
     <button data-tool="region" title="Paint encounter regions (R)">Regions</button>
     <button data-tool="icons" title="Drag towns and dungeons to move them (T)">Towns</button>
+    <button data-tool="steps" title="Make, change or remove spots that lead somewhere when stepped on (P)">Step spots</button>
   </div>
   <div class="group">
     <button id="undo" disabled title="Undo (⌘Z)">Undo</button>
@@ -115,7 +117,7 @@
   <div class="pane kinds" id="kindPane" style="display:none"></div>
   <div class="pane" id="iconPane" style="display:none">
     <div id="iconInfo"></div>
-    <div class="row"><button id="iconLink" class="primary">Change where it leads…</button></div>
+    <div class="row"><button id="iconLink" class="primary">Change where it leads…</button><button id="stepRemove" style="display:none">Remove spot</button></div>
     <label class="note"><input type="checkbox" id="moveArrivals" checked> When moving, move its arrival points too (where you appear on leaving)</label>
   </div>
 </div>

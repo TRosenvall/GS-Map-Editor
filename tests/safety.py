@@ -472,6 +472,26 @@ with tempfile.TemporaryDirectory() as tmp:
     check("a snowy world edit lands on the cells drawn", w.word(shown, 3, 3) & 0xFFFF != was and
           w.cell(gx, gy)[0] & 0xFFFF != was)
 
+    # ---- world step spots: made leading somewhere, removed without a trace
+    from gsmap import world as worldmod
+    w = World(tmp)
+    before_world = read(w.blocks_path)
+    before_ov = read(os.path.join(tmp, "games/tbs/src/mod/overrides.json"))
+    spot = next((x, y) for y in range(40, 200) for x in range(40, 200) if not (w.cell(x, y)[0] >> 16) & 0xFF)
+    made = worldmod.add_step(w, p, s, n, spot[0], spot[1], vale, 0)
+    places = worldmod.world_places(World(tmp), p, s, n)
+    st = next((x for x in places["steps"] if (x["gx"], x["gy"]) == spot), None)
+    check("a new world step spot leads where it was sent", st and st["lead"] and st["lead"]["scene"] == vale, st)
+    check("and takes a code below the town icons' triggers", 0 < made["code"] < worldmod.ICON_TRIGGER, made)
+    try:
+        worldmod.add_step(w, p, s, n, spot[0], spot[1], vale, 0)
+        check("a square that's already a spot is refused", False)
+    except ValueError:
+        check("a square that's already a spot is refused", True)
+    worldmod.remove_step(w, p, s, n, spot[0], spot[1])
+    check("removing it puts the world back", read(w.blocks_path) == before_world)
+    check("and the scene tables", read(os.path.join(tmp, "games/tbs/src/mod/overrides.json")) == before_ov)
+
 # ---- hostile patches fail quickly and plainly
 src = bytes(range(256)) * 16
 
