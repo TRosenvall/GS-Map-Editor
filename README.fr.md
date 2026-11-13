@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 14351b080d8e -->
+<!-- translated from README.md @ 2037a84ce1a0 -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · [Deutsch](README.de.md) · **Français** · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -193,7 +193,7 @@ Les outils Coffre, Portes et Événements placent eux-mêmes les codes spéciaux
 
 ## Hauteur : la hauteur du sol
 
-Appuyez sur **Hauteur** (H). Le panneau liste les hauteurs que ce lieu utilise déjà, de la plus haute à la plus basse, par exemple « Niveau 3 » ou « Rampe, du niveau 2 au 4, de gauche à droite ». Les hauteurs qui se liraient pareil reçoivent un numéro, et en survoler une indique combien de cases l'utilisent. Choisissez-en une et peignez. Sur la carte, un bleu plus foncé signifie un sol plus haut, et chaque hauteur de la liste montre sa teinte. Le sol le plus bas du lieu n'a pas de bleu du tout : un port ou une plage en bas de la carte n'en montre donc pas.
+Appuyez sur **Hauteur** (H). Le panneau liste les hauteurs que ce lieu utilise déjà, de la plus haute à la plus basse, une par niveau (« Niveau 3 »), et en survoler une indique combien de cases l'utilisent. Les rampes et les cases partagées (moitié d'un niveau, moitié d'un autre, là où un bord passe en diagonale) sont repliées sous **Rampes et cases partagées** ; plusieurs peuvent se lire pareil mais être tournées autrement, alors ⌥-cliquez sur l'une d'elles sur la carte pour la copier exactement. **Avancé** liste chaque hauteur séparément. Choisissez-en une et peignez. Sur la carte, un bleu plus foncé signifie un sol plus haut, et chaque hauteur de la liste montre sa teinte. Le sol le plus bas du lieu n'a pas de bleu du tout : un port ou une plage en bas de la carte n'en montre donc pas.
 
 Les hauteurs se comptent en niveaux, l'unité propre au jeu (un niveau fait 8 pixels, une demi-case). La hauteur influe sur la marche autant que sur l'apparence. Les personnages se tiennent à la hauteur du sol sur lequel ils sont, et le groupe peut monter ou descendre d'un niveau à la fois : deux niveaux ou plus agissent comme un mur. Les rampes relient les niveaux, et une case de rampe peut en gravir deux : escaliers et pentes sont des rampes mises bout à bout.
 

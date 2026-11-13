@@ -190,7 +190,7 @@ The Chest, Doors and Events tools set the special codes they need themselves, so
 
 ## Height: how high the ground is
 
-Press **Height** (H). The panel lists the heights this place already uses, tallest first, such as "Level 3" or "Ramp, level 2 to 4, left to right". Heights that would read the same get a number, and hovering over one says how many squares use it. Pick one and paint. On the map, darker blue means higher ground, and each height in the list has its own shade. The lowest ground in the place has no blue at all, so a harbour or beach at the bottom of the map shows none.
+Press **Height** (H). The panel lists the heights this place already uses, tallest first, one per level ("Level 3"), and hovering over one says how many squares use it. Ramps and split squares (half one level, half another, where an edge runs diagonally) are folded away under **Ramps and split squares**; several can read the same but face other ways, so ⌥-click one on the map to copy it exactly. **Advanced** lists every height on its own. Pick one and paint. On the map, darker blue means higher ground, and each height in the list has its own shade. The lowest ground in the place has no blue at all, so a harbour or beach at the bottom of the map shows none.
 
 Heights are counted in levels, the game's own unit (a level is 8 pixels, half a square). Height affects walking as well as looks. People stand at the height of the ground they're on, and the party can walk up or down one level at a time: two levels or more acts as a wall. Ramps join levels, and one square of ramp can climb two, so stairs and hillsides are ramps laid end to end.
 

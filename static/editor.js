@@ -172,6 +172,10 @@ function collisionColor(v) {
 }
 
 // Heights as the map uses them, tallest first; ⌥-click copies one from the map.
+// The list shows each level once: the place's table can hold several rows that
+// read the same (one per kind of flat, or a split facing another way), so each
+// button stands for a group and paints its most-used row. Ramps and split
+// squares sit in a folded section; Advanced lists every row on its own.
 function buildHeightPanel() {
   const box = $('#heightPanel'), m = S.map; if (!m) return;
   const used = new Map();
@@ -179,32 +183,50 @@ function buildHeightPanel() {
   // A level is the game's own height unit, 8 pixels (a shape row's signed
   // samples), and also the most the party can step up (walk.py's STEP_UP).
   const lv = v => (v > 127 ? v - 256 : v);
+  const FLAT = new Set([0, 14, 15]), TWO = new Set([3, 4, 7, 8, 9]);  // kinds; TWO read two samples
   const describe = v => {
-    const r = m.shapes?.[v]; if (!r) return T('Height {v}', { v });
-    const k = r[0] & 15, n = levelOf(cellHeightPx(r));
-    if (k === 0 || k === 14 || k === 15) return T('Level {n}', { n });
-    if (k === 1) return T('Ramp, level {a} to {b}, left to right', { a: lv(r[1]), b: lv(r[2]) });
-    if (k === 2) return T('Ramp, level {a} to {b}, top to bottom', { a: lv(r[1]), b: lv(r[2]) });
-    return T('Corner or step, up to level {n}', { n });
+    const r = m.shapes?.[v]; if (!r) return [T('Height {v}', { v }), false];
+    const k = r[0] & 15;
+    if (FLAT.has(k)) return [T('Level {n}', { n: lv(r[1]) }), true];
+    if (k === 1) return [T('Ramp, level {a} to {b}, left to right', { a: lv(r[1]), b: lv(r[2]) }), false];
+    if (k === 2) return [T('Ramp, level {a} to {b}, top to bottom', { a: lv(r[1]), b: lv(r[2]) }), false];
+    const ls = (TWO.has(k) ? r.slice(1, 3) : r.slice(1, 4)).map(lv);
+    return [T('Split, levels {a} and {b}', { a: Math.max(...ls), b: Math.min(...ls) }), false];
   };
   const shade = heightShade(m);
-  const rows = [...used.keys()].sort((a, b) => cellHeightPx(m.shapes?.[b]) - cellHeightPx(m.shapes?.[a]));
-  // Heights that read the same (a step facing another way, say) get a number.
-  const seen = {}, label = {};
-  for (const v of rows) { const d = describe(v); seen[d] = (seen[d] || 0) + 1; label[v] = seen[d] > 1 ? `${d} (${seen[d]})` : d; }
+  const order = [...used.keys()].sort((a, b) => cellHeightPx(m.shapes?.[b]) - cellHeightPx(m.shapes?.[a]) || used.get(b) - used.get(a));
+  const groups = new Map();  // label -> {flat, rows}, rows most-used first among equals
+  for (const v of order) {
+    const [d, flat] = S.advanced ? [`${describe(v)[0]} [${hex(v)}]`, describe(v)[1]] : describe(v);
+    if (!groups.has(d)) groups.set(d, { flat, rows: [] });
+    groups.get(d).rows.push(v);
+  }
+  for (const g of groups.values()) g.rows.sort((a, b) => used.get(b) - used.get(a));
   let current = parseInt($('#value').value, 16);
   if (current >= (m.shapes?.length ?? Infinity)) { $('#value').value = ''; current = NaN; }  // another place's height
   box.innerHTML = localWords(`<div class="note" style="padding:0 10px 6px;color:var(--muted);font-size:12px">${T('Pick a height, then paint, or ⌥-click the map to copy one. The party can walk up or down one level at a time; two levels or more is a wall. Ramps join levels: one square of ramp can climb two.')} ${T('On the map, darker blue is higher ground; the lowest ground here has none.')}</div>`);
-  const list = document.createElement('div'); list.style.cssText = 'display:flex;flex-direction:column;gap:3px;padding:0 10px 8px;max-height:240px;overflow:auto';
-  for (const v of rows) {
-    const b = document.createElement('button');
-    const c = shade(v);
-    b.innerHTML = `<i style="background:${c || 'transparent'}"></i>`; b.append(label[v] + (S.advanced ? ` [${hex(v)}]` : ''));
-    b.title = used.get(v) === 1 ? T('1 square here uses this height.') : T('{n} squares here use this height.', { n: used.get(v) });
+  const column = 'display:flex;flex-direction:column;gap:3px';
+  const button = (d, g) => {
+    const b = document.createElement('button'), n = g.rows.reduce((t, v) => t + used.get(v), 0);
+    b.innerHTML = `<i style="background:${shade(g.rows[0]) || 'transparent'}"></i>`; b.append(d);
+    b.title = n === 1 ? T('1 square here uses this height.') : T('{n} squares here use this height.', { n });
     b.style.textAlign = 'left';
-    if (v === current) b.style.borderColor = 'var(--accent)';
-    b.onclick = () => { $('#value').value = hex(v); buildHeightPanel(); };
-    list.appendChild(b);
+    if (g.rows.includes(current)) b.style.borderColor = 'var(--accent)';
+    b.onclick = () => { $('#value').value = hex(g.rows[0]); buildHeightPanel(); };
+    return b;
+  };
+  const list = document.createElement('div'); list.style.cssText = column + ';padding:0 10px 8px;max-height:280px;overflow:auto';
+  const more = document.createElement('details'), inner = document.createElement('div');
+  inner.style.cssText = column + ';margin-top:4px';
+  for (const [d, g] of groups) (g.flat ? list : inner).appendChild(button(d, g));
+  if (inner.children.length) {
+    more.open = !!S.heightMoreOpen || [...groups.values()].some(g => !g.flat && g.rows.includes(current));
+    more.ontoggle = () => { S.heightMoreOpen = more.open; };
+    more.innerHTML = `<summary style="cursor:pointer;color:var(--muted);margin-top:4px">${esc(T('Ramps and split squares ({n})', { n: inner.children.length }))}</summary>`;
+    const note = document.createElement('div');
+    note.style.cssText = 'color:var(--muted);font-size:12px;margin:4px 0';
+    note.textContent = T('These join levels. Several can read the same but face other ways: ⌥-click one on the map to copy it exactly.');
+    more.append(note, inner); list.appendChild(more);
   }
   box.appendChild(list);
 }

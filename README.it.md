@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 14351b080d8e -->
+<!-- translated from README.md @ 2037a84ce1a0 -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · [Deutsch](README.de.md) · [Français](README.fr.md) · **Italiano** · [日本語](README.ja.md)
@@ -193,7 +193,7 @@ Gli strumenti Forziere, Porte ed Eventi impostano da soli i codici speciali di c
 
 ## Altezza: quanto è alto il terreno
 
-Premi **Altezza** (H). Il pannello elenca le altezze che questo luogo usa già, dalla più alta, per esempio "Livello 3" o "Rampa, dal livello 2 al 4, da sinistra a destra". Le altezze che si leggerebbero uguali ricevono un numero, e passandoci sopra con il mouse vedi quante caselle la usano. Scegline una e dipingi. Sulla mappa, un blu più scuro indica un terreno più alto, e ogni altezza dell'elenco mostra la sua tonalità. Il terreno più basso del luogo non ha blu, quindi un porto o una spiaggia in fondo alla mappa non ne mostra.
+Premi **Altezza** (H). Il pannello elenca le altezze che questo luogo usa già, dalla più alta, una per livello ("Livello 3"), e passandoci sopra con il mouse vedi quante caselle la usano. Le rampe e le caselle divise (metà di un livello e metà di un altro, dove un bordo corre in diagonale) sono raccolte sotto **Rampe e caselle divise**; diverse possono leggersi uguali ma essere girate in altro modo, quindi ⌥-clic su una nella mappa per copiarla esattamente. **Avanzate** elenca ogni altezza a sé. Scegline una e dipingi. Sulla mappa, un blu più scuro indica un terreno più alto, e ogni altezza dell'elenco mostra la sua tonalità. Il terreno più basso del luogo non ha blu, quindi un porto o una spiaggia in fondo alla mappa non ne mostra.
 
 Le altezze si contano in livelli, l'unità propria del gioco (un livello è 8 pixel, mezza casella). L'altezza influisce sul camminare oltre che sull'aspetto. Le persone stanno all'altezza del terreno su cui si trovano, e il gruppo può salire o scendere di un livello alla volta: due livelli o più fanno da muro. Le rampe collegano i livelli, e una casella di rampa può salirne due, quindi scale e pendii sono rampe messe una dopo l'altra.
 
