@@ -541,7 +541,7 @@ with tempfile.TemporaryDirectory() as tmp:
 # ---- the world map's battles: a zone rewritten as it was stays byte for byte
 from gsmap import encounters as enc  # noqa: E402
 with tempfile.TemporaryDirectory() as etmp:
-    for rel in (enc.ZONES, enc.RULES, enc.FORMATIONS, enc.ENEMY_IDS, "games/tbs/text/en.po"):
+    for rel in (enc.ZONES, enc.RULES, enc.SCENE_RULES, enc.FORMATIONS, enc.ENEMY_IDS, "games/tbs/text/en.po"):
         os.makedirs(os.path.dirname(os.path.join(etmp, rel)), exist_ok=True)
         shutil.copy(os.path.join(source, rel), os.path.join(etmp, rel))
     zones_path = os.path.join(etmp, enc.ZONES)
@@ -567,10 +567,15 @@ with tempfile.TemporaryDirectory() as etmp:
         except ValueError:
             check("an empty group or a zero chance is refused", True)
     try:
-        again.set_zone(1, 10, [{"formation": 20, "weight": 1}])
-        check("a zone that isn't the world map's is refused", False)
+        again.set_zone(100, 10, [{"formation": 20, "weight": 1}])  # the Venus Djinn's: no random battles
+        check("a zone with no random battles is refused", False)
     except ValueError:
-        check("a zone that isn't the world map's is refused", True)
+        check("a zone with no random battles is refused", True)
+    sol = again.scene_battles("SolSanctumReliefs")
+    check("a place's battles are listed, with when they apply", sol and all(b["groups"] for b in sol)
+          and any("1" in b["when"] for b in sol), sol[:1])
+    again.set_zone(sol[0]["zone"], 20, [{"formation": sol[0]["groups"][0]["formation"], "weight": 3}])
+    check("and can be changed", enc.Encounters(etmp).zones[sol[0]["zone"]]["rate"] == 20)
 
 # ---- hostile patches fail quickly and plainly
 src = bytes(range(256)) * 16

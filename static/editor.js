@@ -1899,6 +1899,25 @@ $('#cnView').onclick = async e => {
 };
 $('#connBtn').onclick = openConnections;
 $('#atlasBtn').onclick = async () => { if (await saveFirst()) location.href = '/atlas.html'; };
+
+// The place's random battles (gsmap/encounters.py, gScene_EncounterRules), in a dialog.
+async function openBattles() {
+  const sc = scene(); if (!S.map || !sc) return status(`<span class="warn">${T('Open a place first.')}</span>`);
+  const label = S.names.sceneById[sc.id]?.label || T('scene {n}', { n: sc.id });
+  $('#btTitle').textContent = T('Battles in {place}', { place: label });
+  $('#battles').style.display = 'flex'; $('#btPane').innerHTML = `<div class="note">${T('Loading…')}</div>`;
+  const r = await api(`/api/scene/${sc.id}/battles`);
+  if (r.error) return $('#btPane').innerHTML = `<div class="err">${esc(r.error)}</div>`;
+  if (!r.battles.length) return $('#btPane').innerHTML = `<div class="note" style="padding:12px 0">${T('No random battles in {place}.', { place: esc(label) })}</div>`;
+  battleBoxes($('#btPane'), r.battles, r.formations, S.advanced, async (zone, rate, groups) => {
+    const s = await api('/api/battles', { zone, rate, groups, map: S.map.number });
+    if (s.error) return status(`<span class="err">${esc(s.error)}</span>`);
+    await openBattles(); refreshUndoSave();
+    status(s.changed ? `<span class="ok">${T("Saved this place's battles.")}</span> ${T('Press ▶ Play to try it.')}` : T('Nothing changed.'));
+  });
+}
+$('#battlesBtn').onclick = openBattles;
+$('#btClose').onclick = () => { $('#battles').style.display = 'none'; };
 $('#cnClose').onclick = () => { $('#conn').style.display = 'none'; };
 
 // ---- export: the mod as a patch file ----------------------------------------------------

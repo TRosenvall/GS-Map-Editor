@@ -26,6 +26,7 @@ from .messages import Messages
 
 ZONES = f"{layout.SRC}/field/encounter_zones.c"
 RULES = f"{layout.SRC}/field/world_map_encounter_rules.c"
+SCENE_RULES = f"{layout.SRC}/field/encounter_rules.s"  # gScene_EncounterRules: places' zones
 FORMATIONS = f"{layout.SRC}/battle/formations.c"
 ENEMY_IDS = f"{layout.INCLUDE}/enemy_ids.h"
 MAX_GROUPS = 8   # ENCOUNTER_GROUP_COUNT
@@ -97,6 +98,7 @@ class Encounters:
         self.text = _read(root, ZONES)
         self.zones = [self._zone(self.text[a:b]) for a, b in _entries(self.text, "gEncounterZones")]
         self.rules = self._rules()
+        self.scene_rules = self._scene_rules()
         self.enemies = self._enemies()
         self.formations = self._formations()
 
@@ -119,6 +121,52 @@ class Encounters:
                 break
             out.append({"region": region, "environment": env, "flag": flag, "zone": zone})
         return out
+
+    def _scene_rules(self):
+        """gScene_EncounterRules: [{scene (name), entrance, flag, shift, zone}]. On
+        entering, the first rule for the scene and arrival point that its flag
+        doesn't turn off gives the zones (Encounter_SelectMapZones): encounter
+        ground A (walkability 240) takes the zone, or with shift ordinary ground."""
+        try:
+            text = _read(self.root, SCENE_RULES)
+        except OSError:
+            return []
+        out = []
+        for m in re.finditer(r"^\s*encounter_rule\s+(\w+),\s*(-?\w+),\s*(-?\w+),\s*(\d+),\s*(\d+)", text, re.M):
+            out.append({"scene": m.group(1), "entrance": int(m.group(2), 0), "flag": int(m.group(3), 0),
+                        "shift": int(m.group(4)), "zone": int(m.group(5))})
+        return out
+
+    def _zone_view(self, zid):
+        zone = self.zones[zid]
+        return {"zone": zid, "rate": zone["rate"], "level": zone["level"],
+                "groups": [{"formation": f, "weight": w, "label": self.formation_label(f)}
+                           for f, w in zip(zone["formations"], zone["weights"])]}
+
+    def scene_battles(self, scene_name, flag_label=None, scene_label=None):
+        """The battles of one place: per rule, where they happen (an arrival
+        point, a story flag) and its zone, and the other places sharing it."""
+        out = []
+        for r in self.scene_rules:
+            if r["scene"] != scene_name or not r["zone"]:
+                continue
+            others = sorted({x["scene"] for x in self.scene_rules if x["zone"] == r["zone"] and x["scene"] != scene_name})
+            when = []
+            if r["entrance"] != -1:
+                when.append(tr("arriving at point {n}", n=r["entrance"]))
+            if r["flag"] != -1:
+                when.append(tr("until {flag} is set", flag=flag_label(r["flag"]) if flag_label else hex(r["flag"])))
+            out.append(dict(self._zone_view(r["zone"]),
+                            where=tr("Anywhere you walk") if r["shift"] else tr("On encounter ground A"),
+                            when=", ".join(when),
+                            shared=[scene_label(s) if scene_label else s for s in others]))
+        # The same zone listed once, with every condition it comes under.
+        merged = {}
+        for b in out:
+            m = merged.setdefault(b["zone"], dict(b, when=[]))
+            if b["when"] and b["when"] not in m["when"]:
+                m["when"].append(b["when"])
+        return [dict(b, when="; ".join(b["when"])) for b in merged.values()]
 
     def _enemies(self):
         text = _strip_comments(_read(self.root, ENEMY_IDS))
@@ -190,10 +238,14 @@ class Encounters:
     def world_zones(self):
         return {r["zone"] for r in self.rules}
 
+    def editable_zones(self):
+        """Zones the world map or a place uses for random battles."""
+        return self.world_zones() | {r["zone"] for r in self.scene_rules if r["zone"]}
+
     def set_zone(self, zone_id, rate, groups):
         """Change a world map zone's rate and its formations with their chances."""
-        if zone_id not in self.world_zones():
-            raise ValueError(tr("That isn't one of the world map's encounter zones."))
+        if zone_id not in self.editable_zones():
+            raise ValueError(tr("That isn't a zone of random battles."))
         rate = int(rate)
         if not 0 <= rate <= 100:
             raise ValueError(tr("The rate should be 0 to 100."))

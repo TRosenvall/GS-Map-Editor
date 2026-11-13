@@ -346,34 +346,12 @@ async function buildBattles() {
   const reg = W.enc.regions.find(r => r.region === W.kind);
   pane.style.display = '';
   if (!reg) { pane.innerHTML = `<div class="note">${T('No random battles here.')}</div>`; return; }
-  const choices = W.enc.formations.map(f => `<option value="${f.formation}">${esc(f.label)}${W.adv ? ` [${f.formation}]` : ''}</option>`).join('');
-  pane.innerHTML = `<div class="note"><b>${T('Battles here')}</b></div>` + reg.zones.map((z, zi) => `
-    <div class="battle" data-z="${zi}">
-      <div><b>${esc(z.where)}</b> <span class="note">${esc(z.environments.join(', '))} · ${T('made for level {n}', { n: z.level })}</span></div>
-      <label class="note">${T('How often (0 = never, higher is more often)')} <input type="number" min="0" max="100" class="rate" value="${z.rate}" style="width:56px"></label>
-      <div class="note">${T('Groups of enemies, and how likely each is')}</div>
-      <div class="grps">${z.groups.map(g => groupRow(choices, g)).join('')}</div>
-      <div class="row"><button class="add">${T('Add a group')}</button><button class="save primary">${T('Save')}</button></div>
-    </div>`).join('');
-  for (const box of pane.querySelectorAll('.battle')) {
-    const z = reg.zones[+box.dataset.z];
-    box.querySelectorAll('.grp select').forEach((s, i) => { s.value = z.groups[i].formation; });
-    box.querySelector('.add').onclick = () => {
-      if (box.querySelectorAll('.grp').length >= 8) return status(`<span class="warn">${T('A zone holds at most 8 groups.')}</span>`);
-      box.querySelector('.grps').insertAdjacentHTML('beforeend', groupRow(choices, { formation: W.enc.formations[0].formation, weight: 4 }));
-    };
-    box.querySelector('.grps').onclick = e => { if (e.target.closest('.drop')) e.target.closest('.grp').remove(); };
-    box.querySelector('.save').onclick = async () => {
-      const groups = [...box.querySelectorAll('.grp')].map(g => ({ formation: +g.querySelector('select').value, weight: +g.querySelector('input').value }));
-      const r = await api('/api/world/encounters', { zone: z.zone, rate: +box.querySelector('.rate').value, groups });
-      if (r.error) return status(`<span class="err">${esc(r.error)}</span>`);
-      W.enc = null; await buildBattles(); refreshUndoSave();
-      status(r.changed ? `<span class="ok">${T("Saved the region's battles.")}</span> ${T('Press ▶ Play to try it.')}` : T('Nothing changed.'));
-    };
-  }
-}
-function groupRow(choices, g) {
-  return `<div class="grp"><select>${choices}</select><input type="number" min="1" max="255" value="${g.weight}" title="${T('How likely, compared with the other groups')}"><button class="drop" title="${T('Remove this group')}">×</button></div>`;
+  battleBoxes(pane, reg.zones.map(z => ({ ...z, note: z.environments.join(', ') })), W.enc.formations, W.adv, async (zone, rate, groups) => {
+    const r = await api('/api/world/encounters', { zone, rate, groups });
+    if (r.error) return status(`<span class="err">${esc(r.error)}</span>`);
+    W.enc = null; await buildBattles(); refreshUndoSave();
+    status(r.changed ? `<span class="ok">${T("Saved the region's battles.")}</span> ${T('Press ▶ Play to try it.')}` : T('Nothing changed.'));
+  });
 }
 
 // ---- undo, build, play --------------------------------------------------------------------

@@ -111,7 +111,38 @@ async function historyStep(redo, after) {
 }
 
 // Escape closes whatever dialog is open; a dialog being open also stops the tool keys.
-const DIALOGS = ['failDialog', 'evEdit', 'picker', 'checks', 'conn', 'exp', 'ptc'];
+const DIALOGS = ['failDialog', 'evEdit', 'picker', 'checks', 'conn', 'exp', 'ptc', 'battles'];
 function openDialog() {
   return DIALOGS.map(id => document.getElementById(id)).find(d => d && getComputedStyle(d).display !== 'none');
+}
+
+// The random battles of some encounter zones, editable (gsmap/encounters.py): for
+// each, how often they come and which groups of enemies with what chance. Used by
+// the world map's regions and the place editor's Battles dialog. zones: [{zone,
+// where, note?, when?, shared?, level, rate, groups: [{formation, weight}]}];
+// save(zone, rate, groups) is called with a zone's new values.
+function battleBoxes(pane, zones, formations, advanced, save) {
+  const choices = formations.map(f => `<option value="${f.formation}">${esc(f.label)}${advanced ? ` [${f.formation}]` : ''}</option>`).join('');
+  const row = g => `<div class="grp"><select>${choices}</select><input type="number" min="1" max="255" value="${g.weight}" title="${T('How likely, compared with the other groups')}"><button class="drop" title="${T('Remove this group')}">×</button></div>`;
+  pane.innerHTML = `<div class="note"><b>${T('Battles here')}</b></div>` + zones.map((z, zi) => `
+    <div class="battle" data-z="${zi}">
+      <div><b>${esc(z.where)}</b> <span class="note">${z.note ? esc(z.note) + ' · ' : ''}${T('made for level {n}', { n: z.level })}</span></div>
+      ${z.when ? `<div class="note">${esc(z.when)}</div>` : ''}
+      ${z.shared?.length ? `<div class="note warn">${T('Also used by {places}: a change shows there too.', { places: esc(z.shared.slice(0, 4).join(', ') + (z.shared.length > 4 ? '…' : '')) })}</div>` : ''}
+      <label class="note">${T('How often (0 = never, higher is more often)')} <input type="number" min="0" max="100" class="rate" value="${z.rate}" style="width:56px"></label>
+      <div class="note">${T('Groups of enemies, and how likely each is')}</div>
+      <div class="grps">${z.groups.map(row).join('')}</div>
+      <div class="row"><button class="add">${T('Add a group')}</button><button class="save primary">${T('Save')}</button></div>
+    </div>`).join('');
+  for (const box of pane.querySelectorAll('.battle')) {
+    const z = zones[+box.dataset.z];
+    box.querySelectorAll('.grp select').forEach((s, i) => { s.value = z.groups[i].formation; });
+    box.querySelector('.add').onclick = () => {
+      if (box.querySelectorAll('.grp').length >= 8) return status(`<span class="warn">${T('A zone holds at most 8 groups.')}</span>`);
+      box.querySelector('.grps').insertAdjacentHTML('beforeend', row({ formation: formations[0].formation, weight: 4 }));
+    };
+    box.querySelector('.grps').onclick = e => { if (e.target.closest('.drop')) e.target.closest('.grp').remove(); };
+    box.querySelector('.save').onclick = () => save(z.zone, +box.querySelector('.rate').value,
+      [...box.querySelectorAll('.grp')].map(g => ({ formation: +g.querySelector('select').value, weight: +g.querySelector('input').value })));
+  }
 }

@@ -27,6 +27,7 @@ The editor works on [alchemy](https://github.com/PascalPixel/alchemy), a project
 - [Stamp: copy and paste](#stamp-copy-and-paste)
 - [Importing your own pictures](#importing-your-own-pictures)
 - [Story and scene tables](#story-and-scene-tables)
+- [Battles in a place](#battles-in-a-place)
 - [Connections](#connections)
 - [Atlas: every place at once](#atlas-every-place-at-once)
 - [The world map](#the-world-map)
@@ -313,6 +314,10 @@ The picture is fitted to this place's colours, and repeated pieces are reused to
 
 The **Story and scene** panel shows the scenes that use this map and the tables behind them, with friendly names such as "Arrival points: normal". Arrival points and people show on the map. Exits are edited as a list, with a check that the arrival point you pick exists. Most of the time the Doors, Events and Move people tools are easier.
 
+## Battles in a place
+
+Press **Battles…** to see the random battles of the place you're in: how often they come, and which groups of enemies appear with how likely each is. Change them and press **Save**. In most caves and dungeons the battles happen anywhere you walk; in some, only on squares painted **Encounter ground A** in Walkability. Some places share their battles with others, and the dialog says so: a change shows in all of them.
+
 ## Connections
 
 Press **Connections** to see any place in the middle, with every place that leads to it on the left and everywhere it leads on the right. Click a place to move there, or press **Open** to jump to that door in the editor. Use the search box to find a place.
@@ -433,7 +438,7 @@ On Windows and Linux, use Ctrl for ⌘ and Alt for ⌥.
 - **The Lost Age**, and editions other than English.
 - **Windows or Linux** as a packaged app.
 - **Brand new places:** there's no button for adding one.
-- **Battles and game data:** monsters, items, shops and music can't be edited, nor the battles inside places. On the world map you can choose each region's groups of enemies and how often they come, from the groups the game has.
+- **Battles and game data:** monsters, items, shops and music can't be edited. You can choose which of the game's groups of enemies appear where, and how often, but not make new groups.
 - **Story scripts:** you can change what people say and when, and add simple events, but not write cutscenes.
 - **The pause-screen map.**
 

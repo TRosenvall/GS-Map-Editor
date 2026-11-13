@@ -68,6 +68,14 @@
   .map .t { grid-column: 1 / 3; }
   #stampPanel, #chestPanel, #doorPanel { padding: 0 10px 10px; display: none; }
   #doorPanel .row { display: flex; gap: 6px; align-items: center; margin: 6px 0; flex-wrap: wrap; }
+  #battles { position: fixed; inset: 0; background: #000a; z-index: 50; display: none; align-items: center; justify-content: center; }
+  #battles .bt { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; width: min(560px, 94vw); max-height: 86vh; overflow: auto; }
+  #battles .ckHead { display: flex; gap: 10px; align-items: center; padding: 10px 14px; }
+  #btPane { padding: 0 14px 14px; }
+  .battle { border: 1px solid var(--line); border-radius: 6px; padding: 8px; margin: 8px 0; }
+  .battle .grp { display: flex; gap: 4px; align-items: center; margin: 3px 0; }
+  .battle .grp select { flex: 1; min-width: 0; }
+  .battle .grp input { width: 52px; }
   #checks { position: fixed; inset: 0; background: #000a; z-index: 50; display: none; align-items: center; justify-content: center; }
   #checks .ck { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; width: min(820px, 94vw); max-height: 86vh;
     display: grid; grid-template-rows: auto 1fr auto; overflow: hidden; }
@@ -186,7 +194,7 @@
     <button id="redo" disabled title="Redo (⇧⌘Z)">Redo</button>
     <button id="save" class="primary" disabled>Saved</button>
     <button id="resetMap" title="Put this place back as the original game has it">Reset place…</button>
-    <button id="connBtn" title="See how this place connects to the rest of the game">Connections</button><button id="atlasBtn" title="Every place on one map, joined by its doors">Atlas</button>
+    <button id="connBtn" title="See how this place connects to the rest of the game">Connections</button><button id="atlasBtn" title="Every place on one map, joined by its doors">Atlas</button><button id="battlesBtn" title="The random battles in this place: how often, and which enemies">Battles…</button>
     <button id="check" title="Look for problems your changes would cause in the game">Check<span id="checkBadge" style="display:none"></span></button>
     <button id="build" class="adv" title="Build the game without opening it">Build</button>
     <button id="play" class="primary" title="Save, check, build and open your game at this place">▶ Play</button>
@@ -324,6 +332,10 @@
 <div id="conn"><div class="cn">
   <div class="cnHead"><b>Connections</b><input id="cnFilter" type="search" placeholder="Find a place" style="flex:1"><button id="cnClose">Close</button></div>
   <div class="cnBody"><div id="cnList"></div><div id="cnView"></div></div>
+</div></div>
+<div id="battles"><div class="bt">
+  <div class="ckHead"><b id="btTitle">Battles</b><span style="flex:1"></span><button id="btClose">Close</button></div>
+  <div id="btPane"></div>
 </div></div>
 <div id="checks"><div class="ck">
   <div class="ckHead"><b id="ckTitle">Checking…</b><span style="flex:1"></span><button id="ckRerun">Check again</button><button id="ckClose">Close</button></div>

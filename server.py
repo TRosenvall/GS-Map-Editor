@@ -546,6 +546,21 @@ def make_handler(project, token=None, local_only=True):
                 if m and m.group(1) in project.maps:
                     doors = DoorEditor(project, scenes(), names).list(project.maps[m.group(1)])
                     return self.send_json({str(k): v for k, v in doors.items()})
+                m = re.fullmatch(r"/api/scene/(\d+)/battles", path)
+                if m:
+                    sc = next((s for s in scenes().scenes if s["id"] == int(m.group(1))), None)
+                    if sc is None:
+                        return self.send_json({"error": "no such scene"}, 404)
+                    try:
+                        enc = Encounters(project.root)
+                    except (OSError, ValueError) as e:
+                        return self.send_json({"error": tr("Can't read the game's battles: {why}", why=e)}, 409)
+                    fnames = flag_names(names.root)
+                    by_name = {s["name"]: s["id"] for s in scenes().scenes}
+                    return self.send_json({
+                        "battles": enc.scene_battles(sc["name"], lambda f: flag_label(f, fnames),
+                                                     lambda s: names.scene_label(by_name[s]) if s in by_name else s),
+                        "formations": enc.formation_choices()})
                 m = re.fullmatch(r"/api/scene/(\d+)/arrivals", path)
                 if m:
                     sid = int(m.group(1))
@@ -770,8 +785,10 @@ def make_handler(project, token=None, local_only=True):
                     s["atlas"] = moved
                     setupmod.save_settings(s)
                     return self.send_json({"ok": True})
-                if path == "/api/world/encounters":
-                    with writing(N_("changing a region's battles"), "world"):
+                if path in ("/api/world/encounters", "/api/battles"):
+                    world_page = path == "/api/world/encounters"
+                    with writing(N_("changing a region's battles") if world_page else N_("changing a place's battles"),
+                                 "world" if world_page else body.get("map")):
                         try:
                             changed = Encounters(project.root).set_zone(int(body["zone"]), int(body["rate"]),
                                                                         list(body["groups"]))
