@@ -1862,6 +1862,7 @@ $('#cnView').onclick = async e => {
   cnShow(CN.data[lk.dataset.dir][+lk.dataset.i].scene);
 };
 $('#connBtn').onclick = openConnections;
+$('#atlasBtn').onclick = async () => { if (await saveFirst()) location.href = '/atlas.html'; };
 $('#cnClose').onclick = () => { $('#conn').style.display = 'none'; };
 
 // ---- export: the mod as a patch file ----------------------------------------------------

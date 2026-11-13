@@ -28,6 +28,7 @@ The editor works on [alchemy](https://github.com/PascalPixel/alchemy), a project
 - [Importing your own pictures](#importing-your-own-pictures)
 - [Story and scene tables](#story-and-scene-tables)
 - [Connections](#connections)
+- [Atlas: every place at once](#atlas-every-place-at-once)
 - [The world map](#the-world-map)
 - [Check: finding problems](#check-finding-problems)
 - [Playing your game](#playing-your-game)
@@ -315,6 +316,15 @@ The **Story and scene** panel shows the scenes that use this map and the tables 
 ## Connections
 
 Press **Connections** to see any place in the middle, with every place that leads to it on the left and everywhere it leads on the right. Click a place to move there, or press **Open** to jump to that door in the editor. Use the search box to find a place.
+
+## Atlas: every place at once
+
+Press **Atlas** to see every place on one canvas, joined by lines for their doors and exits. Golden Sun's places don't join edge to edge, so the atlas lays them out itself: each town or dungeon sits near its spot on the world map, with its houses and rooms beside it, starting from the way in.
+
+- Drag the background to look around, and scroll to zoom. **Fit** shows everything.
+- Hover over a place to light up its doors and the places they lead to.
+- Click a place to open it in the editor. Drag one to move it: the atlas remembers where you put it, and **Reset layout** puts everything back. Where places sit in the atlas is only for you; it doesn't change the game.
+- Solid lines start at a door; dashed ones are exits a story scene or script uses.
 
 ## The world map
 

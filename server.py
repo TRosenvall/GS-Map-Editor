@@ -36,6 +36,8 @@ from gsmap.chests import ChestEditor
 from gsmap.doors import DoorEditor
 from gsmap.checks import Checker
 from gsmap.encounters import Encounters
+from gsmap import atlas as atlasmod
+from PIL import Image
 from gsmap.events import EventEditor, flag_names, flag_label, search_targets
 from gsmap.connections import Connections
 from gsmap import world as worldmod
@@ -141,6 +143,7 @@ def make_handler(project, token=None, local_only=True):
         project.reload()
         state["world"] = None
         state["conn"] = None
+        state["atlas"] = None
         cache.drop(lambda k: True)
 
     def walk_for(n, sid, table=None, edits=()):
@@ -546,6 +549,25 @@ def make_handler(project, token=None, local_only=True):
                     n = m.group(1)
                     body = cache.get(("render", n), lambda: png(project.render(project.maps[n])))
                     return self.send_bytes(body, "image/png")
+                if path == "/api/atlas":
+                    if state.get("atlas") is None:
+                        w = world()
+                        state["atlas"] = atlasmod.build(project, scenes(), names,
+                                                        worldmod.world_places(w, project, scenes(), names))
+                    saved = setupmod.load_settings().get("atlas") or {}
+                    out = dict(state["atlas"], maps=[dict(m, **({"x": saved[m["map"]][0], "y": saved[m["map"]][1],
+                                                                  "moved": True} if m["map"] in saved else {}))
+                                                     for m in state["atlas"]["maps"]])
+                    return self.send_json(out)
+                m = re.fullmatch(r"/api/map/(\w+)/thumb\.png", path)
+                if m and m.group(1) in project.maps:
+                    n = m.group(1)
+
+                    def thumb():
+                        img = project.render(project.maps[n])
+                        size = (max(1, round(img.width * atlasmod.SCALE)), max(1, round(img.height * atlasmod.SCALE)))
+                        return png(img.resize(size, Image.BOX))
+                    return self.send_bytes(cache.get(("thumb", n), thumb), "image/png")
                 m = re.fullmatch(r"/api/map/(\w+)/chests", path)
                 if m and m.group(1) in project.maps:
                     return self.send_json(ChestEditor(project, scenes(), names).list(project.maps[m.group(1)]))
@@ -591,6 +613,8 @@ def make_handler(project, token=None, local_only=True):
             if self.headers.get("X-GSMap") != "1" or (origin and urlsplit(origin).netloc != host_header):
                 return self.send_json({"error": "cross-site write refused"}, 403)
             state["conn"] = None  # links may change
+            if not self.path.startswith("/api/atlas/"):
+                state["atlas"] = None  # and so may the atlas, except when only its layout moves
             try:
                 length = int(self.headers.get("Content-Length", "0"))
                 if length > MAX_REQUEST:
@@ -720,6 +744,20 @@ def make_handler(project, token=None, local_only=True):
                         touched = {(int(e["gx"]) // 16, int(e["gy"]) // 16) for e in body.get("edits", [])}
                         cache.drop(lambda k: k[0] == "world" and k[1] in ("chunk", "walk", "kind") and (k[2], k[3]) in touched)
                     return self.send_json({"ok": True, "saved": len(body.get("edits", [])), "before": before})
+                if path in ("/api/atlas/move", "/api/atlas/reset"):
+                    # Where the atlas draws a map: the editor's own setting, not part of the mod.
+                    s = setupmod.load_settings()
+                    moved = s.get("atlas") if isinstance(s.get("atlas"), dict) else {}
+                    if path.endswith("reset"):
+                        moved = {}
+                    else:
+                        n = str(body.get("map"))
+                        if n not in project.maps:
+                            return self.send_json({"error": "no such map"}, 400)
+                        moved[n] = [int(body["x"]), int(body["y"])]
+                    s["atlas"] = moved
+                    setupmod.save_settings(s)
+                    return self.send_json({"ok": True})
                 if path == "/api/world/encounters":
                     with writing(N_("changing a region's battles"), "world"):
                         try:

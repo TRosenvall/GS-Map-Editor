@@ -26,7 +26,7 @@
   header a { color: var(--muted); text-decoration: none; } header a:hover { color: var(--text); }
   .group { display: flex; gap: 6px; align-items: center; }
   .group label { display: flex; gap: 4px; align-items: center; color: var(--muted); }
-  select, input[type=search] { background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 4px; padding: 3px 6px; font: inherit; }
+  select, input[type=search], input[type=number] { background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 4px; padding: 3px 6px; font: inherit; }
   button { background: #2a2f3a; color: var(--text); border: 1px solid var(--line); border-radius: 4px; padding: 4px 10px; font: inherit; cursor: pointer; }
   button:hover:not(:disabled) { background: #343a47; } button:disabled { opacity: .45; cursor: default; }
   button.primary { background: #4a3d12; border-color: #8a6d1f; }
@@ -85,6 +85,7 @@
 <body>
 <header>
   <a href="/" title="Back to the towns and dungeons">← Places</a>
+  <a href="/atlas.html" title="Every place on one map, joined by its doors">Atlas</a>
   <h1>World map</h1>
   <div class="group"><label>Zoom <select id="zoom"><option value="0.25">¼</option><option value="0.5" selected>½</option><option value="1">1</option><option value="2">2</option></select></label></div>
   <div class="group">

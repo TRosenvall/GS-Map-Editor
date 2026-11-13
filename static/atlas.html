@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atlas</title>
+<style>
+  :root {
+    --bg: #15171c; --panel: #1d2027; --line: #2c313b; --text: #e3e6ec;
+    --muted: #8b93a3; --accent: #e0b84a; --sel: #2d3442; --bad: #ff7b72; --good: #7ee787; --door: #58a6ff;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 13px/1.4 -apple-system, system-ui, sans-serif;
+         height: 100vh; display: grid; grid-template-rows: auto 1fr auto; }
+  body.busy, body.busy * { cursor: progress !important; }
+  header { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; padding: 8px 12px;
+           background: var(--panel); border-bottom: 1px solid var(--line); }
+  header h1 { font-size: 14px; margin: 0; color: var(--accent); font-weight: 600; }
+  header a { color: var(--muted); text-decoration: none; } header a:hover { color: var(--text); }
+  .group { display: flex; gap: 6px; align-items: center; }
+  .group label { display: flex; gap: 4px; align-items: center; color: var(--muted); }
+  select, input[type=search] { background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 4px; padding: 3px 6px; font: inherit; }
+  button { background: #2a2f3a; color: var(--text); border: 1px solid var(--line); border-radius: 4px; padding: 4px 10px; font: inherit; cursor: pointer; }
+  button:hover { background: #343a47; }
+  #view { position: relative; overflow: hidden; background: #0b0c0f; cursor: grab; }
+  #view.panning { cursor: grabbing; }
+  #atlas { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+  #links { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+  #links line { stroke: var(--door); stroke-width: 2; opacity: .35; vector-effect: non-scaling-stroke; }
+  #links line.event { stroke: var(--muted); stroke-dasharray: 4 4; }
+  #links line.on { opacity: 1; stroke: var(--accent); }
+  .m { position: absolute; border: 1px solid #fff2; cursor: pointer; background: #000; }
+  .m img { display: block; width: 100%; height: 100%; image-rendering: pixelated; pointer-events: none; -webkit-user-drag: none; }
+  .m span { position: absolute; left: 0; top: -18px; white-space: nowrap; font-size: 12px; color: var(--text);
+            background: #000b; padding: 0 4px; border-radius: 3px; pointer-events: none; }
+  .m.on { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+  .m.near { border-color: var(--door); }
+  .m.found { box-shadow: 0 0 0 4px var(--good); }
+  footer { padding: 4px 12px; background: var(--panel); border-top: 1px solid var(--line); color: var(--muted); min-height: 24px; }
+  .ok { color: var(--good); } .err { color: var(--bad); }
+</style>
+</head>
+<body>
+<header>
+  <a href="/" title="Back to the place editor">← Places</a>
+  <h1>Atlas</h1>
+  <div class="group"><input id="find" type="search" placeholder="Find a place (e.g. Vale)" style="width:220px"></div>
+  <div class="group">
+    <button id="zoomOut" title="Zoom out">−</button><button id="zoomIn" title="Zoom in">+</button><button id="fit" title="Show every place">Fit</button>
+  </div>
+  <div class="group"><label><input type="checkbox" id="showLinks" checked> Doors and exits</label></div>
+  <div class="group"><button id="resetLayout" title="Put every place back where the atlas first laid it out">Reset layout</button></div>
+  <div class="group" style="margin-left:auto"><label title="The editor's language. The game stays in English.">🌐 <select id="lang" style="width:auto"></select></label></div>
+</header>
+<main id="view"><div id="atlas"><svg id="links"></svg></div></main>
+<footer id="status">Loading every place…</footer>
+<script src="i18n-strings.js"></script>
+<script src="i18n.js"></script>
+<script src="common.js"></script>
+<script src="atlas.js"></script>
+</body>
+</html>
