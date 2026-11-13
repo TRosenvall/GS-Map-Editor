@@ -478,7 +478,7 @@ function fillAt(x, y) {
   }
   for (const [gx, gy] of cells) write(gx, gy);
   drawAll();
-  status(T('Filled {n} squares. Save to keep them.', { n: cells.length }));
+  status(cells.length === 1 ? T('Filled 1 square. Save to keep it.') : T('Filled {n} squares. Save to keep them.', { n: cells.length }));
 }
 
 function eyedrop(x, y) {
