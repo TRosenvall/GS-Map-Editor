@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 1a86f855b136 -->
+<!-- translated from README.md @ 235b4e045120 -->
 # GS Map Editor
 
 [English](README.md) · **Español** · [Deutsch](README.de.md) · [Français](README.fr.md) · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -193,7 +193,7 @@ Las herramientas Cofre, Puertas y Eventos ponen ellas mismas los códigos especi
 
 ## Altura: lo alto que está el suelo
 
-Pulsa **Altura** (H). El panel muestra las alturas que ya usa este lugar, de la más alta a la más baja, como "Plano, 24 px" o "Pendiente, de 16 a 24 px de izquierda a derecha". Las alturas que se leerían igual llevan un número, y al pasar el cursor sobre una ves cuántas casillas la usan. Elige una y pinta.
+Pulsa **Altura** (H). El panel muestra las alturas que ya usa este lugar, de la más alta a la más baja, como "Plano, 24 px" o "Pendiente, de 16 a 24 px de izquierda a derecha". Las alturas que se leerían igual llevan un número, y al pasar el cursor sobre una ves cuántas casillas la usan. Elige una y pinta. En el mapa, un azul más oscuro significa suelo más alto, y cada altura de la lista muestra su tono. El suelo más bajo del lugar no tiene azul, así que un puerto o una playa al pie del mapa no muestra ninguno.
 
 La altura afecta a por dónde se camina además de a cómo se ve. Las personas están a la altura del suelo que pisan, y el juego no permite un paso de más de 8 píxeles hacia arriba ni de más de 12 hacia abajo, así que una gran diferencia de altura actúa como una pared.
 

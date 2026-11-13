@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 1a86f855b136 -->
+<!-- translated from README.md @ 235b4e045120 -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · [Deutsch](README.de.md) · [Français](README.fr.md) · **Italiano** · [日本語](README.ja.md)
@@ -193,7 +193,7 @@ Gli strumenti Forziere, Porte ed Eventi impostano da soli i codici speciali di c
 
 ## Altezza: quanto è alto il terreno
 
-Premi **Altezza** (H). Il pannello elenca le altezze che questo luogo usa già, dalla più alta, per esempio "Piano, 24 px" o "Pendenza, da 16 a 24 px da sinistra a destra". Le altezze che si leggerebbero uguali ricevono un numero, e passandoci sopra con il mouse vedi quante caselle la usano. Scegline una e dipingi.
+Premi **Altezza** (H). Il pannello elenca le altezze che questo luogo usa già, dalla più alta, per esempio "Piano, 24 px" o "Pendenza, da 16 a 24 px da sinistra a destra". Le altezze che si leggerebbero uguali ricevono un numero, e passandoci sopra con il mouse vedi quante caselle la usano. Scegline una e dipingi. Sulla mappa, un blu più scuro indica un terreno più alto, e ogni altezza dell'elenco mostra la sua tonalità. Il terreno più basso del luogo non ha blu, quindi un porto o una spiaggia in fondo alla mappa non ne mostra.
 
 L'altezza influisce sul camminare oltre che sull'aspetto. Le persone stanno all'altezza del terreno su cui si trovano, e il gioco rifiuta un passo di più di 8 pixel in salita o di 12 pixel in discesa, quindi una grande differenza di altezza fa da muro.
 

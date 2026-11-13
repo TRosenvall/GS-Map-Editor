@@ -373,6 +373,7 @@
  "OK": "OK",
  "Objects only": "Nur Objekte",
  "On encounter ground A": "Auf Kampfboden A",
+ "On the map, darker blue is higher ground; the lowest ground here has none.": "Auf der Karte ist dunkleres Blau höherer Boden; der niedrigste Boden hier hat keins.",
  "Only found {n} maps; expected about 180.": "Nur {n} Karten gefunden; erwartet waren etwa 180.",
  "Only found {n} scenes in {path}; expected about 200.": "Nur {n} Szenen in {path} gefunden; erwartet waren etwa 200.",
  "Only once “{flag}” is set": "Erst sobald „{flag}“ gesetzt ist",

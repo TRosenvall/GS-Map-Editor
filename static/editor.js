@@ -186,17 +186,19 @@ function buildHeightPanel() {
     if (k === 2) return T('Slope, {a} to {b} px top to bottom', { a: px8(r[1]), b: px8(r[2]) });
     return T('Slope or step, {px} px', { px });
   };
+  const shade = heightShade(m);
   const rows = [...used.keys()].sort((a, b) => cellHeightPx(m.shapes?.[b]) - cellHeightPx(m.shapes?.[a]));
   // Heights that read the same (a step facing another way, say) get a number.
   const seen = {}, label = {};
   for (const v of rows) { const d = describe(v); seen[d] = (seen[d] || 0) + 1; label[v] = seen[d] > 1 ? `${d} (${seen[d]})` : d; }
   let current = parseInt($('#value').value, 16);
   if (current >= (m.shapes?.length ?? Infinity)) { $('#value').value = ''; current = NaN; }  // another place's height
-  box.innerHTML = localWords(`<div class="note" style="padding:0 10px 6px;color:var(--muted);font-size:12px">${T('Pick a height, then paint. Things stand at the height of the ground they’re on, and you can only step up a little at a time. Or ⌥-click the map to copy a height from it.')}</div>`);
+  box.innerHTML = localWords(`<div class="note" style="padding:0 10px 6px;color:var(--muted);font-size:12px">${T('Pick a height, then paint. Things stand at the height of the ground they’re on, and you can only step up a little at a time. Or ⌥-click the map to copy a height from it.')} ${T('On the map, darker blue is higher ground; the lowest ground here has none.')}</div>`);
   const list = document.createElement('div'); list.style.cssText = 'display:flex;flex-direction:column;gap:3px;padding:0 10px 8px;max-height:240px;overflow:auto';
   for (const v of rows) {
     const b = document.createElement('button');
-    b.textContent = label[v] + (S.advanced ? ` [${hex(v)}]` : '');
+    const c = shade(v);
+    b.innerHTML = `<i style="background:${c || 'transparent'}"></i>`; b.append(label[v] + (S.advanced ? ` [${hex(v)}]` : ''));
     b.title = used.get(v) === 1 ? T('1 square here uses this height.') : T('{n} squares here use this height.', { n: used.get(v) });
     b.style.textAlign = 'left';
     if (v === current) b.style.borderColor = 'var(--accent)';
@@ -204,6 +206,13 @@ function buildHeightPanel() {
     list.appendChild(b);
   }
   box.appendChild(list);
+}
+// Height's blue grows with the ground's real height, from this place's lowest
+// ground (no blue) to its highest; the height numbers themselves are only table rows.
+function heightShade(m) {
+  const hs = (m.shapes || []).map(cellHeightPx), inUse = new Set((m.grids.shape || []).flat());
+  const used = [...inUse].map(v => hs[v] ?? 0), lo = Math.min(0, ...used), span = Math.max(...used) - lo || 1;
+  return v => { const f = ((hs[v] ?? lo) - lo) / span; return f > 0 ? `rgba(80,160,255,${(0.1 + 0.65 * f).toFixed(2)})` : null; };
 }
 function cellHeightPx(r) {
   if (!r) return 0;
@@ -247,6 +256,7 @@ function drawGroundOverlays(ctx) {
   const m = S.map, col = $('#ovCollision').checked, sh = $('#ovShape').checked;
   if (!col && !sh) return;
   const z = +$('#zoom').value, s = 16 * z, l = layer(), cells = [];
+  const shade = heightShade(m);
   for (let y = 0; y < m.size[1]; y++) for (let x = 0; x < m.size[0]; x++) {
     const [gx, gy] = gridXY(l, x, y);
     cells.push([heightPx(l, gx, gy), x, y - heightPx(l, gx, gy) / 16, gx, gy]);
@@ -255,9 +265,9 @@ function drawGroundOverlays(ctx) {
   for (const [, x, y, gx, gy] of cells) {
     if (col) { const c = collisionColor(m.grids.collision?.[gy]?.[gx]); if (c) { ctx.fillStyle = c; ctx.fillRect(x * s, y * s, s, s); } }
     if (sh) {
-      const v = m.grids.shape?.[gy]?.[gx];
-      if (v) {
-        ctx.fillStyle = `rgba(80,160,255,${Math.min(0.15 + v * 0.06, 0.7)})`; ctx.fillRect(x * s, y * s, s, s);
+      const v = m.grids.shape?.[gy]?.[gx], c = shade(v);
+      if (c) {
+        ctx.fillStyle = c; ctx.fillRect(x * s, y * s, s, s);
         if (z >= 2 && S.advanced) { ctx.fillStyle = '#fff'; ctx.fillText(hex(v), x * s + s / 2, y * s + s / 2); }
       }
     }

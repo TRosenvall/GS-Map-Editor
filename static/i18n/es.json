@@ -373,6 +373,7 @@
  "OK": "Aceptar",
  "Objects only": "Solo objetos",
  "On encounter ground A": "En el suelo con encuentros A",
+ "On the map, darker blue is higher ground; the lowest ground here has none.": "En el mapa, cuanto más oscuro el azul, más alto el suelo; el suelo más bajo de aquí no tiene azul.",
  "Only found {n} maps; expected about 180.": "Solo se encontraron {n} mapas; se esperaban unos 180.",
  "Only found {n} scenes in {path}; expected about 200.": "Solo se encontraron {n} escenas en {path}; se esperaban unas 200.",
  "Only once “{flag}” is set": "Solo cuando “{flag}” esté activada",

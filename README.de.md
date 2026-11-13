@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 1a86f855b136 -->
+<!-- translated from README.md @ 235b4e045120 -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · **Deutsch** · [Français](README.fr.md) · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -193,7 +193,7 @@ Die Werkzeuge Truhe, Türen und Ereignisse setzen die besonderen Codes, die sie 
 
 ## Höhe: wie hoch der Boden ist
 
-Drück auf **Höhe** (H). Der Bereich listet die Höhen auf, die dieser Ort schon nutzt, die höchste zuerst, etwa „Flach, 24 px“ oder „Hang, 16 bis 24 px von links nach rechts“. Höhen, die gleich klingen würden, bekommen eine Nummer, und wenn du mit der Maus über eine fährst, siehst du, wie viele Felder sie nutzen. Wähl eine aus und male.
+Drück auf **Höhe** (H). Der Bereich listet die Höhen auf, die dieser Ort schon nutzt, die höchste zuerst, etwa „Flach, 24 px“ oder „Hang, 16 bis 24 px von links nach rechts“. Höhen, die gleich klingen würden, bekommen eine Nummer, und wenn du mit der Maus über eine fährst, siehst du, wie viele Felder sie nutzen. Wähl eine aus und male. Auf der Karte bedeutet dunkleres Blau höheren Boden, und jede Höhe in der Liste zeigt ihren Farbton. Der niedrigste Boden des Ortes hat gar kein Blau, ein Hafen oder Strand ganz unten zeigt also keins.
 
 Die Höhe beeinflusst nicht nur das Aussehen, sondern auch das Laufen. Personen stehen auf der Höhe des Bodens unter ihnen, und das Spiel lässt keinen Schritt von mehr als 8 Pixeln nach oben oder 12 Pixeln nach unten zu, deshalb wirkt ein großer Höhenunterschied wie eine Wand.
 

@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 1a86f855b136 -->
+<!-- translated from README.md @ 235b4e045120 -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · [Deutsch](README.de.md) · **Français** · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -193,7 +193,7 @@ Les outils Coffre, Portes et Événements placent eux-mêmes les codes spéciaux
 
 ## Hauteur : la hauteur du sol
 
-Appuyez sur **Hauteur** (H). Le panneau liste les hauteurs que ce lieu utilise déjà, de la plus haute à la plus basse, par exemple « Plat, 24 px » ou « Pente, de 16 à 24 px de gauche à droite ». Les hauteurs qui se liraient pareil reçoivent un numéro, et en survoler une indique combien de cases l'utilisent. Choisissez-en une et peignez.
+Appuyez sur **Hauteur** (H). Le panneau liste les hauteurs que ce lieu utilise déjà, de la plus haute à la plus basse, par exemple « Plat, 24 px » ou « Pente, de 16 à 24 px de gauche à droite ». Les hauteurs qui se liraient pareil reçoivent un numéro, et en survoler une indique combien de cases l'utilisent. Choisissez-en une et peignez. Sur la carte, un bleu plus foncé signifie un sol plus haut, et chaque hauteur de la liste montre sa teinte. Le sol le plus bas du lieu n'a pas de bleu du tout : un port ou une plage en bas de la carte n'en montre donc pas.
 
 La hauteur influe sur la marche autant que sur l'apparence. Les personnages se tiennent à la hauteur du sol sur lequel ils sont, et le jeu refuse un pas de plus de 8 pixels vers le haut ou de 12 pixels vers le bas : une grande différence de hauteur agit donc comme un mur.
 

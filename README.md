@@ -190,7 +190,7 @@ The Chest, Doors and Events tools set the special codes they need themselves, so
 
 ## Height: how high the ground is
 
-Press **Height** (H). The panel lists the heights this place already uses, tallest first, such as "Flat, 24 px" or "Slope, 16 to 24 px left to right". Heights that would read the same get a number, and hovering over one says how many squares use it. Pick one and paint.
+Press **Height** (H). The panel lists the heights this place already uses, tallest first, such as "Flat, 24 px" or "Slope, 16 to 24 px left to right". Heights that would read the same get a number, and hovering over one says how many squares use it. Pick one and paint. On the map, darker blue means higher ground, and each height in the list has its own shade. The lowest ground in the place has no blue at all, so a harbour or beach at the bottom of the map shows none.
 
 Height affects walking as well as looks. People stand at the height of the ground they're on, and the game refuses a step of more than 8 pixels up or 12 pixels down, so a big difference in height acts as a wall.
 
