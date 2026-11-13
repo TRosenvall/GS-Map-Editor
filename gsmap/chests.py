@@ -24,6 +24,16 @@ CHEST_CONTROL = 0x13  # SEARCH(SEARCH_CHEST)
 CODE_LO, CODE_HI = 100, 239
 MARKER_MAX = 10
 FIND_ITEM, FIND_COINS = 0x100000, 0x200000
+FIND_STONE = 0x300000
+
+
+def placed_codes(rows, codes):
+    """The marker codes among `codes` that one event table turns into a chest or a
+    Psynergy Stone: the only markers the game counts toward its 10
+    (treasure_spots.c). A marker with no such event places nothing."""
+    return {r["trigger"] for r in rows if r["control"] != EVENTS_END and r["trigger"] in codes
+            and ((r["control"] & 0x1FF) == CHEST_CONTROL or
+                 ((r["control"] & 0x1FF) == 3 and (r["value"] & 0xFFF00000) == FIND_STONE))}
 
 
 def find_value(contents):
@@ -90,7 +100,8 @@ class ChestEditor(SceneEditor):
         tables = self._event_tables(info, ov)
         path, mt = p.load_markers(info)
         rows = [r for r in mt.rows if tuple(r[:3]) != (0xFF, 0xFF, 0xFF)]
-        if len(rows) >= MARKER_MAX:
+        codes = {r[2] for r in rows}
+        if any(len(placed_codes(rs, codes)) >= MARKER_MAX for _, _, rs in tables):
             raise ValueError(tr("A place can hold at most {n} chests and Psynergy Stones.", n=MARKER_MAX))
         if any(tuple(r[:2]) == (x, z) for r in rows):
             raise ValueError(tr("that cell already holds a chest"))

@@ -119,7 +119,7 @@ function forgetPlace() {
   $('#evSpot').style.display = 'none';
   importData = null; $('#importBox').style.display = 'none';
   S.chestAt = null; $('#chestForm').style.display = 'none';
-  S.doorAt = null; $('#doorForm').style.display = 'none'; S.arrivalMark = null;
+  S.doorAt = null; $('#doorForm').style.display = 'none'; S.arrivalMark = S.cellMark = null;
   if (S.tool === 'stamp') S.sel = null;
 }
 
@@ -176,19 +176,28 @@ function buildHeightPanel() {
   const box = $('#heightPanel'), m = S.map; if (!m) return;
   const used = new Map();
   for (const row of m.grids.shape || []) for (const v of row) used.set(v, (used.get(v) || 0) + 1);
+  // Samples are signed eighths of a 16-pixel cell (walk.py's height_at).
+  const px8 = v => (v > 127 ? v - 256 : v) * 8;
   const describe = v => {
     const r = m.shapes?.[v]; if (!r) return T('Height {v}', { v });
-    const px = Math.round(cellHeightPx(r));
-    return r[0] & 15 ? T('Slope or step, {px} px', { px }) : T('Flat, {px} px', { px });
+    const k = r[0] & 15, px = Math.round(cellHeightPx(r));
+    if (k === 0 || k === 14 || k === 15) return T('Flat, {px} px', { px });
+    if (k === 1) return T('Slope, {a} to {b} px left to right', { a: px8(r[1]), b: px8(r[2]) });
+    if (k === 2) return T('Slope, {a} to {b} px top to bottom', { a: px8(r[1]), b: px8(r[2]) });
+    return T('Slope or step, {px} px', { px });
   };
   const rows = [...used.keys()].sort((a, b) => cellHeightPx(m.shapes?.[b]) - cellHeightPx(m.shapes?.[a]));
+  // Heights that read the same (a step facing another way, say) get a number.
+  const seen = {}, label = {};
+  for (const v of rows) { const d = describe(v); seen[d] = (seen[d] || 0) + 1; label[v] = seen[d] > 1 ? `${d} (${seen[d]})` : d; }
   let current = parseInt($('#value').value, 16);
   if (current >= (m.shapes?.length ?? Infinity)) { $('#value').value = ''; current = NaN; }  // another place's height
   box.innerHTML = localWords(`<div class="note" style="padding:0 10px 6px;color:var(--muted);font-size:12px">${T('Pick a height, then paint. Things stand at the height of the ground they’re on, and you can only step up a little at a time. Or ⌥-click the map to copy a height from it.')}</div>`);
   const list = document.createElement('div'); list.style.cssText = 'display:flex;flex-direction:column;gap:3px;padding:0 10px 8px;max-height:240px;overflow:auto';
   for (const v of rows) {
     const b = document.createElement('button');
-    b.textContent = describe(v) + (S.advanced ? ` [${hex(v)}]` : '');
+    b.textContent = label[v] + (S.advanced ? ` [${hex(v)}]` : '');
+    b.title = used.get(v) === 1 ? T('1 square here uses this height.') : T('{n} squares here use this height.', { n: used.get(v) });
     b.style.textAlign = 'left';
     if (v === current) b.style.borderColor = 'var(--accent)';
     b.onclick = () => { $('#value').value = hex(v); buildHeightPanel(); };
@@ -278,7 +287,7 @@ function drawAll() {
   ctxSetup(ctx);
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) drawCell(ctx, x, y);
   drawGroundOverlays(ctx); drawStand(ctx);
-  markPending(ctx); drawMarkers(ctx); drawDoors(ctx); drawEvents(ctx); drawPoints(ctx);
+  markPending(ctx); drawMarkers(ctx); drawDoors(ctx); drawEvents(ctx); drawPoints(ctx); drawCellMark(ctx);
 }
 
 // A whole redraw at most once a frame: dragging a brush with an overlay on
@@ -293,7 +302,7 @@ function redrawCells(cells) {
   if ($('#ovCollision').checked || $('#ovShape').checked || $('#ovStand').checked) return drawAllSoon();  // raised squares overlap other cells
   const ctx = $('#cv').getContext('2d'); ctxSetup(ctx);
   for (const [x, y] of cells) drawCell(ctx, x, y);
-  markPending(ctx); drawMarkers(ctx); drawDoors(ctx); drawEvents(ctx); drawPoints(ctx);
+  markPending(ctx); drawMarkers(ctx); drawDoors(ctx); drawEvents(ctx); drawPoints(ctx); drawCellMark(ctx);
 }
 
 // Window cell of grid cell (gx, gy) on layer l, or null when outside the window.
@@ -695,7 +704,8 @@ $('#cv').addEventListener('mousemove', e => {
     ? T('cell {cell} (ground {ground}) · blocks {blocks} · {what} · height {height} ({px} px) on L{layer}', {
       cell: `<b>${x},${y}</b>`, ground: `${gx},${gy}`, blocks: parts.join(' '), what,
       height: `<b>${hex(m.grids.shape?.[gy]?.[gx])}</b>`, px: heightPx(l, gx, gy), layer: l.index })
-    : T('{what} · height {px} px · cell {cell}', { what, px: heightPx(l, gx, gy), cell: `${x},${y}` }));
+    // The ground square: what doors, chests and Check name, even on raised ground.
+    : T('{what} · height {px} px · cell {cell}', { what, px: heightPx(l, gx, gy), cell: `${gx},${gy}` }));
 });
 
 // ---- scenes and their tables ---------------------------------------------------
@@ -772,9 +782,12 @@ function pointPx(t, r) {  // map pixels on the ground -> window pixels, as drawn
 function drawPoints(ctx) {
   const t = S.map && table(); if (!t || !['entrances', 'placements'].includes(t.kind)) return;
   const z = +$('#zoom').value;
+  // People kept at 0,0 wait off the map: one picture and a count, not a pile.
+  let waiting = 0, corner = null;
   rowsOf(t).forEach((r, i) => {
     if ((t.kind === 'entrances' ? r.entrance : r.sprite) < 0) return;
     const [x, y] = pointPx(t, r), cx = x * z, cy = y * z, rad = 5 * z;
+    if (t.kind === 'placements' && r.x === 0 && r.z === 0) { corner = [cx, cy]; if (waiting++) return; }
     ctx.lineWidth = 2;
     if (t.kind === 'entrances') {
       ctx.strokeStyle = '#3ddc84'; ctx.strokeRect(cx - rad, cy - rad, rad * 2, rad * 2);
@@ -791,6 +804,13 @@ function drawPoints(ctx) {
       if (S.advanced) { ctx.fillStyle = '#ff5cf0'; ctx.fillText(actorNumber(rowsOf(t), i), cx, cy - rad - 6); }
     }
   });
+  if (waiting > 1) {
+    const text = `×${waiting}`, tw = ctx.measureText(text).width, bx = corner[0] + 4 * z, by = corner[1] - 4 * z;
+    ctx.save(); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = '#000b'; ctx.fillRect(bx, by - 11, tw + 6, 14);
+    ctx.fillStyle = '#fff'; ctx.fillText(text, bx + 3, by);
+    ctx.restore();
+  }
   ctx.lineWidth = 1;
 }
 
@@ -1247,13 +1267,15 @@ function renderEvents() {
     if (!list.length) continue;
     html += `<h3>${EV_GROUP_LABEL[g]}</h3>`;
     for (const e of list) {
-      const words = e.text != null ? '“' + showNames(gameToPlain(e.text)) + '”' : e.does + (e.script && S.advanced ? ` [${e.script}]` : '');
+      const words = e.text != null ? '“' + showNames(gameToPlain(e.text)) + '”' : (S.advanced && e.detail ? e.detail : e.does) + (e.script && S.advanced ? ` [${e.script}]` : '');
       html += `<div class="ev ${EV.sel === e.index ? 'on' : ''}" data-i="${e.index}"><div class="h"><b>${esc(evTitle(e))}</b>${e.condition !== -1 ? `<span class="w">${esc(e.when)}</span>` : ''}</div>
         <div class="t">${esc(words.slice(0, 220))}</div>
         <div class="act">${e.editable_text ? `<button data-a="edit">${T('Change words')}</button>` : ''}<button data-a="when">${T('When…')}</button>
           ${e.kind !== 'exit' ? `<button data-a="remove">${T('Remove')}</button>` : `<button data-a="doors">${T('Open in Doors')}</button>`}</div></div>`;
     }
   }
+  const waiting = r.people.filter(offMap).length;
+  if (!filt && waiting) html += `<div class="note" style="padding:6px 0">${waiting === 1 ? T('1 person waits off the map until the story brings them in. Move people can place them.') : T('{n} people wait off the map until the story brings them in. Move people can place them.', { n: waiting })}</div>`;
   if (!filt && r.regions.length) {
     html += `<h3>${T('Exit areas')}</h3>` + r.regions.map((g, i) => `<div class="ev" data-region="${i}"><div class="h"><b>▭ ${T('Area')}</b></div><div class="t">${g.label ? T('Leads to {place}, arrival point {n}', { place: esc(g.label), n: g.entrance }) : T('Leads nowhere')}</div>
       <div class="act"><button data-r="link">${T('Change where it leads…')}</button><button data-r="remove">${T('Remove')}</button></div></div>`).join('');
@@ -1304,6 +1326,7 @@ function drawEvents(ctx) {
   }
   // people
   for (const p of EV.data.people) {
+    if (offMap(p)) continue;  // the panel counts them instead of stacking them in the corner
     const [ex, ey] = entityXY(p.x, p.z), x = ex * z, y = ey * z;
     const on = sel && sel.actor === p.actor, talks = EV.data.events.some(e => e.actor === p.actor && e.kind === 'talk');
     const img = spriteImage(p.sprite);
@@ -1332,9 +1355,12 @@ function drawEvents(ctx) {
 // The person at window pixel (sx, sy) in Events: under the cursor's picture of
 // them (drawn feet at their point, as drawEvents does), or within 10 pixels of
 // their feet; the nearest when several overlap. null when nobody's there.
+// A person the scene keeps at 0,0 waits off the map until a script brings them in.
+const offMap = p => p.x === 0 && p.z === 0;
 function personAt(sx, sy) {
   let best = null;
   for (const p of EV.data.people) {
+    if (offMap(p)) continue;
     const [ex, ey] = entityXY(p.x, p.z), img = spriteImage(p.sprite);
     const d = Math.hypot(ex - sx, ey - sy);
     const w = img?.naturalWidth || 0, h = img?.naturalHeight || 0;
@@ -1598,6 +1624,17 @@ async function loadDoors() {
 function sceneDoors() { const sc = scene(); return (sc && S.doors?.[sc.id]) || []; }
 function doorAtCell(gx, gz) { return sceneDoors().find(d => d.cells.some(c => c[0] === gx && c[1] === gz)); }
 function shortLabel(label) { return (label || '').split(' · ').pop(); }
+// The square Check's Show points at, for a few seconds whatever the tool.
+function drawCellMark(ctx) {
+  const c = S.cellMark; if (!c || !S.map || Date.now() >= c.until) return;
+  const s = 16 * +$('#zoom').value, w = c.block ? [c.x, c.z] : groundXY(S.map.layers[0], c.x, c.z);
+  if (!w) return;
+  ctx.save();
+  ctx.lineWidth = 3; ctx.setLineDash([]); ctx.strokeStyle = '#e0b84a';
+  ctx.strokeRect(w[0] * s - 2, w[1] * s - 2, s + 4, s + 4);
+  ctx.beginPath(); ctx.arc((w[0] + 0.5) * s, (w[1] + 0.5) * s, s * 1.2, 0, Math.PI * 2); ctx.stroke();
+  ctx.restore();
+}
 function drawDoors(ctx) {
   if (S.tool !== 'doors' || !S.map) return;
   const z = +$('#zoom').value, s = 16 * z, l0 = S.map.layers[0];
@@ -1670,6 +1707,7 @@ async function followDoor(sceneId, entrance, back) {
   setTool('doors');
   const a = r.arrivals.find(x => x.entrance === entrance) || r.arrivals[0];
   S.arrivalMark = a ? { x: a.x, z: a.z, until: Date.now() + 4000 } : null;
+  if (a) setTimeout(drawAllSoon, 4100);
   S.doorBack = back;
   $('#doorBack').style.display = back ? '' : 'none';
   if (back) $('#doorBack').textContent = T('← Back to {place}', { place: back.label });
@@ -2119,6 +2157,8 @@ $('#ckList').onclick = async e => {
     if (i.tool === 'chest') chestSelect(x, z, S.map.markers.find(m => m.x === x && m.z === z) || null);
     const w = i.tool === 'block' ? [x, z] : groundXY(S.map.layers[0], x, z);
     if (w) $('#view').scrollTo(w[0] * z0 - $('#view').clientWidth / 2, w[1] * z0 - $('#view').clientHeight / 2);
+    S.cellMark = { x, z, block: i.tool === 'block', until: Date.now() + 4000 };
+    drawAll(); setTimeout(drawAllSoon, 4100);
   }
   status(`${esc(i.message)} <span style="color:var(--muted)">${esc(i.fix)}</span>`);
 };

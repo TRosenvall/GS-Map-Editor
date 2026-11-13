@@ -375,5 +375,19 @@ with tempfile.TemporaryDirectory() as gtmp:
     finally:
         setupmod.ALCHEMY_PIN = real_pin
 
+# ---- small helpers -------------------------------------------------------------------
+from gsmap.chests import CHEST_CONTROL, placed_codes  # noqa: E402
+from gsmap.events import plain_doc  # noqa: E402
+from gsmap.sceneedit import EVENTS_END  # noqa: E402
+rows = [{"control": CHEST_CONTROL, "trigger": 100, "condition": 1, "value": 0},
+        {"control": 3, "trigger": 101, "condition": 2, "value": 0x300005},   # a Psynergy Stone
+        {"control": 3, "trigger": 102, "condition": 3, "value": 0x100005},   # a plain search
+        {"control": EVENTS_END, "trigger": 0, "condition": 0, "value": 0}]
+check("only chests and Psynergy Stones count toward the 10", placed_codes(rows, {100, 101, 102, 103}) == {100, 101})
+check("a script's comment loses its code names",
+      plain_doc("Walking into the pillar (PushedActor_AdvancePair) pushes it.  More here.") == "Walking into the pillar pushes it.")
+check("joined place names are split", plain_doc("At BabiLighthouseStoneDoor, a switch hides.") == "At Babi Lighthouse Stone Door, a switch hides.")
+check("a comment that can't be said plainly is left out", plain_doc("Sets FLAG_X when it ends.") == "")
+
 print("FAILED" if failed else "all ok")
 sys.exit(1 if failed else 0)

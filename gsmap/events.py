@@ -57,6 +57,9 @@ def flag_label(n, names):
     name = names.get(n)
     if not name:
         return tr("story flag {n}", n=f"{n:#05x}")
+    if name.startswith("FLAG_SCENE_TEMP_"):
+        # Scene_Arrive clears these on every ordinary entry (flags.h).
+        return tr("this place's own flag {n} (cleared on entering)", n=name[len("FLAG_SCENE_TEMP_"):])
     words = name.replace("FLAG_", "").replace("_", " ").lower()
     return words[0].upper() + words[1:]
 
@@ -67,6 +70,28 @@ def condition_text(cond, names):
     flag = cond & 0xFFF
     return (tr("Only once “{flag}” is set", flag=flag_label(flag, names)) if cond & FLAG_SET
             else tr("Only while “{flag}” isn't set", flag=flag_label(flag, names)))
+
+
+_CODE_NAME = re.compile(r"\b(?:[A-Za-z]\w*_\w*|g[A-Z]\w+|[a-z]+[A-Z]\w*)\b")  # FLAG_X, Field_Try, gTable, camelCase
+_JOINED_NAME = re.compile(r"\b[A-Z][a-z]+(?:[A-Z][a-z]+)+\b")                 # CrossboneIsleBane
+_CODE_NUMBERS = re.compile(r"\(?\b(?:step triggers?|cell behaviou?rs?|behaviou?rs?|triggers?)\s+\d+(?:\s*(?:,|and|to|-)\s*\d+)*\)?", re.I)
+
+def plain_doc(text):
+    """A scene script's comment in plain words for the Events list, or "" when
+    it can't be said without the code's own names."""
+    if not text:
+        return ""
+    t = " ".join(text.split())
+    t = re.split(r"(?<=[.!?])\s+(?=[A-Z])", t)[0]  # the summary sentence
+    # Asides that only name code: "(Field_TryJumpForward)", "(step triggers 30 to 41)".
+    t = re.sub(r"\s*\(([^()]*)\)", lambda m: "" if _CODE_NAME.search(m.group(1)) or re.search(r"\d", m.group(1)) else m.group(0), t)
+    t = _CODE_NUMBERS.sub("", t)
+    t = _JOINED_NAME.sub(lambda m: re.sub(r"(?<=[a-z])(?=[A-Z])", " ", m.group(0)), t)
+    t = re.sub(r"\s+([,.;:])", r"\1", re.sub(r"\s{2,}", " ", t)).strip()
+    t = re.sub(r",\s*,", ",", t).replace("(, ", "(").replace(", )", ")")
+    if _CODE_NAME.search(t) or re.search(r"\b0x[0-9a-f]+\b", t, re.I):
+        return ""
+    return t
 
 
 class EventEditor(DoorEditor):
@@ -162,7 +187,9 @@ class EventEditor(DoorEditor):
             elif v >= 0x10000:
                 name, doc = docs.get(v & ~1, (None, ""))
                 ev["script"] = name or f"{v:#x}"
-                ev["does"] = doc or tr("Runs a scene script")
+                # The comment names the code; the list says it plainly (advanced shows it whole).
+                ev["does"] = plain_doc(doc) or tr("Runs a scene script")
+                ev["detail"] = " ".join(doc.split()) or None
             else:
                 ev["does"] = tr("Nothing")
             if kind == "search":

@@ -14,7 +14,7 @@ import subprocess
 
 from . import layout
 from .i18n import tr
-from .chests import CHEST_CONTROL, ChestEditor, MARKER_MAX
+from .chests import CHEST_CONTROL, ChestEditor, MARKER_MAX, placed_codes
 from .doors import DoorEditor
 from .messages import Messages
 from .modgen import Overrides, reconcile
@@ -169,9 +169,7 @@ class Checker:
             for _, name, rows in tables:
                 # A chest (SEARCH(SEARCH_CHEST)) or a Psynergy Stone (a plain search
                 # finding FIND_PSYNERGY_STONE), as treasure_spots.c tells them.
-                placed = {r["trigger"] for r in rows if r["control"] != EVENTS_END and r["trigger"] in codes
-                          and ((r["control"] & 0x1FF) == CHEST_CONTROL or
-                               ((r["control"] & 0x1FF) == 3 and (r["value"] & 0xFFF00000) == 0x300000))}
+                placed = placed_codes(rows, codes)
                 if len(placed) > MARKER_MAX:
                     add("error", "too-many-chests", info,
                         tr("{place} has {n} chests and stones: the game shows only the first {max}.",
