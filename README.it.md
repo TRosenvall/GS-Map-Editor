@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 235b4e045120 -->
+<!-- translated from README.md @ 14351b080d8e -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · [Deutsch](README.de.md) · [Français](README.fr.md) · **Italiano** · [日本語](README.ja.md)
@@ -193,9 +193,9 @@ Gli strumenti Forziere, Porte ed Eventi impostano da soli i codici speciali di c
 
 ## Altezza: quanto è alto il terreno
 
-Premi **Altezza** (H). Il pannello elenca le altezze che questo luogo usa già, dalla più alta, per esempio "Piano, 24 px" o "Pendenza, da 16 a 24 px da sinistra a destra". Le altezze che si leggerebbero uguali ricevono un numero, e passandoci sopra con il mouse vedi quante caselle la usano. Scegline una e dipingi. Sulla mappa, un blu più scuro indica un terreno più alto, e ogni altezza dell'elenco mostra la sua tonalità. Il terreno più basso del luogo non ha blu, quindi un porto o una spiaggia in fondo alla mappa non ne mostra.
+Premi **Altezza** (H). Il pannello elenca le altezze che questo luogo usa già, dalla più alta, per esempio "Livello 3" o "Rampa, dal livello 2 al 4, da sinistra a destra". Le altezze che si leggerebbero uguali ricevono un numero, e passandoci sopra con il mouse vedi quante caselle la usano. Scegline una e dipingi. Sulla mappa, un blu più scuro indica un terreno più alto, e ogni altezza dell'elenco mostra la sua tonalità. Il terreno più basso del luogo non ha blu, quindi un porto o una spiaggia in fondo alla mappa non ne mostra.
 
-L'altezza influisce sul camminare oltre che sull'aspetto. Le persone stanno all'altezza del terreno su cui si trovano, e il gioco rifiuta un passo di più di 8 pixel in salita o di 12 pixel in discesa, quindi una grande differenza di altezza fa da muro.
+Le altezze si contano in livelli, l'unità propria del gioco (un livello è 8 pixel, mezza casella). L'altezza influisce sul camminare oltre che sull'aspetto. Le persone stanno all'altezza del terreno su cui si trovano, e il gruppo può salire o scendere di un livello alla volta: due livelli o più fanno da muro. Le rampe collegano i livelli, e una casella di rampa può salirne due, quindi scale e pendii sono rampe messe una dopo l'altra.
 
 ## Forzieri
 
@@ -236,9 +236,9 @@ Non ogni punto che sembra libero è un buon posto per una persona. Spunta **Dove
 | Arancione | Una porta, un'uscita o un punto di passaggio: qualcuno lì sarebbe d'intralcio. |
 | Rosso | Il gruppo non riesce ad avvicinarsi abbastanza camminando per parlarci. |
 
-Viene calcolato con le regole di movimento del gioco stesso, partendo da ogni punto in cui il gruppo arriva nel luogo: puoi salire di 8 pixel e scendere di 12, i muri ti fermano, e puoi parlare con qualcuno entro due caselle. I posti che si aprono solo con la Psicoenergia o con la storia appaiono in rosso, quindi lì il rosso non vuol sempre dire sbagliato.
+Viene calcolato con le regole di movimento del gioco stesso, partendo da ogni punto in cui il gruppo arriva nel luogo: puoi salire o scendere di un livello alla volta, i muri ti fermano, e puoi parlare con qualcuno entro due caselle. I posti che si aprono solo con la Psicoenergia o con la storia appaiono in rosso, quindi lì il rosso non vuol sempre dire sbagliato.
 
-Quando un punto ha un problema, l'editor dice qual è a parole semplici, per esempio "il terreno qui è 32 pixel più alto del percorso più vicino", oppure che stare lì taglierebbe fuori il gruppo da una porta. Poi offre una soluzione:
+Quando un punto ha un problema, l'editor dice qual è a parole semplici, per esempio "il terreno qui è 4 livelli più alto del percorso più vicino", oppure che stare lì taglierebbe fuori il gruppo da una porta. Poi offre una soluzione:
 
 - **Sposta nel punto buono più vicino** sposta la persona sulla casella più vicina senza problemi.
 - **Livella … caselle all'altezza del sentiero** cambia l'altezza del terreno dal sentiero più vicino fino al punto, così il gruppo può arrivarci camminando. L'immagine non cambia, quindi usa **Dipingi** se deve sembrare un sentiero. Sono normali pennellate non salvate: Salva le mantiene e Annulla le toglie.

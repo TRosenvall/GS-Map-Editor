@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 235b4e045120 -->
+<!-- translated from README.md @ 14351b080d8e -->
 # GS Map Editor
 
 [English](README.md) · **Español** · [Deutsch](README.de.md) · [Français](README.fr.md) · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -193,9 +193,9 @@ Las herramientas Cofre, Puertas y Eventos ponen ellas mismas los códigos especi
 
 ## Altura: lo alto que está el suelo
 
-Pulsa **Altura** (H). El panel muestra las alturas que ya usa este lugar, de la más alta a la más baja, como "Plano, 24 px" o "Pendiente, de 16 a 24 px de izquierda a derecha". Las alturas que se leerían igual llevan un número, y al pasar el cursor sobre una ves cuántas casillas la usan. Elige una y pinta. En el mapa, un azul más oscuro significa suelo más alto, y cada altura de la lista muestra su tono. El suelo más bajo del lugar no tiene azul, así que un puerto o una playa al pie del mapa no muestra ninguno.
+Pulsa **Altura** (H). El panel muestra las alturas que ya usa este lugar, de la más alta a la más baja, como "Nivel 3" o "Rampa, del nivel 2 al 4, de izquierda a derecha". Las alturas que se leerían igual llevan un número, y al pasar el cursor sobre una ves cuántas casillas la usan. Elige una y pinta. En el mapa, un azul más oscuro significa suelo más alto, y cada altura de la lista muestra su tono. El suelo más bajo del lugar no tiene azul, así que un puerto o una playa al pie del mapa no muestra ninguno.
 
-La altura afecta a por dónde se camina además de a cómo se ve. Las personas están a la altura del suelo que pisan, y el juego no permite un paso de más de 8 píxeles hacia arriba ni de más de 12 hacia abajo, así que una gran diferencia de altura actúa como una pared.
+Las alturas se cuentan en niveles, la unidad propia del juego (un nivel son 8 píxeles, media casilla). La altura afecta a por dónde se camina además de a cómo se ve. Las personas están a la altura del suelo que pisan, y el grupo puede subir o bajar un nivel cada vez: dos niveles o más actúan como una pared. Las rampas unen niveles, y una casilla de rampa puede subir dos, así que las escaleras y las laderas son rampas puestas una tras otra.
 
 ## Cofres
 
@@ -236,9 +236,9 @@ No todo sitio que parece libre es un buen lugar para que alguien esté. Marca **
 | Naranja | Una puerta, salida o sitio de paso: alguien ahí estorbaría. |
 | Rojo | El grupo no puede acercarse lo suficiente caminando para hablar. |
 
-Se calcula con las propias reglas de movimiento del juego, empezando en cada punto donde el grupo llega al lugar: puedes subir 8 píxeles y bajar 12, las paredes te detienen y puedes hablar con alguien a dos casillas o menos. Las zonas que solo abren la Psinergía o la historia se ven en rojo, así que ahí el rojo no siempre significa que esté mal.
+Se calcula con las propias reglas de movimiento del juego, empezando en cada punto donde el grupo llega al lugar: puedes subir o bajar un nivel cada vez, las paredes te detienen y puedes hablar con alguien a dos casillas o menos. Las zonas que solo abren la Psinergía o la historia se ven en rojo, así que ahí el rojo no siempre significa que esté mal.
 
-Cuando un sitio tiene un problema, el editor dice cuál es con palabras sencillas, por ejemplo "el suelo aquí está 32 píxeles más alto que el camino más cercano", o que estar ahí dejaría al grupo sin acceso a una puerta. Luego ofrece una solución:
+Cuando un sitio tiene un problema, el editor dice cuál es con palabras sencillas, por ejemplo "el suelo aquí está 4 niveles más alto que el camino más cercano", o que estar ahí dejaría al grupo sin acceso a una puerta. Luego ofrece una solución:
 
 - **Mover al sitio bueno más cercano** mueve a la persona a la casilla más próxima que no tenga ningún problema.
 - **Nivelar … casillas a la altura del camino** cambia la altura del suelo desde el camino más cercano hasta el sitio, para que el grupo pueda llegar caminando. La imagen no cambia, así que usa **Pintar** si debe parecer un camino. Es pintura normal sin guardar: Guardar la conserva y Deshacer la quita.

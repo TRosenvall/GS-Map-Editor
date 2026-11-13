@@ -176,15 +176,16 @@ function buildHeightPanel() {
   const box = $('#heightPanel'), m = S.map; if (!m) return;
   const used = new Map();
   for (const row of m.grids.shape || []) for (const v of row) used.set(v, (used.get(v) || 0) + 1);
-  // Samples are signed eighths of a 16-pixel cell (walk.py's height_at).
-  const px8 = v => (v > 127 ? v - 256 : v) * 8;
+  // A level is the game's own height unit, 8 pixels (a shape row's signed
+  // samples), and also the most the party can step up (walk.py's STEP_UP).
+  const lv = v => (v > 127 ? v - 256 : v);
   const describe = v => {
     const r = m.shapes?.[v]; if (!r) return T('Height {v}', { v });
-    const k = r[0] & 15, px = Math.round(cellHeightPx(r));
-    if (k === 0 || k === 14 || k === 15) return T('Flat, {px} px', { px });
-    if (k === 1) return T('Slope, {a} to {b} px left to right', { a: px8(r[1]), b: px8(r[2]) });
-    if (k === 2) return T('Slope, {a} to {b} px top to bottom', { a: px8(r[1]), b: px8(r[2]) });
-    return T('Slope or step, {px} px', { px });
+    const k = r[0] & 15, n = levelOf(cellHeightPx(r));
+    if (k === 0 || k === 14 || k === 15) return T('Level {n}', { n });
+    if (k === 1) return T('Ramp, level {a} to {b}, left to right', { a: lv(r[1]), b: lv(r[2]) });
+    if (k === 2) return T('Ramp, level {a} to {b}, top to bottom', { a: lv(r[1]), b: lv(r[2]) });
+    return T('Corner or step, up to level {n}', { n });
   };
   const shade = heightShade(m);
   const rows = [...used.keys()].sort((a, b) => cellHeightPx(m.shapes?.[b]) - cellHeightPx(m.shapes?.[a]));
@@ -193,7 +194,7 @@ function buildHeightPanel() {
   for (const v of rows) { const d = describe(v); seen[d] = (seen[d] || 0) + 1; label[v] = seen[d] > 1 ? `${d} (${seen[d]})` : d; }
   let current = parseInt($('#value').value, 16);
   if (current >= (m.shapes?.length ?? Infinity)) { $('#value').value = ''; current = NaN; }  // another place's height
-  box.innerHTML = localWords(`<div class="note" style="padding:0 10px 6px;color:var(--muted);font-size:12px">${T('Pick a height, then paint. Things stand at the height of the ground they’re on, and you can only step up a little at a time. Or ⌥-click the map to copy a height from it.')} ${T('On the map, darker blue is higher ground; the lowest ground here has none.')}</div>`);
+  box.innerHTML = localWords(`<div class="note" style="padding:0 10px 6px;color:var(--muted);font-size:12px">${T('Pick a height, then paint, or ⌥-click the map to copy one. The party can walk up or down one level at a time; two levels or more is a wall. Ramps join levels: one square of ramp can climb two.')} ${T('On the map, darker blue is higher ground; the lowest ground here has none.')}</div>`);
   const list = document.createElement('div'); list.style.cssText = 'display:flex;flex-direction:column;gap:3px;padding:0 10px 8px;max-height:240px;overflow:auto';
   for (const v of rows) {
     const b = document.createElement('button');
@@ -214,6 +215,8 @@ function heightShade(m) {
   const used = [...inUse].map(v => hs[v] ?? 0), lo = Math.min(0, ...used), span = Math.max(...used) - lo || 1;
   return v => { const f = ((hs[v] ?? lo) - lo) / span; return f > 0 ? `rgba(80,160,255,${(0.1 + 0.65 * f).toFixed(2)})` : null; };
 }
+// Pixels to levels (8 px each), to a half-level where a ramp's middle falls between.
+function levelOf(px) { return Math.round(px / 4) / 2; }
 function cellHeightPx(r) {
   if (!r) return 0;
   const k = r[0] & 15, a = r[1], b = r[2], c = r[3];
@@ -715,7 +718,7 @@ $('#cv').addEventListener('mousemove', e => {
       cell: `<b>${x},${y}</b>`, ground: `${gx},${gy}`, blocks: parts.join(' '), what,
       height: `<b>${hex(m.grids.shape?.[gy]?.[gx])}</b>`, px: heightPx(l, gx, gy), layer: l.index })
     // The ground square: what doors, chests and Check name, even on raised ground.
-    : T('{what} · height {px} px · cell {cell}', { what, px: heightPx(l, gx, gy), cell: `${gx},${gy}` }));
+    : T('{what} · level {n} · cell {cell}', { what, n: levelOf(heightPx(l, gx, gy)), cell: `${gx},${gy}` }));
 });
 
 // ---- scenes and their tables ---------------------------------------------------
@@ -1471,8 +1474,8 @@ function applyLevel(level) {
 }
 const LEVEL_NOTE = T("The picture doesn't change: use Paint if it should look like a path.");
 function levelLabel(level) {
-  return level.count > 1 ? T("Level {n} squares to the path's height ({px} px)", { n: level.count, px: level.height })
-    : T("Level 1 square to the path's height ({px} px)", { px: level.height });
+  return level.count > 1 ? T("Level {n} squares to the path's height (level {h})", { n: level.count, h: levelOf(level.height) })
+    : T("Level 1 square to the path's height (level {h})", { h: levelOf(level.height) });
 }
 function levelledText(level) { return level.count > 1 ? T('Levelled {n} squares.', { n: level.count }) : T('Levelled 1 square.'); }
 

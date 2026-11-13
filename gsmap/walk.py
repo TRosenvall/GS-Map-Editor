@@ -482,17 +482,17 @@ class Walk:
             if near is not None:
                 dh = g - self.ground_px(*near)
                 if abs(dh) > TALK_HEIGHT and math.hypot(near[0] - x, near[1] - z) <= TALK_REACH and dh > 0:
-                    text = tr("The party can't get near enough to talk: the ground here is {n} pixels higher than "
-                              "the path beside it.", n=f"{abs(dh):g}")
+                    text = tr("The party can't get near enough to talk: the ground here is {n} levels higher than "
+                              "the path beside it.", n=f"{round(abs(dh) / 8, 1):g}")
                 elif abs(dh) > TALK_HEIGHT and math.hypot(near[0] - x, near[1] - z) <= TALK_REACH:
-                    text = tr("The party can't get near enough to talk: the ground here is {n} pixels lower than "
-                              "the path beside it.", n=f"{abs(dh):g}")
+                    text = tr("The party can't get near enough to talk: the ground here is {n} levels lower than "
+                              "the path beside it.", n=f"{round(abs(dh) / 8, 1):g}")
                 elif dh > 8:
-                    text = tr("The party can't get near enough to talk: the ground here is {n} pixels higher than "
-                              "the nearest path, too steep to step up.", n=f"{dh:g}")
+                    text = tr("The party can't get near enough to talk: the ground here is {n} levels higher than "
+                              "the nearest path, too steep to step up.", n=f"{round(dh / 8, 1):g}")
                 elif dh < -12:
-                    text = tr("The party can't get near enough to talk: the ground here is {n} pixels lower than "
-                              "the nearest path, too far to step down.", n=f"{-dh:g}")
+                    text = tr("The party can't get near enough to talk: the ground here is {n} levels lower than "
+                              "the nearest path, too far to step down.", n=f"{round(-dh / 8, 1):g}")
                 else:
                     text = tr("The party can't get near enough to talk: walls or steep ground close it off.")
             else:

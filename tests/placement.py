@@ -75,7 +75,7 @@ cut = next((i, j) for j in range(w.h) for i in range(w.w) if cells[j * w.w + i] 
 x, z = cut[0] * 16 + 8, cut[1] * 16 + 8
 problems = w.check(x, z)
 check("a snowy spot the party can't reach says why", bool(problems) and problems[0]["kind"] == "cut"
-      and ("pixels" in problems[0]["text"] or "close it off" in problems[0]["text"]), problems)
+      and ("levels" in problems[0]["text"] or "close it off" in problems[0]["text"]), problems)
 level = w.level(x, z, flat_shapes(p, info))
 check("leveling to the path is offered", level and level["count"] > 0 and all(e["plane"] == "shape" for e in level["cells"]),
       level)

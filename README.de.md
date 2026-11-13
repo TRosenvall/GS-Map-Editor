@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 235b4e045120 -->
+<!-- translated from README.md @ 14351b080d8e -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · **Deutsch** · [Français](README.fr.md) · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -193,9 +193,9 @@ Die Werkzeuge Truhe, Türen und Ereignisse setzen die besonderen Codes, die sie 
 
 ## Höhe: wie hoch der Boden ist
 
-Drück auf **Höhe** (H). Der Bereich listet die Höhen auf, die dieser Ort schon nutzt, die höchste zuerst, etwa „Flach, 24 px“ oder „Hang, 16 bis 24 px von links nach rechts“. Höhen, die gleich klingen würden, bekommen eine Nummer, und wenn du mit der Maus über eine fährst, siehst du, wie viele Felder sie nutzen. Wähl eine aus und male. Auf der Karte bedeutet dunkleres Blau höheren Boden, und jede Höhe in der Liste zeigt ihren Farbton. Der niedrigste Boden des Ortes hat gar kein Blau, ein Hafen oder Strand ganz unten zeigt also keins.
+Drück auf **Höhe** (H). Der Bereich listet die Höhen auf, die dieser Ort schon nutzt, die höchste zuerst, etwa „Ebene 3“ oder „Rampe, Ebene 2 bis 4, von links nach rechts“. Höhen, die gleich klingen würden, bekommen eine Nummer, und wenn du mit der Maus über eine fährst, siehst du, wie viele Felder sie nutzen. Wähl eine aus und male. Auf der Karte bedeutet dunkleres Blau höheren Boden, und jede Höhe in der Liste zeigt ihren Farbton. Der niedrigste Boden des Ortes hat gar kein Blau, ein Hafen oder Strand ganz unten zeigt also keins.
 
-Die Höhe beeinflusst nicht nur das Aussehen, sondern auch das Laufen. Personen stehen auf der Höhe des Bodens unter ihnen, und das Spiel lässt keinen Schritt von mehr als 8 Pixeln nach oben oder 12 Pixeln nach unten zu, deshalb wirkt ein großer Höhenunterschied wie eine Wand.
+Höhen werden in Ebenen gezählt, der eigenen Einheit des Spiels (eine Ebene sind 8 Pixel, ein halbes Feld). Die Höhe beeinflusst nicht nur das Aussehen, sondern auch das Laufen. Personen stehen auf der Höhe des Bodens unter ihnen, und die Gruppe kann immer nur eine Ebene hinauf- oder hinabgehen: Zwei Ebenen oder mehr wirken wie eine Wand. Rampen verbinden Ebenen, und ein Feld Rampe schafft zwei, also sind Treppen und Hänge aneinandergereihte Rampen.
 
 ## Truhen
 
@@ -236,9 +236,9 @@ Nicht jede Stelle, die frei aussieht, ist ein guter Platz für eine Person. Setz
 | Orange | Eine Tür, ein Ausgang oder eine Trittstelle: Eine Person dort wäre im Weg. |
 | Rot | Die Gruppe kommt zu Fuß nicht nah genug heran, um zu reden. |
 
-Das wird aus den Laufregeln des Spiels selbst ermittelt, ausgehend von jedem Punkt, an dem die Gruppe an diesem Ort ankommt: Man kann 8 Pixel hinauf- und 12 hinuntersteigen, Wände halten einen auf, und man kann mit jemandem reden, der höchstens zwei Felder entfernt ist. Stellen, die erst durch Psynergie oder die Story zugänglich werden, erscheinen rot, Rot bedeutet dort also nicht immer einen Fehler.
+Das wird aus den Laufregeln des Spiels selbst ermittelt, ausgehend von jedem Punkt, an dem die Gruppe an diesem Ort ankommt: Man kann immer eine Ebene hinauf- oder hinabsteigen, Wände halten einen auf, und man kann mit jemandem reden, der höchstens zwei Felder entfernt ist. Stellen, die erst durch Psynergie oder die Story zugänglich werden, erscheinen rot, Rot bedeutet dort also nicht immer einen Fehler.
 
-Wenn eine Stelle ein Problem hat, sagt der Editor in einfachen Worten, welches, zum Beispiel „der Boden hier ist 32 Pixel höher als der nächste Weg“, oder dass eine Person dort die Gruppe von einer Tür abschneiden würde. Dann bietet er einen Ausweg an:
+Wenn eine Stelle ein Problem hat, sagt der Editor in einfachen Worten, welches, zum Beispiel „der Boden hier ist 4 Ebenen höher als der nächste Weg“, oder dass eine Person dort die Gruppe von einer Tür abschneiden würde. Dann bietet er einen Ausweg an:
 
 - **Zur nächsten guten Stelle verschieben** verschiebt die Person auf das nächstgelegene Feld ohne Probleme.
 - **… Felder auf die Höhe des Wegs angleichen** ändert die Bodenhöhe vom nächsten Weg bis zur Stelle, sodass die Gruppe dorthin laufen kann. Das Bild ändert sich nicht, nutze also **Malen**, wenn es wie ein Weg aussehen soll. Es ist ganz normales ungespeichertes Malen: Speichern behält es, und Rückgängig nimmt es zurück.

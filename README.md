@@ -190,9 +190,9 @@ The Chest, Doors and Events tools set the special codes they need themselves, so
 
 ## Height: how high the ground is
 
-Press **Height** (H). The panel lists the heights this place already uses, tallest first, such as "Flat, 24 px" or "Slope, 16 to 24 px left to right". Heights that would read the same get a number, and hovering over one says how many squares use it. Pick one and paint. On the map, darker blue means higher ground, and each height in the list has its own shade. The lowest ground in the place has no blue at all, so a harbour or beach at the bottom of the map shows none.
+Press **Height** (H). The panel lists the heights this place already uses, tallest first, such as "Level 3" or "Ramp, level 2 to 4, left to right". Heights that would read the same get a number, and hovering over one says how many squares use it. Pick one and paint. On the map, darker blue means higher ground, and each height in the list has its own shade. The lowest ground in the place has no blue at all, so a harbour or beach at the bottom of the map shows none.
 
-Height affects walking as well as looks. People stand at the height of the ground they're on, and the game refuses a step of more than 8 pixels up or 12 pixels down, so a big difference in height acts as a wall.
+Heights are counted in levels, the game's own unit (a level is 8 pixels, half a square). Height affects walking as well as looks. People stand at the height of the ground they're on, and the party can walk up or down one level at a time: two levels or more acts as a wall. Ramps join levels, and one square of ramp can climb two, so stairs and hillsides are ramps laid end to end.
 
 ## Chests
 
@@ -233,9 +233,9 @@ Not every spot that looks open is a good place for someone to stand. Tick **Wher
 | Orange | A door, exit or step spot: someone there would be in the way. |
 | Red | The party can't get near enough to talk by walking. |
 
-It's worked out from the game's own walking rules, starting from every point where the party arrives in the place: you can step up 8 pixels and down 12, walls stop you, and you can talk to someone within two squares. Places that only Psynergy or the story open up show as red, so red there doesn't always mean wrong.
+It's worked out from the game's own walking rules, starting from every point where the party arrives in the place: you can step up or down one level at a time, walls stop you, and you can talk to someone within two squares. Places that only Psynergy or the story open up show as red, so red there doesn't always mean wrong.
 
-When a spot has a problem, the editor says what it is in plain words, for example "the ground here is 32 pixels higher than the nearest path", or that standing there would cut the party off from a door. Then it offers a way round:
+When a spot has a problem, the editor says what it is in plain words, for example "the ground here is 4 levels higher than the nearest path", or that standing there would cut the party off from a door. Then it offers a way round:
 
 - **Move to the nearest good spot** moves the person to the closest square with nothing wrong.
 - **Level … squares to the path's height** changes the height of the ground from the nearest path up to the spot, so the party can walk there. The picture doesn't change, so use **Paint** if it should look like a path. It's ordinary unsaved painting: Save keeps it and Undo takes it back.

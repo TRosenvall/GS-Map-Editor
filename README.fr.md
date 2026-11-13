@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 235b4e045120 -->
+<!-- translated from README.md @ 14351b080d8e -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · [Deutsch](README.de.md) · **Français** · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -193,9 +193,9 @@ Les outils Coffre, Portes et Événements placent eux-mêmes les codes spéciaux
 
 ## Hauteur : la hauteur du sol
 
-Appuyez sur **Hauteur** (H). Le panneau liste les hauteurs que ce lieu utilise déjà, de la plus haute à la plus basse, par exemple « Plat, 24 px » ou « Pente, de 16 à 24 px de gauche à droite ». Les hauteurs qui se liraient pareil reçoivent un numéro, et en survoler une indique combien de cases l'utilisent. Choisissez-en une et peignez. Sur la carte, un bleu plus foncé signifie un sol plus haut, et chaque hauteur de la liste montre sa teinte. Le sol le plus bas du lieu n'a pas de bleu du tout : un port ou une plage en bas de la carte n'en montre donc pas.
+Appuyez sur **Hauteur** (H). Le panneau liste les hauteurs que ce lieu utilise déjà, de la plus haute à la plus basse, par exemple « Niveau 3 » ou « Rampe, du niveau 2 au 4, de gauche à droite ». Les hauteurs qui se liraient pareil reçoivent un numéro, et en survoler une indique combien de cases l'utilisent. Choisissez-en une et peignez. Sur la carte, un bleu plus foncé signifie un sol plus haut, et chaque hauteur de la liste montre sa teinte. Le sol le plus bas du lieu n'a pas de bleu du tout : un port ou une plage en bas de la carte n'en montre donc pas.
 
-La hauteur influe sur la marche autant que sur l'apparence. Les personnages se tiennent à la hauteur du sol sur lequel ils sont, et le jeu refuse un pas de plus de 8 pixels vers le haut ou de 12 pixels vers le bas : une grande différence de hauteur agit donc comme un mur.
+Les hauteurs se comptent en niveaux, l'unité propre au jeu (un niveau fait 8 pixels, une demi-case). La hauteur influe sur la marche autant que sur l'apparence. Les personnages se tiennent à la hauteur du sol sur lequel ils sont, et le groupe peut monter ou descendre d'un niveau à la fois : deux niveaux ou plus agissent comme un mur. Les rampes relient les niveaux, et une case de rampe peut en gravir deux : escaliers et pentes sont des rampes mises bout à bout.
 
 ## Coffres
 
@@ -236,9 +236,9 @@ Tous les emplacements qui semblent dégagés ne conviennent pas pour y placer qu
 | Orange | Une porte, une sortie ou une case de passage : quelqu'un placé là gênerait. |
 | Rouge | Le groupe ne peut pas s'approcher assez en marchant pour parler. |
 
-C'est calculé à partir des propres règles de déplacement du jeu, en partant de chaque point où le groupe arrive dans le lieu : on peut monter de 8 pixels et descendre de 12, les murs arrêtent, et on peut parler à quelqu'un jusqu'à deux cases de distance. Les endroits que seuls la Psynergie ou l'histoire rendent accessibles apparaissent en rouge, donc le rouge n'y signifie pas toujours une erreur.
+C'est calculé à partir des propres règles de déplacement du jeu, en partant de chaque point où le groupe arrive dans le lieu : on peut monter ou descendre d'un niveau à la fois, les murs arrêtent, et on peut parler à quelqu'un jusqu'à deux cases de distance. Les endroits que seuls la Psynergie ou l'histoire rendent accessibles apparaissent en rouge, donc le rouge n'y signifie pas toujours une erreur.
 
-Quand un emplacement pose problème, l'éditeur dit lequel avec des mots simples, par exemple « le sol ici est 32 pixels plus haut que le chemin le plus proche », ou que se tenir là couperait le groupe d'une porte. Puis il propose une solution :
+Quand un emplacement pose problème, l'éditeur dit lequel avec des mots simples, par exemple « le sol ici est 4 niveaux plus haut que le chemin le plus proche », ou que se tenir là couperait le groupe d'une porte. Puis il propose une solution :
 
 - **Déplacer vers le bon emplacement le plus proche** déplace le personnage vers la case la plus proche qui ne pose aucun problème.
 - **Mettre … cases à la hauteur du chemin** change la hauteur du sol depuis le chemin le plus proche jusqu'à l'emplacement, pour que le groupe puisse y marcher. L'image ne change pas : utilisez **Peindre** si cela doit ressembler à un chemin. C'est de la peinture ordinaire non enregistrée : Enregistrer la garde et Annuler la défait.
