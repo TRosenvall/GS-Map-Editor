@@ -437,6 +437,50 @@ function paintAt(x, y) {
   redrawCells([[x, y]]);
 }
 
+// Fill: every square connected to the one clicked (sideways, not diagonally)
+// that has the same block on this layer, or the same walkability or height,
+// takes the brush. Only squares this place shows are filled. One undo step.
+const FILL_LIMIT = 128 * 128;
+function fillAt(x, y) {
+  const m = S.map, l = layer(), tool = S.tool;
+  if (x < 0 || y < 0 || x >= m.size[0] || y >= m.size[1]) return;
+  let value, read, write;
+  if (tool === 'block') {
+    if (S.block == null) return status(`<span class="warn">${T('Pick a block first.')}</span>`);
+    read = (gx, gy) => m.blocks[gy][gx] & 0xfff;
+    write = (gx, gy) => setValue('block', gx, gy, (m.blocks[gy][gx] & 0xf000) | S.block);
+    value = S.block;
+  } else {
+    if ($('#value').value.trim() === '') return status(`<span class="warn">${tool === 'shape' ? T('Pick a height on the right first.') : T('Pick a brush on the right first.')}</span>`);
+    value = parseInt($('#value').value, 16);
+    if (isNaN(value) || value < 0 || value > 0xff) return status(`<span class="err">${T('That value should be 0 to ff.')}</span>`);
+    const g = m.grids[tool];
+    read = (gx, gy) => g[gy][gx];
+    write = (gx, gy) => { if (!(tool === 'collision' && m.markers?.some(k => k.x === gx && k.z === gy))) setValue(tool, gx, gy, value); };
+  }
+  // The squares this place shows, by grid cell, and the window cell each is drawn at.
+  const shown = new Map();
+  for (let wy = 0; wy < m.size[1]; wy++) for (let wx = 0; wx < m.size[0]; wx++) {
+    const [gx, gy] = gridXY(l, wx, wy); shown.set(`${gx},${gy}`, [wx, wy]);
+  }
+  const [sx, sy] = tool === 'block' || !S.mouse ? gridXY(l, x, y) : (groundAt(l, S.mouse[0], S.mouse[1]) || gridXY(l, x, y));
+  const from = read(sx, sy);
+  if (from === value) return;
+  const seen = new Set([`${sx},${sy}`]), queue = [[sx, sy]], cells = [];
+  while (queue.length && cells.length < FILL_LIMIT) {
+    const [gx, gy] = queue.shift();
+    cells.push([gx, gy]);
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nx = (gx + dx + 128) % 128, ny = (gy + dy + 128) % 128, k = `${nx},${ny}`;
+      if (seen.has(k) || !shown.has(k) || read(nx, ny) !== from) continue;
+      seen.add(k); queue.push([nx, ny]);
+    }
+  }
+  for (const [gx, gy] of cells) write(gx, gy);
+  drawAll();
+  status(T('Filled {n} squares. Save to keep them.', { n: cells.length }));
+}
+
 function eyedrop(x, y) {
   const l = layer(), m = S.map;
   if (S.tool === 'collision' || S.tool === 'shape') {
@@ -520,6 +564,7 @@ function setTool(t) {
   showScenePanel();
   for (const b of document.querySelectorAll('#tools button')) b.classList.toggle('on', b.dataset.tool === t);
   $('#valueBox').style.display = (t === 'collision' || t === 'shape') ? '' : 'none';
+  $('#fillBox').style.display = (t === 'block' || t === 'collision' || t === 'shape') ? '' : 'none';
   $('#brushes').style.display = $('#brushTitle').style.display = t === 'collision' ? '' : 'none';
   $('#stampPanel').style.display = $('#stampTitle').style.display = t === 'stamp' ? 'block' : 'none';
   if (t === 'stamp') setStampMode(S.clip ? 'paste' : 'copy');
@@ -558,6 +603,7 @@ $('#cv').addEventListener('mousedown', e => {
     else chestSelect(gx, gy, mk || null);
     return;
   }
+  if ($('#fill').checked && ['block', 'collision', 'shape'].includes(S.tool)) { S.stroke = []; fillAt(x, y); finishStroke(); return; }
   painting = true; S.stroke = []; lastCell = `${x},${y}`; paintAt(x, y);
 });
 window.addEventListener('mouseup', e => {
@@ -2080,6 +2126,7 @@ window.addEventListener('keydown', e => {
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); (e.shiftKey ? $('#redo') : $('#undo')).click(); return; }
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') { e.preventDefault(); if (dirtyCount()) doSave(); return; }
   if (e.key === 'Escape' && S.tool === 'stamp') { setStampMode('copy'); return; }
+  if (e.key.toLowerCase() === 'f' && !e.metaKey && !e.ctrlKey && $('#fillBox').style.display !== 'none') { $('#fill').checked = !$('#fill').checked; return; }
   const t = { v: 'view', b: 'block', c: 'collision', h: 'shape', k: 'chest', e: 'events', d: 'doors', p: 'points', s: 'stamp' }[e.key.toLowerCase()];
   if (t && !e.metaKey && !e.ctrlKey) setTool(t);
 });

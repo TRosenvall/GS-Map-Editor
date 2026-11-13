@@ -164,6 +164,8 @@ Press **Paint** (B).
 3. Click or drag on the map.
 4. Save.
 
+Tick **Fill** in the top bar (or press F) and a click fills the whole connected area that has the same block as the square you click, on that layer. Fill works in **Walkability** and **Height** too, matching walkability or height instead. Undo takes back a whole fill at once.
+
 Each place has its own set of blocks, so the panel changes from place to place.
 
 ## Walkability: where you can walk
@@ -406,6 +408,7 @@ On Windows and Linux, use Ctrl for ⌘ and Alt for ⌥.
 | D | Doors | |
 | P | Move people | |
 | S | Stamp | |
+| F | Fill on or off, in Paint, Walkability and Height | |
 | G / O / R / T | | Ground / Overlay / Regions / Towns |
 | ⌘Z | Undo | Undo |
 | ⇧⌘Z | Redo | Redo |
