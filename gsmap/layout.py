@@ -21,6 +21,8 @@ SCENE_SOURCES = (f"{SRC}/scene", f"{SRC}/debug")   # where the overlays' C lives
 EXIT_NAMES = f"{INCLUDE}/scene_exits.h"
 EXIT_REQUEST = "Import_EventSetExitRequest"        # what a scene script calls to leave
 WORLD_PLACEMENTS = "gWorldMapActorPlacements"
+AREA_MARKERS = f"{SRC}/field/scripts.s"          # gWorldPicture_AreaMarkers: pause-map markers, actor 11 + row
+AREA_MARKERS_LABEL = "gWorldPicture_AreaMarkers"
 SCENE_HEADERS = {f"{INCLUDE}/field/scene.h": ["struct SceneEntryPoints) == 48", "struct SceneExitRegion) == 16"],
                  f"{INCLUDE}/field/scene_tables.h": ["struct SceneEntrance) == 24", "struct ActorPlacement) == 24",
                                                      "struct Trigger) == 12"]}

@@ -242,9 +242,10 @@ def world_places(world, project, scenes, names):
     icons = []
     rows = de._tables([o], ov, "placements")
     main = next((r for _, name, r in rows if name == layout.WORLD_PLACEMENTS), [])
+    stock = stock_icons(scenes)
     for i, (actor, r) in enumerate(zip(actor_numbers(main), main)):
         icons.append({"actor": actor, "row": i, "sprite": r["sprite"], "x": r["x"] >> 16, "z": r["z"] >> 16,
-                      "lead": lead(ICON_TRIGGER + actor)})
+                      "lead": lead(ICON_TRIGGER + actor), "added": i >= stock})
     steps = []
     for gy in range(256):
         for gx in range(256):
@@ -464,3 +465,132 @@ def remove_step(world, project, scenes, names, gx, gy):
     cells = _cells_with_code(world, code)
     apply_world_edits(world, [{"gx": x, "gy": y, "layer": 0, "code": 0} for x, y in cells])
     return {"code": code, "cells": len(cells)}
+
+
+# ---- new town icons ------------------------------------------------------------------------
+
+FIRST_MARKER_ACTOR = 11  # gWorldPicture_AreaMarkers' row i is actor 11 + i (world_picture.c)
+
+
+def marker_rows(root):
+    """How many actors the pause-screen map has a marker row for, from actor 11
+    up: the rows of gWorldPicture_AreaMarkers before its -1 end."""
+    import re
+    with open(os.path.join(root, layout.AREA_MARKERS), encoding="utf-8") as f:
+        text = f.read()
+    at = text.find(layout.AREA_MARKERS_LABEL + ":")
+    if at < 0:
+        raise ValueError(tr("Can't find the pause-screen map's markers ({path}).", path=layout.AREA_MARKERS))
+    rows = 0
+    for line in text[at:].splitlines()[1:]:
+        m = re.match(r"\s*\.4byte\s+([^,]+),", line)
+        if not m:
+            if line.strip() and not line.strip().startswith(("@", "//", "/*")):
+                break
+            continue
+        if m.group(1).strip() == "-1":
+            break
+        rows += 1
+    return rows
+
+
+def icon_sprites(project, scenes, names):
+    """The sprites the game's own town icons use, with their names, commonest first."""
+    from collections import Counter
+    from .doors import DoorEditor
+    de = DoorEditor(project, scenes, names)
+    sc = next(s for s in scenes.scenes if s["id"] == WORLD_SCENE)
+    o = scenes.overlay(sc["overlay"])
+    main = o.rows(layout.WORLD_PLACEMENTS)
+    counts = Counter(r["sprite"] for r in main if r["sprite"] > 7 and (r["x"] or r["z"]))
+    return [{"sprite": sp, "name": names.sprite_name(sp) or tr("Sprite {n}", n=sp)} for sp, _ in counts.most_common()]
+
+
+def add_icon(world, project, scenes, names, x, z, sprite, target_scene, target_entrance):
+    """A new town icon at world px (x, z), leading to the target. Added after
+    every other icon, so none renumbers; its trigger is 100 + its actor."""
+    from .doors import EVENT_EXIT
+    from .sceneedit import EVENTS_END, FIRST_ACTOR, MAX_ACTOR
+    de, o, ov = _step_tables(project, scenes, names)
+    de._check_target(target_scene, target_entrance)
+    if not (0 <= x < 8192 and 0 <= z < 8192):
+        raise ValueError(tr("that spot is outside the world"))
+    if int(sprite) not in {s["sprite"] for s in icon_sprites(project, scenes, names)}:
+        raise ValueError(tr("Pick one of the pictures the game's own towns use."))
+    placements = de._tables([o], ov, "placements")
+    main = next(r for _, name, r in placements if name == layout.WORLD_PLACEMENTS)
+    end = next(i for i, r in enumerate(main) if r["sprite"] < 0)
+    actor = FIRST_ACTOR + sum(1 for a in actor_numbers(main) if a >= FIRST_ACTOR)
+    if actor > MAX_ACTOR:
+        raise ValueError(tr("The world map already has as many icons as the game allows."))
+    if actor < FIRST_MARKER_ACTOR + marker_rows(project.root):
+        raise ValueError(tr("A new icon here would take another place's pause-screen marker."))
+    trigger = ICON_TRIGGER + actor
+    events = de._tables([o], ov, "events")
+    exits = de._tables([o], ov, "exits")
+    if any(r["trigger"] == trigger for _, _, rs in events for r in rs if r["control"] != EVENTS_END) or \
+            any((w >> 16) & 0xFF == trigger for row in world.rows[:LAYER1 // 2] for w in row):
+        raise ValueError(tr("The world map has no room for another icon."))
+    used = {e["kind"] for _, _, segs in exits for s in segs for e in s.get("exits", [])}
+    used |= {r["value"] for _, _, rs in events for r in rs if r["control"] & 0xF == EVENT_EXIT}
+    kind = next((k for k in range(0xFE, 0, -1) if k not in used), None)
+    if kind is None:
+        raise ValueError(tr("The world map has no room for another icon."))
+    like = next(r for r in main[:end] if r["sprite"] == int(sprite) and (r["x"] or r["z"]))
+    main.insert(end, dict(like, sprite=int(sprite), condition=-1, x=int(x) << 16, z=int(z) << 16))
+    for _, _, rows in events:
+        e_end = next(i for i, r in enumerate(rows) if r["control"] == EVENTS_END)
+        rows.insert(e_end, {"control": EVENT_EXIT, "trigger": trigger, "condition": -1, "value": kind})
+    de._set_exit(exits, WORLD_SCENE, kind, target_scene, target_entrance)
+    main_table = next(t for t in placements if t[1] == layout.WORLD_PLACEMENTS)
+    de._save(ov, [main_table] + events + exits)
+    return {"actor": actor, "trigger": trigger, "kind": kind, "label": names.scene_label(target_scene)}
+
+
+def stock_icons(scenes):
+    sc = next(s for s in scenes.scenes if s["id"] == WORLD_SCENE)
+    stock = scenes.overlay(sc["overlay"]).rows(layout.WORLD_PLACEMENTS)
+    return next((i for i, r in enumerate(stock) if r["sprite"] < 0), len(stock))
+
+
+def remove_icon(world, project, scenes, names, actor):
+    """Take away an icon the mod added, with its exit event and exit. Added
+    icons after it move up a number, and their triggers follow them."""
+    from .doors import EVENT_EXIT
+    from .sceneedit import EVENTS_END
+    de, o, ov = _step_tables(project, scenes, names)
+    placements = de._tables([o], ov, "placements")
+    main = next(r for _, name, r in placements if name == layout.WORLD_PLACEMENTS)
+    numbers = actor_numbers(main)
+    if int(actor) not in numbers:
+        raise ValueError(f"no icon {actor}")
+    row = numbers.index(int(actor))
+    stock = stock_icons(scenes)
+    if row < stock:
+        raise ValueError(tr("This is one of the game's own places, so it can't be removed. You can move it, "
+                            "or change where it leads."))
+    events = de._tables([o], ov, "events")
+    exits = de._tables([o], ov, "exits")
+    trigger = ICON_TRIGGER + int(actor)
+    kind, _ = de._exit_kind(events, trigger)
+    del main[row]
+    added = {ICON_TRIGGER + a for a in numbers[stock:]}  # only the mod's own icons renumber
+    for _, _, rows in events:
+        kept = []
+        for r in rows:
+            if r["control"] != EVENTS_END and r["control"] & 0xF == EVENT_EXIT and r["trigger"] in added \
+                    and r["trigger"] >= trigger:
+                if r["trigger"] == trigger:
+                    continue
+                r = dict(r, trigger=r["trigger"] - 1)
+            kept.append(r)
+        rows[:] = kept
+    if kind is not None and not any(r["control"] & 0xF == EVENT_EXIT and r["value"] == kind
+                                    for _, _, rs in events for r in rs):
+        for _, _, segs in exits:
+            for seg in segs:
+                if seg.get("scene") == WORLD_SCENE:
+                    seg["exits"] = [e for e in seg["exits"] if e["kind"] != kind]
+    main_table = next(t for t in placements if t[1] == layout.WORLD_PLACEMENTS)
+    de._save(ov, [main_table] + events + exits)
+    return {"actor": int(actor)}

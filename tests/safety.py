@@ -492,6 +492,28 @@ with tempfile.TemporaryDirectory() as tmp:
     check("removing it puts the world back", read(w.blocks_path) == before_world)
     check("and the scene tables", read(os.path.join(tmp, "games/tbs/src/mod/overrides.json")) == before_ov)
 
+    # ---- new town icons: after every other icon, removable, the game's own not
+    sprite = worldmod.icon_sprites(p, s, n)[0]["sprite"]
+    first = worldmod.add_icon(w, p, s, n, 4000, 4000, sprite, vale, 0)
+    second = worldmod.add_icon(w, p, s, n, 4100, 4000, sprite, by_name["Vale"]["id"], 0)
+    places = worldmod.world_places(World(tmp), p, s, n)
+    mine = [i for i in places["icons"] if i["added"]]
+    check("new icons come after the game's own", [i["actor"] for i in mine] == [first["actor"], second["actor"]], mine)
+    check("and lead where they were sent", all(i["lead"] and i["lead"]["scene"] == vale for i in mine), mine)
+    check("past every pause-screen marker", first["actor"] >= worldmod.FIRST_MARKER_ACTOR + worldmod.marker_rows(tmp))
+    worldmod.remove_icon(w, p, s, n, first["actor"])
+    places = worldmod.world_places(World(tmp), p, s, n)
+    mine = [i for i in places["icons"] if i["added"]]
+    check("removing one moves the next up, still leading where it did",
+          len(mine) == 1 and mine[0]["actor"] == first["actor"] and mine[0]["x"] == 4100 and mine[0]["lead"]["scene"] == vale, mine)
+    try:
+        worldmod.remove_icon(w, p, s, n, places["icons"][0]["actor"])
+        check("the game's own icons can't be removed", False)
+    except ValueError:
+        check("the game's own icons can't be removed", True)
+    worldmod.remove_icon(w, p, s, n, mine[0]["actor"])
+    check("removing every new icon puts the tables back", read(os.path.join(tmp, "games/tbs/src/mod/overrides.json")) == before_ov)
+
 # ---- hostile patches fail quickly and plainly
 src = bytes(range(256)) * 16
 

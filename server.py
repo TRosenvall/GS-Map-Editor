@@ -459,7 +459,8 @@ def make_handler(project, token=None, local_only=True):
                     places = worldmod.world_places(w, project, scenes(), names)
                     return self.send_json({"places": places,
                                            "regions": worldmod.region_names(w, places, names),
-                                           "blocks": len(w.block_tiles)})
+                                           "blocks": len(w.block_tiles),
+                                           "icon_sprites": worldmod.icon_sprites(project, scenes(), names)})
                 m = re.fullmatch(r"/api/world/(chunk|walk|kind)/(\d+)/(\d+)\.png", path)
                 if m:
                     what, cx, cy = m.group(1), int(m.group(2)), int(m.group(3))
@@ -731,8 +732,18 @@ def make_handler(project, token=None, local_only=True):
                 if path == "/api/world/icon":
                     de = DoorEditor(project, scenes(), names)
                     actor = int(body.get("actor", 0))
-                    with writing(N_("a town icon change"), "world"):
+                    label = {"add": N_("adding a town icon"), "remove": N_("removing a town icon")}.get(
+                        body.get("action"), N_("a town icon change"))
+                    with writing(label, "world"):
                         try:
+                            if body.get("action") == "add":
+                                r = worldmod.add_icon(world(), project, scenes(), names, int(body["x"]), int(body["z"]),
+                                                      int(body["sprite"]), int(body["target_scene"]),
+                                                      int(body["target_entrance"]))
+                                return self.send_json({"ok": True, **r})
+                            if body.get("action") == "remove":
+                                r = worldmod.remove_icon(world(), project, scenes(), names, actor)
+                                return self.send_json({"ok": True, **r})
                             if body.get("action") == "move":
                                 r = worldmod.move_icon(project, scenes(), names, actor, int(body["x"]), int(body["z"]),
                                                        bool(body.get("move_arrivals", True)))
@@ -740,7 +751,7 @@ def make_handler(project, token=None, local_only=True):
                             trigger = int(body["trigger"]) if "trigger" in body else worldmod.ICON_TRIGGER + actor
                             r = de.relink_scene(worldmod.WORLD_SCENE, trigger,
                                                 int(body["target_scene"]), int(body["target_entrance"]))
-                        except ValueError as e:
+                        except (ValueError, KeyError) as e:
                             fsio.abort()
                             return self.send_json({"error": str(e)}, 409)
                     return self.send_json({"ok": True, **r})

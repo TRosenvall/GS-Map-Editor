@@ -326,13 +326,13 @@ Choose the world map at the top of the place list. Press **← Places** to go ba
 | **Ground** | G | Paint ground blocks. ⌥-click picks up a block, and recent blocks stay at hand. |
 | **Overlay** | O | Paint mountains, trees and coastline. Walking depends on the tiles of both layers. |
 | **Regions** | R | Paint encounter regions. Each has its own random battles, and each is named after the towns inside it. |
-| **Towns** | T | Drag a town or dungeon to move it. Click one to change where it leads. |
+| **Towns** | T | Drag a town or dungeon to move it. Click one to change where it leads. **Place a new icon…** adds one, with a picture the game's own towns use; icons you added can be removed. |
 | **Step spots** | P | Blue squares lead somewhere when stepped on. Click one to change where it leads or remove it, or click any other square to make a new one. |
 
 - Tick **Walkability**, **Encounter regions** or **Places** to show those on the map.
 - When you move a town, **move its arrival points too** keeps you appearing next to it when you leave. It's on by default.
 - Changes save as you paint. **Undo** takes back the last stroke, and **Redo** puts it back.
-- The pause-screen map is a separate picture, so it won't follow your changes.
+- The pause-screen map is a separate picture, so it won't follow your changes, and new icons get no marker on it.
 
 ## Check: finding problems
 

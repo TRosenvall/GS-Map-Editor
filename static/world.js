@@ -94,6 +94,7 @@ function selectIcon(ic) {
       + (W.adv ? ` <span class="note">${T('(trigger {trigger}, exit kind {kind})', { trigger: 100 + ic.actor, kind: lead.kind })}</span>` : '');
   $('#iconLink').style.display = lead ? '' : 'none';
   $('#iconLink').textContent = T('Change where it leads…'); $('#stepRemove').style.display = 'none';
+  $('#iconRemove').style.display = ic.added && W.tool === 'icons' ? '' : 'none';
   showPane('icon'); drawMarks();
 }
 function selectStep(st) {
@@ -104,6 +105,7 @@ function selectStep(st) {
   $('#iconLink').style.display = st.lead.scripted ? 'none' : '';
   $('#iconLink').textContent = T('Change where it leads…');
   $('#stepRemove').style.display = W.tool === 'steps' && !st.lead.scripted ? '' : 'none';
+  $('#iconRemove').style.display = 'none';
   showPane('icon'); drawMarks();
 }
 // A square that isn't a step spot yet, in the Step spots tool.
@@ -111,7 +113,7 @@ function selectNewStep(gx, gy) {
   W.sel = { newStep: { gx, gy } };
   $('#iconInfo').innerHTML = T('Not a step spot. Make one here, leading anywhere in the game.');
   $('#iconLink').style.display = ''; $('#iconLink').textContent = T('Make a step spot here…');
-  $('#stepRemove').style.display = 'none';
+  $('#stepRemove').style.display = 'none'; $('#iconRemove').style.display = 'none';
   showPane('icon'); drawMarks();
 }
 $('#stepRemove').onclick = async () => {
@@ -177,6 +179,12 @@ $('#world').addEventListener('mousedown', async e => {
     if (W.tool === 'region') { W.kind = (c[0] >>> 24) & 0x7f; buildKinds(); }
     else pickBlock(c[W.tool === 'ground' ? 0 : 1] & 0xffff);
     return;
+  }
+  if (W.tool === 'icons' && W.placing != null) {
+    const r = $('#world').getBoundingClientRect(), z = zoom();
+    const x = Math.round((e.clientX - r.left) * 2 / z), zz = Math.round((e.clientY - r.top) * 2 / z);
+    W.sel = { newIcon: { x, z: zz, sprite: W.placing } }; W.placing = null;
+    return openPicker();
   }
   if (W.tool === 'steps') {
     if (gx < 0 || gy < 0 || gx > 255 || gy > 255) return;
@@ -252,8 +260,30 @@ function setTool(t) {
     showPane('block'); $('#atlas').src = `/api/world/atlas/${layerOf()}.png?cols=18`; drawPick(); drawRecent();
   } else if (t === 'region') { showPane('kind'); if (!$('#ovKind').checked) { $('#ovKind').checked = true; buildTiles(); } }
   else showPane(null);
+  W.placing = null;
+  $('#newIconPane').style.display = t === 'icons' ? '' : 'none';
+  if (t === 'icons') fillIconSprites();
   drawMarks();
 }
+// New town icons: a picture the game's own towns use, a click on the map, then where it leads.
+function fillIconSprites() {
+  const sel = $('#newIconSprite'); if (!W.data || sel.options.length) return;
+  for (const s of W.data.icon_sprites || []) sel.add(new Option(s.name, s.sprite));
+  sel.onchange = () => { $('#newIconImg').src = `/api/asset/sprite/${sel.value}.png`; };
+  sel.onchange();
+}
+$('#newIconGo').onclick = () => {
+  if (!$('#newIconSprite').value) return;
+  W.placing = +$('#newIconSprite').value;
+  status(T('Click the map where the new icon should go.'));
+};
+$('#iconRemove').onclick = async () => {
+  const actor = W.sel?.actor; if (actor == null || !confirm(T('Remove this icon?'))) return;
+  const r = await api('/api/world/icon', { action: 'remove', actor });
+  if (r.error) return status(`<span class="err">${esc(r.error)}</span>`);
+  W.sel = null; await loadPlaces(); showPane(null);
+  status(`<span class="ok">${T('Removed the icon.')}</span> ${T('Press ▶ Play to try it.')}`);
+};
 $('#atlas').onclick = e => {
   const r = $('#atlas').getBoundingClientRect(), sc = 288 / r.width;
   const b = Math.floor((e.clientY - r.top) * sc / 16) * 18 + Math.floor((e.clientX - r.left) * sc / 16);
@@ -364,11 +394,12 @@ $('#pkCancel').onclick = () => { $('#picker').style.display = 'none'; };
 $('#pkOk').onclick = async () => {
   $('#picker').style.display = 'none';
   const body = { target_scene: PK.scene, target_entrance: PK.entrance };
-  const r = W.sel.newStep
-    ? await api('/api/world/step', { action: 'add', ...W.sel.newStep, ...body })
+  const r = W.sel.newStep ? await api('/api/world/step', { action: 'add', ...W.sel.newStep, ...body })
+    : W.sel.newIcon ? await api('/api/world/icon', { action: 'add', ...W.sel.newIcon, ...body })
     : await api('/api/world/icon', { action: 'relink', trigger: W.sel.trigger, ...body });
   if (r.error) return status(`<span class="err">${esc(r.error)}</span>`);
   if (W.sel.newStep) { W.cells = {}; showPane(null); }
+  if (W.sel.newIcon) { W.sel = null; showPane(null); }
   await loadPlaces();
   status(`<span class="ok">${T('Now leads to <b>{place}</b>.', { place: esc(r.label) })}</span> ${T('Press ▶ Play to try it.')}`);
 };

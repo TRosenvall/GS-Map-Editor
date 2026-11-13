@@ -115,9 +115,14 @@
     <div id="atlasWrap" style="margin-top:6px"><img id="atlas" alt=""></div>
   </div>
   <div class="pane kinds" id="kindPane" style="display:none"></div>
+  <div class="pane" id="newIconPane" style="display:none">
+    <div class="note">New town icon</div>
+    <div class="row"><img id="newIconImg" alt="" style="height:32px;image-rendering:pixelated"><select id="newIconSprite"></select></div>
+    <div class="row"><button id="newIconGo">Place a new icon…</button></div>
+  </div>
   <div class="pane" id="iconPane" style="display:none">
     <div id="iconInfo"></div>
-    <div class="row"><button id="iconLink" class="primary">Change where it leads…</button><button id="stepRemove" style="display:none">Remove spot</button></div>
+    <div class="row"><button id="iconLink" class="primary">Change where it leads…</button><button id="stepRemove" style="display:none">Remove spot</button><button id="iconRemove" style="display:none">Remove icon</button></div>
     <label class="note"><input type="checkbox" id="moveArrivals" checked> When moving, move its arrival points too (where you appear on leaving)</label>
   </div>
 </div>
