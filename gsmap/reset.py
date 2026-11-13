@@ -95,6 +95,31 @@ def _drop_unused_text(root, base):
     return True
 
 
+def _restore_zones(root, base, zones):
+    """Put these encounter zones back from the original game, the others left as
+    they are: one file holds the world map's battles and every place's. How many changed."""
+    from .encounters import ZONES, restore_zones
+    shown = _git(root, "show", f"{base}:{ZONES}")
+    if shown.returncode != 0 or not zones:
+        return 0
+    # None: the original's zones can't be matched to these (a different
+    # alchemy's layout). The whole old file wouldn't build either, so they stay.
+    return restore_zones(root, shown.stdout.decode("utf-8"), zones) or 0
+
+
+def _place_zones(root, scenes, mine):
+    """(zones, shared): the encounter zones the scenes in `mine` use
+    (gScene_EncounterRules), and those of them places elsewhere use too."""
+    from .encounters import Encounters
+    try:
+        rules = Encounters(root).scene_rules
+    except (OSError, ValueError):
+        return set(), set()
+    names = {s["name"] for s in scenes.scenes if s["id"] in mine}
+    own = {r["zone"] for r in rules if r["scene"] in names and r["zone"]}
+    return own, own & {r["zone"] for r in rules if r["scene"] not in names}
+
+
 def _refuse_if_set_up_by_hand(project, base, info):
     """A place given its own art outside the editor has a changed row in the map
     list. Its folder alone can't go back: the original files would be drawn with
@@ -140,18 +165,28 @@ def reset_map(project, scenes, names, info, settings=None, shared_too=False):
         tileset.save_meta(root, meta)
         changed += 1
     mine = SceneEditor(project, scenes, names)._map_scene_ids(info)
+    # The place's battles, even a zone other places share: they go back too.
+    zones, shared_zones = _place_zones(root, scenes, mine)
+    restored_zones = _restore_zones(root, base, zones)
+    changed += restored_zones
     dropped, shared = _drop_tables(root, scenes, names, project, mine, shared_too)
     text = _drop_unused_text(root, base)
     project.reload()
-    return {"files": changed, "tables": dropped, "shared_tables": shared, "text": text}
+    return {"files": changed, "tables": dropped, "shared_tables": shared, "text": text,
+            "zones": restored_zones, "shared_zones": len(shared_zones) if restored_zones else 0}
 
 
 def reset_world(project, scenes, names, settings=None):
     """The world map: its painted blocks, its towns' places and links, and its battles."""
     root = project.root
     base = _base(root, settings)
-    from .encounters import ZONES
-    changed = sum(_restore(root, base, rel) for rel in (layout.WORLD_BLOCKS, layout.WORLD_CELLS, layout.WORLD_COLLISION, ZONES))
+    from .encounters import Encounters
+    changed = sum(_restore(root, base, rel) for rel in (layout.WORLD_BLOCKS, layout.WORLD_CELLS, layout.WORLD_COLLISION))
+    # Only the world map's zones: places' battles are theirs to reset.
+    try:
+        changed += _restore_zones(root, base, Encounters(root).world_zones())
+    except (OSError, ValueError):
+        pass  # battle files it can't read: left as they are, rather than guessed at
     from .world import WORLD_SCENE
     dropped, shared = _drop_tables(root, scenes, names, project, {WORLD_SCENE}, True)
     text = _drop_unused_text(root, base)

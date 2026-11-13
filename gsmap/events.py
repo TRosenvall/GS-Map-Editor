@@ -129,6 +129,7 @@ class EventEditor(DoorEditor):
         for gx, gz in self._window(info):
             cells.setdefault(col[gz][gx], []).append([gx, gz])
         out = []
+        targets = search_targets()  # in the current language, once per call
         for i, r in enumerate(rows):
             if r["control"] == EVENTS_END:
                 break
@@ -165,7 +166,6 @@ class EventEditor(DoorEditor):
             else:
                 ev["does"] = tr("Nothing")
             if kind == "search":
-                targets = search_targets()
                 ev["what"] = targets[(c >> 4) & 0x1F] if ((c >> 4) & 0x1F) < len(targets) else tr("something")
             elif kind == "item":
                 ev["what"] = self.names.item_name((c >> 8) & 0xFF)
@@ -383,9 +383,19 @@ class EventEditor(DoorEditor):
                                 "to them, so they can't be removed. You can move them instead."))
         del rows[index]
         changed = {people_table: ("placements", rows)}
-        # Every events table that goes with this people table.
+        # Every events table that goes with this people table, as each scene of
+        # the overlay that loads it pairs them. Another room's events are left
+        # alone: its people are numbered from its own table.
+        paired = set()
+        for sc in self.scenes.scenes:
+            if sc["overlay"] != o.id:
+                continue
+            theirs = self._tables([o], ov, "placements", need=False, scene_ids={sc["id"]})
+            if people_table in {n for _, n, _ in theirs}:
+                paired |= {n for _, n, _ in self._tables([o], ov, "events", need=False, scene_ids={sc["id"]})
+                           if self._stage_placements(n, theirs)[0] == people_table}
         for _, name, events in self._tables([o], ov, "events", need=False):
-            if self._stage_placements(name, placements)[0] != people_table:
+            if name not in paired:
                 continue
             kept = []
             for r in events:

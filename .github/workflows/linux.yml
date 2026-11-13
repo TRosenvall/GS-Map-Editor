@@ -44,3 +44,6 @@ jobs:
 
       - name: Where people can stand follows the game's walking rules
         run: python3 tests/placement.py "$RUNNER_TEMP/home/GSMapEditor/alchemy"
+
+      - name: New features keep the game and the mod consistent
+        run: python3 tests/features.py "$RUNNER_TEMP/home/GSMapEditor/alchemy"

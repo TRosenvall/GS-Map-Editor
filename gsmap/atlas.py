@@ -186,7 +186,7 @@ def build(project, scenes, names, world_places=None, saved=None):
     while waiting:
         best = None
         for c in waiting:
-            counts = collections.Counter(area_of[m] for n in c["pos"] for m in edges[n]
+            counts = collections.Counter(area_of[m] for n in c["pos"] for m in sorted(edges[n])
                                          if area_of[m] != c["area"] and "x" in by_name[area_of[m]])
             if counts:
                 near, k = counts.most_common(1)[0]
@@ -289,7 +289,8 @@ def missing_thumbs(project, cache_dir):
 
 def layout_key(project, lang):
     """What the layout depends on: the game source's commit, the mod's scene
-    edits and the map list, and the language its labels are in."""
+    edits, the map list, every map's grid (where its doors are) and the
+    language its labels are in."""
     import subprocess
     try:
         head = subprocess.run(["git", "-C", project.root, "rev-parse", "HEAD"], capture_output=True,
@@ -298,6 +299,9 @@ def layout_key(project, lang):
         head = ""
     files = [os.path.join(project.root, rel) for rel in
              (f"{layout.SRC}/mod/overrides.json", layout.MAP_TABLE, layout.SCENE_TABLE)]
+    # A door's cells can change with no scene edit (painted, or removed where
+    # another map still uses its code), and links start from them.
+    files += sorted({info.grid_path() for info in project.maps.values()})
     return f"{lang}-{head[:12]}-{_stamp(files)}"
 
 

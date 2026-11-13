@@ -30,6 +30,7 @@ SCENE_RULES = f"{layout.SRC}/field/encounter_rules.s"  # gScene_EncounterRules: 
 FORMATIONS = f"{layout.SRC}/battle/formations.c"
 ENEMY_IDS = f"{layout.INCLUDE}/enemy_ids.h"
 MAX_GROUPS = 8   # ENCOUNTER_GROUP_COUNT
+FIELDS = {"rate", "level", "formations", "weights"}  # struct EncounterZone, as this editor reads and writes it
 FORESTS = {2, 6}  # BATTLE_ENVIRONMENT_FOREST, BATTLE_ENVIRONMENT_SNOW_FOREST
 ENVIRONMENTS = {0: N_("no backdrop"), 1: N_("grassland"), 2: N_("forest"), 3: N_("desert"), 4: N_("beach"),
                 5: N_("snowfield"), 6: N_("snowy forest"), 7: N_("shallows")}
@@ -44,13 +45,31 @@ def _strip_comments(text):
     return re.sub(r"/\*.*?\*/|//[^\n]*", "", text, flags=re.S)
 
 
+def _skip_comment(text, i):
+    """Where the comment starting at i ends, or i when there's none."""
+    if text.startswith("//", i):
+        end = text.find("\n", i)
+        return len(text) if end < 0 else end
+    if text.startswith("/*", i):
+        end = text.find("*/", i + 2)
+        return len(text) if end < 0 else end + 2
+    return i
+
+
 def _array_body(text, name):
-    """The text between the braces of `name[...] = { ... };`."""
+    """The text between the braces of `name[...] = { ... };`. Braces inside
+    comments don't count."""
     m = re.search(rf"\b{name}\s*\[[^\]]*\]\s*=\s*\{{", text)
     if not m:
         raise ValueError(tr("Can't find {name} in the game source.", name=name))
     depth, i = 1, m.end()
     while depth:
+        if i >= len(text):
+            raise ValueError(tr("Can't find {name} in the game source.", name=name))
+        j = _skip_comment(text, i)
+        if j != i:
+            i = j
+            continue
         c = text[i]
         depth += c == "{"
         depth -= c == "}"
@@ -65,8 +84,9 @@ def _entries(text, name):
     i = start
     while i < end:
         c = text[i]
-        if text.startswith("//", i):
-            i = text.index("\n", i)
+        j = _skip_comment(text, i)
+        if j != i:
+            i = j
             continue
         if c == "{":
             if depth == 0:
@@ -112,8 +132,14 @@ class Encounters:
                 "formations": f, "weights": w + [0] * (len(f) - len(w))}
 
     def _rules(self):
-        start, end = _array_body(_strip_comments(_read(self.root, RULES)), "gWorldMap_EncounterRules")
-        values = _ints(_strip_comments(_read(self.root, RULES))[start:end])
+        text = _strip_comments(_read(self.root, RULES))
+        start, end = _array_body(text, "gWorldMap_EncounterRules")
+        try:
+            values = [int(v, 0) for v in text[start:end].replace("\n", " ").split(",") if v.strip()]
+        except ValueError:
+            # Named values (a region or zone by name) would shift every rule after them.
+            raise ValueError(tr("The world map's battle rules ({path}) aren't plain numbers any more; "
+                                "this version of the game source is newer than the editor.", path=RULES)) from None
         out = []
         for i in range(0, len(values) - 3, 4):
             region, env, flag, zone = values[i:i + 4]
@@ -275,3 +301,27 @@ class Encounters:
         self.zones[zone_id] = new
         atomic_write(os.path.join(self.root, ZONES), self.text)
         return True
+
+
+def restore_zones(root, original, zone_ids):
+    """Put these zones back as `original` (encounter_zones.c as the unmodified
+    game has it) writes them, every other zone left as it is. How many changed;
+    None, with nothing changed, when the two can't be matched: a different
+    number of zones, or the original written with fields this source no longer
+    has (an older alchemy's file wouldn't build)."""
+    text = _read(root, ZONES)
+    was, now = _entries(original, "gEncounterZones"), _entries(text, "gEncounterZones")
+    if len(was) != len(now):
+        return None
+    ids = sorted((z for z in zone_ids if 0 <= z < len(now)), reverse=True)  # later spans first: earlier ones stay put
+    if any(not set(re.findall(r"\.(\w+)\s*=", original[slice(*was[z])])) <= FIELDS for z in ids):
+        return None
+    changed = 0
+    for z in ids:
+        (a, b), (oa, ob) = now[z], was[z]
+        if text[a:b] != original[oa:ob]:
+            text = text[:a] + original[oa:ob] + text[b:]
+            changed += 1
+    if changed:
+        atomic_write(os.path.join(root, ZONES), text)
+    return changed

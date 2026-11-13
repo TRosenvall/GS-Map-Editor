@@ -3,9 +3,10 @@
 Each issue says what the player would see, where, and what to do about it.
 The original game has quirks of its own (doors left over from cut story
 stages, codes nothing uses), so every issue is also looked for in the
-unmodified game: the scenes' own tables, and the map files as they are on
-alchemy's `main` branch. Issues found there too are marked "original" and
-hidden by default; the rest are what your edits introduced.
+unmodified game: the scenes' own tables, and the map files as they are in
+the commit the mod starts from (patch.base_commit). Issues found there too
+are marked "original" and hidden by default; the rest are what your edits
+introduced.
 """
 
 import os
@@ -26,10 +27,19 @@ CHEST_FLAGS = range(0xE00, 0x1000)
 
 
 def changed_maps(project):
-    """Maps whose files differ from alchemy's main branch (new maps included),
-    or None when that can't be told (no git, no main)."""
+    """Maps whose files differ from the commit the mod starts from (new maps
+    included), or None when that can't be told (no git)."""
+    from .patch import base_commit
+    from .setup import load_settings
     try:
-        out = subprocess.run(["git", "diff", "--name-only", "main", "--", layout.MAPS],
+        settings = load_settings()
+    except (OSError, ValueError):
+        settings = None
+    base = base_commit(project.root, settings)
+    if not base:
+        return None
+    try:
+        out = subprocess.run(["git", "diff", "--name-only", base, "--", layout.MAPS],
                              cwd=project.root, capture_output=True, text=True, timeout=60)
         untracked = subprocess.run(["git", "ls-files", "--others", "--exclude-standard", "--", layout.MAPS],
                                    cwd=project.root, capture_output=True, text=True, timeout=60)
@@ -145,10 +155,28 @@ class Checker:
                         f"{sid}:{d['code']}", cell, "doors", sid)
         # Chests and Psynergy stones
         markers = p.markers(info)
-        if len(markers) > MARKER_MAX:
-            add("error", "too-many-chests", info,
-                tr("{n} chests and stones: the game shows only the first {max}.", n=len(markers), max=MARKER_MAX),
-                tr("Remove some with the Chest tool."), "count", None, "chest")
+        # The limit is per scene: on loading, the game places at most MARKER_MAX
+        # of the markers that scene's own events make a chest or a Psynergy
+        # Stone (treasure_spots.c). A map holding several houses has a scene per
+        # house, each counting only its own.
+        codes = {code for _, _, code in markers}
+        ov = doors._read_overrides()
+        for sid in sorted(doors._map_scene_ids(info)):
+            try:
+                tables = doors._tables(doors._overlays(info, sid), ov, "events", need=False, scene_ids={sid})
+            except (ValueError, FileNotFoundError, StopIteration):
+                continue
+            for _, name, rows in tables:
+                # A chest (SEARCH(SEARCH_CHEST)) or a Psynergy Stone (a plain search
+                # finding FIND_PSYNERGY_STONE), as treasure_spots.c tells them.
+                placed = {r["trigger"] for r in rows if r["control"] != EVENTS_END and r["trigger"] in codes
+                          and ((r["control"] & 0x1FF) == CHEST_CONTROL or
+                               ((r["control"] & 0x1FF) == 3 and (r["value"] & 0xFFF00000) == 0x300000))}
+                if len(placed) > MARKER_MAX:
+                    add("error", "too-many-chests", info,
+                        tr("{place} has {n} chests and stones: the game shows only the first {max}.",
+                           place=self.names.scene_label(sid), n=len(placed), max=MARKER_MAX),
+                        tr("Remove some with the Chest tool."), f"count:{sid}:{name}", None, "chest", sid)
         listed = {(c["x"], c["z"]): c for c in chests.list(info)}
         for x, z, code in markers:
             if not (0 <= z < len(col) and 0 <= x < len(col[0])) or col[z][x] != code:
@@ -258,9 +286,11 @@ class Checker:
         things = [(tr("A step spot at {x},{y}", x=s["gx"], y=s["gy"]), s["lead"], f"step:{s['code']}") for s in places["steps"]]
         things += [(tr("The icon for {place}", place=ic["lead"]["label"]) if ic["lead"] and ic["lead"]["label"]
                     else tr("A town icon"), ic["lead"], f"icon:{ic['actor']}") for ic in places["icons"] if ic["x"] or ic["z"]]
+        seen = set()
         for what, lead, key in things:
-            if not lead or lead.get("scripted"):
-                continue  # a scene script decides where it leads
+            if not lead or lead.get("scripted") or key in seen:
+                continue  # a scene script decides where it leads; a wide spot is said once
+            seen.add(key)
             if lead["scene"] is None:
                 add("warning", "world-nowhere", None,
                     tr("{what} on the world map leads nowhere: touching it does nothing.", what=what),

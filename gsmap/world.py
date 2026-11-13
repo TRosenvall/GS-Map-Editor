@@ -408,6 +408,29 @@ def _cells_with_code(world, code):
     return [(gx, gy) for gy in range(256) for gx in range(256) if (world.cell(gx, gy)[0] >> 16) & 0xFF == code]
 
 
+def _used_kinds(de, o, events, exits):
+    """Exit kinds the world map already uses: in its exits, its exit events, and
+    the ones its scene scripts ask for (Import_EventSetExitRequest)."""
+    from .doors import EVENT_EXIT
+    used = {e["kind"] for _, _, segs in exits for s in segs for e in s.get("exits", [])}
+    used |= {r["value"] for _, _, rs in events for r in rs if r["control"] & 0xF == EVENT_EXIT}
+    return used | {k for kinds in de._script_kinds(o).values() for k in kinds}
+
+
+def _drop_exit(de, o, events, exits, kind):
+    """Remove the world map's exit of this kind, unless an exit event or a
+    scene script still takes it."""
+    from .doors import EVENT_EXIT
+    if kind is None or any(r["control"] & 0xF == EVENT_EXIT and r["value"] == kind for _, _, rs in events for r in rs):
+        return
+    if any(kind in kinds for kinds in de._script_kinds(o).values()):
+        return
+    for _, _, segs in exits:
+        for seg in segs:
+            if seg.get("scene") == WORLD_SCENE:
+                seg["exits"] = [e for e in seg["exits"] if e["kind"] != kind]
+
+
 def add_step(world, project, scenes, names, gx, gy, target_scene, target_entrance):
     """Make world cell (gx, gy) a step spot leading to the target: a free code
     in the cell, an exit event for it and the exit itself, as a door on a
@@ -427,8 +450,7 @@ def add_step(world, project, scenes, names, gx, gy, target_scene, target_entranc
     taken = {r["trigger"] for _, _, rs in events for r in rs}
     taken |= {(w >> 16) & 0xFF for row in world.rows[:LAYER1 // 2] for w in row}
     code = next((c for c in range(1, ICON_TRIGGER) if c not in taken), None)
-    used = {e["kind"] for _, _, segs in exits for s in segs for e in s.get("exits", [])}
-    used |= {r["value"] for _, _, rs in events for r in rs if r["control"] & 0xF == EVENT_EXIT}
+    used = _used_kinds(de, o, events, exits)
     kind = next((k for k in range(0xFE, 0, -1) if k not in used), None)
     if code is None or kind is None:
         raise ValueError(tr("The world map has no room for more step spots."))
@@ -445,23 +467,27 @@ def remove_step(world, project, scenes, names, gx, gy):
     """Clear the step spot at (gx, gy): every cell with its code, its exit
     event and its exit. Spots a scene script opens can't go."""
     from .doors import EVENT_EXIT
+    from .events import EventEditor
+    from .sceneedit import EVENTS_END
     de, o, ov = _step_tables(project, scenes, names)
+    if not (0 <= gx < 256 and 0 <= gy < 256):
+        raise ValueError(tr("cell {x},{y} is outside the world", x=gx, y=gy))
     code = (world.cell(gx, gy)[0] >> 16) & 0xFF
     if not code:
         raise ValueError(tr("That square isn't a step spot."))
     events = de._tables([o], ov, "events")
     kind, scripted = de._exit_kind(events, code)
-    if scripted:
+    # A square that also starts a story scene, a message or a search (the
+    # game's own world map has several) would lose it with its code.
+    other = any(r["control"] != EVENTS_END and r["trigger"] == code and r["control"] & 0xF != EVENT_EXIT
+                and not EventEditor._on_actor(r) for _, _, rs in events for r in rs)
+    if scripted or other:
         raise ValueError(tr("This spot is part of a story scene: you can change where it leads, but not remove it."))
     if kind is not None:
         exits = de._tables([o], ov, "exits")
         for _, _, rows in events:
             rows[:] = [r for r in rows if not (r["trigger"] == code and r["control"] & 0xF == EVENT_EXIT)]
-        if not any(r["control"] & 0xF == EVENT_EXIT and r["value"] == kind for _, _, rs in events for r in rs):
-            for _, _, segs in exits:
-                for seg in segs:
-                    if seg.get("scene") == WORLD_SCENE:
-                        seg["exits"] = [e for e in seg["exits"] if e["kind"] != kind]
+        _drop_exit(de, o, events, exits, kind)
         de._save(ov, events + exits)
     cells = _cells_with_code(world, code)
     apply_world_edits(world, [{"gx": x, "gy": y, "layer": 0, "code": 0} for x, y in cells])
@@ -532,8 +558,7 @@ def add_icon(world, project, scenes, names, x, z, sprite, target_scene, target_e
     if any(r["trigger"] == trigger for _, _, rs in events for r in rs if r["control"] != EVENTS_END) or \
             any((w >> 16) & 0xFF == trigger for row in world.rows[:LAYER1 // 2] for w in row):
         raise ValueError(tr("The world map has no room for another icon."))
-    used = {e["kind"] for _, _, segs in exits for s in segs for e in s.get("exits", [])}
-    used |= {r["value"] for _, _, rs in events for r in rs if r["control"] & 0xF == EVENT_EXIT}
+    used = _used_kinds(de, o, events, exits)
     kind = next((k for k in range(0xFE, 0, -1) if k not in used), None)
     if kind is None:
         raise ValueError(tr("The world map has no room for another icon."))
@@ -586,12 +611,7 @@ def remove_icon(world, project, scenes, names, actor):
                 r = dict(r, trigger=r["trigger"] - 1)
             kept.append(r)
         rows[:] = kept
-    if kind is not None and not any(r["control"] & 0xF == EVENT_EXIT and r["value"] == kind
-                                    for _, _, rs in events for r in rs):
-        for _, _, segs in exits:
-            for seg in segs:
-                if seg.get("scene") == WORLD_SCENE:
-                    seg["exits"] = [e for e in seg["exits"] if e["kind"] != kind]
+    _drop_exit(de, o, events, exits, kind)
     main_table = next(t for t in placements if t[1] == layout.WORLD_PLACEMENTS)
     de._save(ov, [main_table] + events + exits)
     return {"actor": int(actor)}

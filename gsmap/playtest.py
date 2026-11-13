@@ -38,10 +38,16 @@ def landing(project, info, arrivals, walk=None):
     if info is None or not arrivals:
         return (arrivals[0] if arrivals else None), True
     col = project.load_grid(info, "collision").cells
-    nodes = {e["entrance"]: node for e, node in walk.starts} if walk is not None else {}
+    nodes = {}
+    for e, node in (walk.starts if walk is not None else ()):
+        nodes.setdefault(e["entrance"], node)  # the first row of a number, as arrivals lists them
+    # Map pixels count from the window's corner, which isn't always the grid's
+    # (map 104's layer starts 46 rows down), as ground_height and walk.py count.
+    origin = getattr(project, "layer_origin", None)
+    ox, oz = origin(info, 0) if origin else (0, 0)
 
     def wall(x, z):
-        return col[(z >> 4) % 128][(x >> 4) % 128] == WALL
+        return col[(oz + (z >> 4)) % 128][(ox + (x >> 4)) % 128] == WALL
 
     def open_beside(a):
         x, z = a["x"], a["z"]

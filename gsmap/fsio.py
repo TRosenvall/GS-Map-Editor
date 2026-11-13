@@ -14,6 +14,7 @@ clears that, as any undo does.
 """
 
 import contextlib
+import glob
 import json
 import os
 import shutil
@@ -145,6 +146,18 @@ class _Transaction:
         _remove_tree(self.dir)
 
 
+def _forget_build_lists(path):
+    """A source file taken away (undoing the action that made the mod's mod.c,
+    say) is still named in the build's dependency lists, and make would stop
+    with "No rule to make target". Those lists are remade on the next build."""
+    if not path.endswith((".c", ".s", ".S", ".h")) or os.sep + "games" + os.sep not in path:
+        return
+    root = path[:path.rindex(os.sep + "games" + os.sep)]
+    for name in glob.glob(os.path.join(root, "out", "*", "deps.mk")) + glob.glob(os.path.join(root, "out", "*", "objects.mk")):
+        with contextlib.suppress(OSError):
+            os.remove(name)
+
+
 def _restore(folder, kept):
     """Put files back. A file already right is left alone (it may be locked, and
     a build needn't redo it); every other file is tried before a failure is raised."""
@@ -154,6 +167,7 @@ def _restore(folder, kept):
             if name is None:
                 with contextlib.suppress(FileNotFoundError):
                     os.remove(path)
+                _forget_build_lists(path)
             elif not _same(path, os.path.join(folder, name)):
                 os.makedirs(os.path.dirname(path), exist_ok=True)
                 _copy(os.path.join(folder, name), path + ".restoring")

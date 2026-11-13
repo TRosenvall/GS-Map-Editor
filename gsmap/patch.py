@@ -203,10 +203,20 @@ def git(root, *args):
 
 def base_commit(root, settings=None):
     """The alchemy commit the mod starts from: chosen at setup, else where the
-    checkout's branch left main, else HEAD."""
+    checkout's branch left the commit this editor is pinned to (the pin itself,
+    or HEAD on a checkout still older than the pin), else where it left
+    origin/main or main, else HEAD. The pin comes first: a local main can be
+    far behind (a clone's main is never moved by updating), and its old files
+    would no longer build."""
     if settings and settings.get("base_commit"):
         return settings["base_commit"]
-    return git(root, "merge-base", "HEAD", "main") or git(root, "rev-parse", "HEAD")
+    from .setup import ALCHEMY_PIN
+    for ref in (ALCHEMY_PIN, "origin/main", "main"):
+        if git(root, "rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}"):
+            base = git(root, "merge-base", "HEAD", ref)
+            if base:
+                return base
+    return git(root, "rev-parse", "HEAD")
 
 
 def expected_sha1(root, commit, edition="tbs-en"):
@@ -262,10 +272,18 @@ def stock_rom(root, cache_dir, env, log, edition="tbs-en", settings=None):
 
 # ---- export: build, diff, write ----------------------------------------------------------
 
+# Names Windows keeps for devices: a file called con.bps can't be made there.
+WINDOWS_RESERVED = {"con", "prn", "aux", "nul"} | {f"{p}{n}" for p in ("com", "lpt") for n in range(1, 10)}
+MAX_SLUG = 80  # well inside every system's limit on a file name, with "-2.bps" after it
+
+
 def slug(name):
     s = "".join(c if c.isalnum() else "-" for c in name.strip().lower()).strip("-")
     while "--" in s:
         s = s.replace("--", "-")
+    s = s[:MAX_SLUG].strip("-")
+    if s in WINDOWS_RESERVED:
+        s += "-mod"
     return s or "my-mod"
 
 
@@ -332,6 +350,10 @@ def export(root, out_dir, cache_dir, env, log, name, author="", description="", 
         ips_size = len(ipatch)
         log(tr("Wrote {file} ({size} bytes; IPS can't record moved data, so it's larger).",
                file=base + ".ips", size=f"{ips_size:,}"))
+    elif os.path.exists(base + ".ips"):
+        # An IPS left by an earlier export under this name is an older mod now:
+        # sharing the folder would hand players two different versions.
+        os.remove(base + ".ips")
     return {"patch": base + ".bps", "readme": base + ".txt", "size": len(patch), "ips_size": ips_size,
             "for_sha1": want, "mod_sha1": hashlib.sha1(mod).hexdigest()}
 
