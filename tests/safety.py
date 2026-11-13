@@ -417,6 +417,16 @@ with tempfile.TemporaryDirectory() as tmp:
     check("keeping takes the next free number",
           patch.file_base(outdir, "Vale Expanded!", keep=True) == os.path.join(outdir, "vale-expanded-3"))
 
+    # ---- atlas thumbnails kept on disk follow their map's files
+    from gsmap import atlas as atlasmod
+    tdir = os.path.join(tmp, "thumbcache")
+    first = atlasmod.thumb_path(p, tdir, sandbox.number)
+    atlasmod.thumb(p, tdir, sandbox.number)
+    check("a drawn thumbnail is kept", os.path.exists(first) and atlasmod.thumb_path(p, tdir, sandbox.number) == first)
+    grid = sandbox.grid_path()
+    os.utime(grid, ns=(os.stat(grid).st_atime_ns, os.stat(grid).st_mtime_ns + 10**9))
+    check("and drawn again once its map changes", atlasmod.thumb_path(p, tdir, sandbox.number) != first)
+
     # ---- image import
     shared = [m for m in p.maps.values() if m.resources and m.number in ("005", "032", "003")]
     check("maps sharing even one tile sheet can't take an import", not any(own_tileset(p, m) for m in shared))

@@ -13,9 +13,11 @@ game never sees them). Units are thumbnail pixels, SCALE of a map pixel.
 """
 
 import collections
+import os
 
 from .connections import Connections
 from .doors import DoorEditor
+from . import layout
 from .i18n import tr
 
 SCALE = 0.25      # thumbnail pixels per map pixel
@@ -219,3 +221,104 @@ def build(project, scenes, names, world_places=None, saved=None):
         m["moved"] = bool(saved and m["map"] in saved)
     return {"scale": SCALE, "maps": sorted(maps.values(), key=lambda m: m["map"]), "links": links,
             "title": tr("Atlas")}
+
+
+# ---- kept on disk between sessions --------------------------------------------------------
+
+def _stamp(paths):
+    """A fingerprint of files as they are now: their names, sizes and times."""
+    import hashlib
+    h = hashlib.sha1()
+    for p in paths:
+        try:
+            st = os.stat(p)
+            h.update(f"{p}\0{st.st_size}\0{st.st_mtime_ns}\n".encode())
+        except OSError:
+            h.update(f"{p}\0missing\n".encode())
+    return h.hexdigest()[:16]
+
+
+def _folder(cache_dir, root, kind):
+    import hashlib
+    d = os.path.join(cache_dir, kind, hashlib.sha1(os.path.realpath(root).encode()).hexdigest()[:12])
+    os.makedirs(d, exist_ok=True)
+    return d
+
+
+def thumb_path(project, cache_dir, n):
+    """Where map n's thumbnail is kept, for the files it's drawn from as they are now."""
+    info = project.maps[n]
+    return os.path.join(_folder(cache_dir, project.root, "thumbs"), f"{n}-{_stamp(project.render_inputs(info))}.png")
+
+
+def thumb(project, cache_dir, n):
+    """Map n drawn at SCALE, as PNG bytes: from the disk when its files haven't
+    changed since, otherwise drawn now and kept (replacing older drawings)."""
+    import glob
+    import io
+    from PIL import Image
+    path = thumb_path(project, cache_dir, n)
+    try:
+        with open(path, "rb") as f:
+            return f.read()
+    except OSError:
+        pass
+    img = project.render(project.maps[n])
+    img = img.resize((max(1, round(img.width * SCALE)), max(1, round(img.height * SCALE))), Image.BOX)
+    buf = io.BytesIO()
+    img.save(buf, "PNG", optimize=True)
+    data = buf.getvalue()
+    for old in glob.glob(os.path.join(os.path.dirname(path), f"{n}-*.png")):
+        try:
+            os.remove(old)
+        except OSError:
+            pass
+    tmp = path + ".tmp"
+    try:
+        with open(tmp, "wb") as f:
+            f.write(data)
+        os.replace(tmp, path)
+    except OSError:
+        pass  # a cache that can't be written just means drawing again next time
+    return data
+
+
+def missing_thumbs(project, cache_dir):
+    return [n for n in sorted(project.maps) if not os.path.exists(thumb_path(project, cache_dir, n))]
+
+
+def layout_key(project, lang):
+    """What the layout depends on: the game source's commit, the mod's scene
+    edits and the map list, and the language its labels are in."""
+    import subprocess
+    try:
+        head = subprocess.run(["git", "-C", project.root, "rev-parse", "HEAD"], capture_output=True,
+                              text=True, timeout=10).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        head = ""
+    files = [os.path.join(project.root, rel) for rel in
+             (f"{layout.SRC}/mod/overrides.json", layout.MAP_TABLE, layout.SCENE_TABLE)]
+    return f"{lang}-{head[:12]}-{_stamp(files)}"
+
+
+def cached_build(project, scenes, names, cache_dir, lang, places):
+    """build(), kept on disk under layout_key(): the same layout comes back
+    instantly until the game source or the mod's scene tables change."""
+    import json
+    path = os.path.join(_folder(cache_dir, project.root, "atlas"), layout_key(project, lang) + ".json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        pass
+    data = build(project, scenes, names, places() if callable(places) else places)
+    try:
+        for old in os.listdir(os.path.dirname(path)):
+            if old.startswith(lang + "-"):
+                os.remove(os.path.join(os.path.dirname(path), old))
+        with open(path + ".tmp", "w", encoding="utf-8") as f:
+            json.dump(data, f)
+        os.replace(path + ".tmp", path)
+    except OSError:
+        pass
+    return data

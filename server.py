@@ -37,7 +37,6 @@ from gsmap.doors import DoorEditor
 from gsmap.checks import Checker
 from gsmap.encounters import Encounters
 from gsmap import atlas as atlasmod
-from PIL import Image
 from gsmap.events import EventEditor, flag_names, flag_label, search_targets
 from gsmap.connections import Connections
 from gsmap import world as worldmod
@@ -143,8 +142,26 @@ def make_handler(project, token=None, local_only=True):
         project.reload()
         state["world"] = None
         state["conn"] = None
-        state["atlas"] = None
         cache.drop(lambda k: True)
+
+    def warm_thumbs():
+        """Draw the atlas thumbnails not yet on disk, one at a time in the
+        background, so the atlas fills in quickly (and instantly next time)."""
+        if state.get("warming"):
+            return
+        state["warming"] = True
+
+        def work():
+            try:
+                for n in atlasmod.missing_thumbs(project, setupmod.CACHE):
+                    try:
+                        cache.get(("thumb", n, atlasmod.thumb_path(project, setupmod.CACHE, n)),
+                                  lambda n=n: atlasmod.thumb(project, setupmod.CACHE, n))
+                    except Exception:  # noqa: BLE001  a place that can't be drawn shows blank
+                        pass
+            finally:
+                state["warming"] = False
+        threading.Thread(target=work, daemon=True).start()
 
     def walk_for(n, sid, table=None, edits=()):
         """The walking graph of map n for scene sid, kept until a save changes
@@ -550,24 +567,21 @@ def make_handler(project, token=None, local_only=True):
                     body = cache.get(("render", n), lambda: png(project.render(project.maps[n])))
                     return self.send_bytes(body, "image/png")
                 if path == "/api/atlas":
-                    if state.get("atlas") is None:
-                        w = world()
-                        state["atlas"] = atlasmod.build(project, scenes(), names,
-                                                        worldmod.world_places(w, project, scenes(), names))
+                    data = atlasmod.cached_build(
+                        project, scenes(), names, setupmod.CACHE, i18n.current(),
+                        lambda: worldmod.world_places(world(), project, scenes(), names))
+                    warm_thumbs()
                     saved = setupmod.load_settings().get("atlas") or {}
-                    out = dict(state["atlas"], maps=[dict(m, **({"x": saved[m["map"]][0], "y": saved[m["map"]][1],
-                                                                  "moved": True} if m["map"] in saved else {}))
-                                                     for m in state["atlas"]["maps"]])
+                    out = dict(data, maps=[dict(m, **({"x": saved[m["map"]][0], "y": saved[m["map"]][1],
+                                                        "moved": True} if m["map"] in saved else {}))
+                                           for m in data["maps"]])
                     return self.send_json(out)
                 m = re.fullmatch(r"/api/map/(\w+)/thumb\.png", path)
                 if m and m.group(1) in project.maps:
                     n = m.group(1)
-
-                    def thumb():
-                        img = project.render(project.maps[n])
-                        size = (max(1, round(img.width * atlasmod.SCALE)), max(1, round(img.height * atlasmod.SCALE)))
-                        return png(img.resize(size, Image.BOX))
-                    return self.send_bytes(cache.get(("thumb", n), thumb), "image/png")
+                    body = cache.get(("thumb", n, atlasmod.thumb_path(project, setupmod.CACHE, n)),
+                                     lambda: atlasmod.thumb(project, setupmod.CACHE, n))
+                    return self.send_bytes(body, "image/png")
                 m = re.fullmatch(r"/api/map/(\w+)/chests", path)
                 if m and m.group(1) in project.maps:
                     return self.send_json(ChestEditor(project, scenes(), names).list(project.maps[m.group(1)]))
@@ -613,8 +627,6 @@ def make_handler(project, token=None, local_only=True):
             if self.headers.get("X-GSMap") != "1" or (origin and urlsplit(origin).netloc != host_header):
                 return self.send_json({"error": "cross-site write refused"}, 403)
             state["conn"] = None  # links may change
-            if not self.path.startswith("/api/atlas/"):
-                state["atlas"] = None  # and so may the atlas, except when only its layout moves
             try:
                 length = int(self.headers.get("Content-Length", "0"))
                 if length > MAX_REQUEST:

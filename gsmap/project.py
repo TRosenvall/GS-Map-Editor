@@ -452,6 +452,16 @@ class Project:
             out.append(r)
         return out, k
 
+    def render_inputs(self, info):
+        """The files render() reads for this map: its map.s and tables, its
+        palette and its tile sheets. A picture made from them stays right
+        until one of them changes."""
+        paths = {os.path.join(info.folder, "map.s"), info.grid_path(), *info.sources.values()}
+        if info.resources:
+            paths.add(self.label_path(info.resources["palette"]))
+            paths.update(self.label_path(b) for b in info.resources["blocks"])
+        return sorted(p for p in paths if p)
+
     def marker_path(self, info):
         """The file holding this map's chests and stones: its own map.s."""
         return os.path.join(info.folder, "map.s")
