@@ -269,9 +269,22 @@ def slug(name):
     return s or "my-mod"
 
 
+def file_base(out_dir, name, keep=False):
+    """Where a mod called `name` is saved, without an extension: <slug>, or with
+    `keep` and a patch already there, the first free <slug>-2, <slug>-3…"""
+    base = os.path.join(out_dir, slug(name))
+    if not keep:
+        return base
+    n, free = 2, base
+    while any(os.path.exists(free + ext) for ext in (".bps", ".ips", ".txt")):
+        free, n = f"{base}-{n}", n + 1
+    return free
+
+
 def export(root, out_dir, cache_dir, env, log, name, author="", description="", edition="tbs-en", settings=None,
-           ips=False):
-    """Build the mod, make the patch, check it, write <slug>.bps and a readme."""
+           ips=False, keep=False):
+    """Build the mod, make the patch, check it, write <slug>.bps and a readme
+    (with `keep`, beside an earlier export of the same name, not over it)."""
     log(tr("Building your mod…"))
     p = subprocess.Popen(["make", "-j4", edition], cwd=root, env=env, stdout=subprocess.PIPE,
                          stderr=subprocess.STDOUT, text=True)
@@ -290,7 +303,7 @@ def export(root, out_dir, cache_dir, env, log, name, author="", description="", 
     if bps_apply(stock, patch) != mod:
         raise ValueError(tr("the patch didn't reproduce your build (a bug in the editor; please report it)"))
     os.makedirs(out_dir, exist_ok=True)
-    base = os.path.join(out_dir, slug(name))
+    base = file_base(out_dir, name, keep)
     with open(base + ".bps", "wb") as f:
         f.write(patch)
     with open(base + ".txt", "w", encoding="utf-8") as f:

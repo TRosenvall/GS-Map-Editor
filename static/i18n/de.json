@@ -664,6 +664,7 @@
  "Write what it says.": "Schreib, was es sagt.",
  "Wrote {file} ({size} bytes).": "{file} geschrieben ({size} Bytes).",
  "Wrote {file} ({size} bytes; IPS can't record moved data, so it's larger).": "{file} geschrieben ({size} Bytes; IPS kann verschobene Daten nicht erfassen, deshalb ist sie größer).",
+ "You already exported a patch called {file}. Replace it? OK replaces it; Cancel keeps it and saves this one as {instead}.": "Du hast bereits einen Patch namens {file} exportiert. Ersetzen? OK ersetzt ihn; Abbrechen behält ihn und speichert diesen als {instead}.",
  "You can import into {n} places, such as {places}.": "Du kannst an {n} Orten importieren, etwa {places}.",
  "You have changes you haven't saved. Undoing your last saved change throws those away too.\n\nGo ahead?": "Du hast ungespeicherte Änderungen. Wenn du deine letzte gespeicherte Änderung rückgängig machst, gehen die auch verloren.\n\nTrotzdem fortfahren?",
  "Your ROM isn't an unmodified game alchemy knows: it may already be patched, or be a different version.": "Deine ROM ist kein unverändertes Spiel, das alchemy kennt: Sie ist vielleicht schon gepatcht oder eine andere Version.",

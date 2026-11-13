@@ -1769,7 +1769,13 @@ $('#exGo').onclick = async () => {
   const found = await runChecks(), mine = (found || []).filter(i => !i.original);
   if (!found && !confirm(T("Check couldn't finish, so your changes haven't been checked. Export anyway?"))) { $('#exp').style.display = 'none'; openChecks(false); return; }
   if (mine.length && !confirm(T('Check found {n} problem(s) in your changes. Export anyway?', { n: mine.length }))) { $('#exp').style.display = 'none'; openChecks(false); return; }
-  const r = await api('/api/export', { name, author: $('#exAuthor').value.trim(), description: $('#exDesc').value.trim(), ips: $('#exIps').checked });
+  const ask = { name, author: $('#exAuthor').value.trim(), description: $('#exDesc').value.trim(), ips: $('#exIps').checked };
+  let r = await api('/api/export', ask);
+  if (r.exists) {
+    // OK replaces the earlier patch; Cancel keeps it and saves this one under the next free number.
+    const replace = confirm(T('You already exported a patch called {file}. Replace it? OK replaces it; Cancel keeps it and saves this one as {instead}.', { file: r.exists, instead: r.instead }));
+    r = await api('/api/export', { ...ask, keep: !replace });
+  }
   if (r.error) return $('#exMsg').innerHTML = `<span class="err">${esc(r.error)}</span>`;
   $('#exGo').disabled = true; $('#exReveal').style.display = 'none'; exResult = null;
   $('#exLog').style.display = 'block'; $('#exLog').textContent = '';

@@ -360,7 +360,7 @@ Press **Export mod…**.
 1. Fill in a **Name**, and optionally your name and what it changes.
 2. Press **Export**.
 
-You get a small `.bps` patch and a readme for players in `~/Documents/GSMapEditor/Exports/`. Press **Show in Finder** to see them. Export runs Check first, and tests each patch once to confirm it reproduces your build exactly.
+You get a small `.bps` patch and a readme for players in `~/Documents/GSMapEditor/Exports/`. Press **Show in Finder** to see them. If you export again under the same name, the editor asks whether to replace the earlier patch or keep it and number the new one. Export runs Check first, and tests each patch once to confirm it reproduces your build exactly.
 
 Tick **Also save an .ips** if your players use older patchers. It's much larger, because IPS can't record moved data.
 

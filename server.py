@@ -805,6 +805,12 @@ def make_handler(project, token=None, local_only=True):
                     name = (body.get("name") or "").strip()
                     if not name:
                         return self.send_json({"error": tr("give your mod a name")}, 400)
+                    # A patch of that name already exported: ask before replacing it.
+                    base = patchmod.file_base(EXPORTS, name)
+                    keep = body.get("keep")
+                    if keep is None and os.path.exists(base + ".bps"):
+                        return self.send_json({"exists": os.path.basename(base) + ".bps",
+                                               "instead": os.path.basename(patchmod.file_base(EXPORTS, name, True)) + ".bps"})
                     job = {"done": False, "ok": None, "log": [], "result": None, "error": None}
                     state["export"] = job
 
@@ -816,7 +822,7 @@ def make_handler(project, token=None, local_only=True):
                                     project.root, EXPORTS, os.path.join(setupmod.CACHE, "stock"),
                                     setupmod.build_env(), job["log"].append, name,
                                     body.get("author", ""), body.get("description", ""),
-                                    settings=setupmod.load_settings(), ips=bool(body.get("ips")))
+                                    settings=setupmod.load_settings(), ips=bool(body.get("ips")), keep=bool(keep))
                             job["ok"] = True
                         except Exception as e:  # shown to the player, in words
                             job["error"], job["ok"] = str(e), False

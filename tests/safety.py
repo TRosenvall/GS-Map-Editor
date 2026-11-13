@@ -407,6 +407,16 @@ with tempfile.TemporaryDirectory() as tmp:
           playtest.landing(Fake, object(), [openfloor], Boxed) == (openfloor, True))
     Grid.cells[2][2] = Grid.cells[2][3] = Grid.cells[5][5] = Grid.cells[5][6] = 255
 
+    # ---- exporting again under a name already used keeps the earlier patch if asked
+    outdir = os.path.join(tmp, "exports")
+    os.makedirs(outdir)
+    check("a first export takes its name", patch.file_base(outdir, "Vale Expanded!") == os.path.join(outdir, "vale-expanded"))
+    for name in ("vale-expanded.bps", "vale-expanded-2.txt"):
+        open(os.path.join(outdir, name), "w").close()
+    check("replacing keeps the name", patch.file_base(outdir, "Vale Expanded!") == os.path.join(outdir, "vale-expanded"))
+    check("keeping takes the next free number",
+          patch.file_base(outdir, "Vale Expanded!", keep=True) == os.path.join(outdir, "vale-expanded-3"))
+
     # ---- image import
     shared = [m for m in p.maps.values() if m.resources and m.number in ("005", "032", "003")]
     check("maps sharing even one tile sheet can't take an import", not any(own_tileset(p, m) for m in shared))

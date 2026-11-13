@@ -664,6 +664,7 @@
  "Write what it says.": "セリフを書いてください。",
  "Wrote {file} ({size} bytes).": "{file} を書き込みました（{size} バイト）。",
  "Wrote {file} ({size} bytes; IPS can't record moved data, so it's larger).": "{file} を書き込みました（{size} バイト。IPS は移動したデータを記録できないため大きくなります）。",
+ "You already exported a patch called {file}. Replace it? OK replaces it; Cancel keeps it and saves this one as {instead}.": "{file} という名前のパッチはすでに書き出されています。置き換えますか？ OK で置き換え、キャンセルで元のパッチを残してこのパッチを {instead} として保存します。",
  "You can import into {n} places, such as {places}.": "{n} か所に読み込めます（例: {places}）。",
  "You have changes you haven't saved. Undoing your last saved change throws those away too.\n\nGo ahead?": "保存していない変更があります。最後に保存した変更を元に戻すと、それらも消えます。\n\n続けますか？",
  "Your ROM isn't an unmodified game alchemy knows: it may already be patched, or be a different version.": "お使いの ROM は alchemy が知っている改造前のゲームではありません: すでにパッチ済みか、別のバージョンの可能性があります。",
