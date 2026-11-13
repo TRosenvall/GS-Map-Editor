@@ -268,6 +268,7 @@ Press **Doors** (D). Every door shows on the map with where it leads. **Blue** c
 - **Change a door:** click it, press **Change where it leads…**, pick a place, then click where the party should arrive on that place's map.
 - **Make a door:** click any other spot and press **Make a door here…**. It can lead anywhere in the game.
 - **Remove a door:** click it and press **Remove door**. Its cells turn back into ground.
+- **Follow a door:** click it and press **Go there →**. The place it leads to opens with its arrival point marked, and **← Back to …** returns you to the door.
 
 A door changes in every story stage of the place. Doors opened by scene scripts are found too: you can change where they lead, but the script itself stays the same.
 

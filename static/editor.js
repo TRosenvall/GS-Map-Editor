@@ -1484,6 +1484,11 @@ function drawDoors(ctx) {
       ctx.fillStyle = d.scene == null ? '#ff7b72' : '#fff'; ctx.fillText(text, w[0] * s + 3, w[1] * s - 1);
     }
   }
+  if (S.arrivalMark && Date.now() < S.arrivalMark.until) {  // where Go there arrived
+    const [ex, ey] = entityXY(S.arrivalMark.x, S.arrivalMark.z);
+    ctx.lineWidth = 3; ctx.strokeStyle = '#e0b84a';
+    for (const r of [7, 12]) { ctx.beginPath(); ctx.arc(ex * z, ey * z, r * z, 0, Math.PI * 2); ctx.stroke(); }
+  }
   if (S.doorAt) {
     const w = groundXY(l0, S.doorAt.x, S.doorAt.z);
     if (w) { ctx.lineWidth = 2; ctx.setLineDash([4, 3]); ctx.strokeStyle = '#e0b84a'; ctx.strokeRect(w[0] * s + 1, w[1] * s + 1, s - 2, s - 2); }
@@ -1501,6 +1506,7 @@ function doorSelect(gx, gz) {
     : `${T('Leads to {place}, arrival point {n}.', { place, n: d.entrance })}${d.shared_kind ? ` <i>${T("(the scene's catch-all exit)")}</i>` : ''}${d.scripted ? `<br><span style="color:var(--muted)">${T('Opened by a scene script; its destination can change, the script stays.')}</span>` : ''}${adv}`;
   $('#doorLink').textContent = d ? T('Change where it leads…') : T('Make a door here…');
   $('#doorRemove').style.display = d && !d.scripted ? '' : 'none';
+  $('#doorGo').style.display = d && d.scene != null ? '' : 'none';
   $('#doorForm').style.display = 'block';
   drawAll();
 }
@@ -1518,6 +1524,44 @@ async function doorAction(action, extra) {
   status(`<span class="ok">${done}</span> ${T('Press ▶ Play to try it.')}`);
 }
 $('#doorRemove').onclick = () => confirm(T('Remove this door? Its cells become ground again.')) && doorAction('remove', {});
+
+// Following a door: open where it leads, at its arrival point, and offer the way back.
+async function followDoor(sceneId, entrance, back) {
+  if (sceneId === WORLD_SCENE) { if (await saveFirst()) location.href = '/world.html'; return; }
+  const r = await api(`/api/scene/${sceneId}/arrivals`);
+  if (r.error || r.map == null) return status(`<span class="err">${T("That place has no map to open.")}</span>`);
+  if (!S.map || S.map.number !== r.map) await openMap(r.map);
+  if (!S.map || S.map.number !== r.map) return;  // the place didn't open (unsaved changes kept, or an error)
+  if ([...$('#sceneSel').options].some(o => +o.value === sceneId)) { $('#sceneSel').value = String(sceneId); fillTables(); }
+  setTool('doors');
+  const a = r.arrivals.find(x => x.entrance === entrance) || r.arrivals[0];
+  S.arrivalMark = a ? { x: a.x, z: a.z, until: Date.now() + 4000 } : null;
+  S.doorBack = back;
+  $('#doorBack').style.display = back ? '' : 'none';
+  if (back) $('#doorBack').textContent = T('← Back to {place}', { place: back.label });
+  if (a) {
+    const [ex, ey] = entityXY(a.x, a.z), z0 = +$('#zoom').value;
+    $('#view').scrollTo(ex * z0 - $('#view').clientWidth / 2, ey * z0 - $('#view').clientHeight / 2);
+  }
+  drawAll();
+  if (a) setTimeout(drawAll, 4100);
+  status(T('Arrived at {place}, arrival point {n}.', { place: `<b>${esc(r.label)}</b>`, n: a ? a.entrance : 0 }));
+}
+$('#doorGo').onclick = () => {
+  const d = S.doorAt?.door, sc = scene(); if (!d || d.scene == null || !sc) return;
+  const label = S.names.sceneById[sc.id]?.label || S.maps.find(m => m.number === S.map.number)?.label || T('Place {n}', { n: S.map.number });
+  followDoor(d.scene, d.entrance ?? 0, { map: S.map.number, scene: sc.id, x: S.doorAt.x, z: S.doorAt.z, label });
+};
+$('#doorBack').onclick = async () => {
+  const b = S.doorBack; if (!b) return;
+  if (S.map?.number !== b.map) await openMap(b.map);
+  if (S.map?.number !== b.map) return;
+  if ([...$('#sceneSel').options].some(o => +o.value === b.scene)) { $('#sceneSel').value = String(b.scene); fillTables(); }
+  setTool('doors'); S.doorBack = null; $('#doorBack').style.display = 'none';
+  doorSelect(b.x, b.z);
+  const w = groundXY(S.map.layers[0], b.x, b.z), z0 = +$('#zoom').value * 16;
+  if (w) $('#view').scrollTo(w[0] * z0 - $('#view').clientWidth / 2, w[1] * z0 - $('#view').clientHeight / 2);
+};
 $('#doorLink').onclick = () => openPicker(S.doorAt?.door);
 
 // The destination picker: a place, then an arrival point on its map.
