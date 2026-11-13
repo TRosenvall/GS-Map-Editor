@@ -265,7 +265,15 @@ with tempfile.TemporaryDirectory() as tmp:
     fsio.atomic_write(locked, "locked")
     other = os.path.join(tmp, "other.txt")
     fsio.atomic_write(other, "before")
-    os.chflags(locked, 2)  # UF_IMMUTABLE, Finder's Locked
+    # Finder's Locked is UF_IMMUTABLE, a macOS flag; elsewhere the write to that file is refused the way it would be
+    if hasattr(os, "chflags"):
+        os.chflags(locked, 2)
+    else:
+        def refuse_locked(src, dst, _replace=os.replace):
+            if os.path.abspath(dst) == os.path.abspath(locked):
+                raise PermissionError(1, "Operation not permitted", dst)
+            return _replace(src, dst)
+        os.replace = refuse_locked
     try:
         with fsio.transaction(tmp, hist, "touches a locked file"):
             fsio.atomic_write(other, "after")
@@ -273,7 +281,11 @@ with tempfile.TemporaryDirectory() as tmp:
         check("a locked file is refused", False)
     except OSError:
         check("a locked file is refused", True)
-    os.chflags(locked, 0)
+    finally:
+        if hasattr(os, "chflags"):
+            os.chflags(locked, 0)
+        else:
+            os.replace = real_replace
     check("and the rest of that action is undone", read(other) == "before" and read(locked) == "locked")
     check("and no journal is left to block later saves", not os.path.exists(os.path.join(tmp, fsio.JOURNAL)))
     with fsio.transaction(tmp, hist, "the next save"):
