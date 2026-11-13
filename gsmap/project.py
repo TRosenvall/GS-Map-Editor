@@ -123,6 +123,12 @@ def _kept_file_lines(path):
     return hit[1]
 
 
+def _field_label(name):
+    """A map's label from its name in the resource directory: numbered maps are
+    Field_Map009, named ones Field_Altin (alchemy named most maps on 2026-11-13)."""
+    return f"Field_Map{name}" if name.isdigit() else f"Field_{name}"
+
+
 def _preprocess(text, defined):
     return "\n".join(line for _, line in _kept_lines(text, defined))
 
@@ -248,7 +254,7 @@ class Project:
     def _scan_maps(self):
         for path in sorted(glob.glob(os.path.join(self.root, layout.MAPS, "*/map.s"))):
             text = open(path, encoding="utf-8").read()
-            # Numbered maps are Field_Map009; a few are named (Field_VinasuIriguchi).
+            # Field_Altin, or a numbered map Field_Map001 (most were numbered before 2026-11-13).
             m = re.search(r"^Field_(?:Map(\d+)|(\w+)):", text, re.M)
             if m and "map_header" in text:
                 key = m.group(1) or m.group(2)
@@ -297,14 +303,14 @@ class Project:
                 continue
             m = re.match(r"tileset\s+(\w+)\s*,\s*([A-D-]+)\s*,\s*(.+)", s)
             if m:
-                out += [f"Field_Map{n}" for n in re.findall(r"\w+", m.group(3))]
+                out += [_field_label(n) for n in re.findall(r"\w+", m.group(3))]
                 out.append(f"Tileset_{m.group(1)}Palette")
                 if m.group(2) != "-":
                     out += [f"Tileset_{m.group(1)}Tiles{c}" for c in m.group(2)]
                 continue
             m = re.match(r"recolor\s+(\w+)\s*,\s*(.+)", s)
             if m:
-                out += [f"Field_Map{n}" for n in re.findall(r"\w+", m.group(2))]
+                out += [_field_label(n) for n in re.findall(r"\w+", m.group(2))]
                 out.append(f"Tileset_Palette{m.group(1)}")
                 continue
             m = re.match(r"overlays\s+(.+)", s)

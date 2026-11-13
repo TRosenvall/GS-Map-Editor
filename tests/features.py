@@ -83,6 +83,8 @@ def fixture(tmp):
 
 def copy_files(tmp, rels):
     for rel in rels:
+        if not os.path.exists(os.path.join(source, rel)):  # what an older alchemy doesn't have
+            continue
         os.makedirs(os.path.dirname(os.path.join(tmp, rel)), exist_ok=True)
         shutil.copy(os.path.join(source, rel), os.path.join(tmp, rel))
 
@@ -274,7 +276,7 @@ with tempfile.TemporaryDirectory() as tmp:
 
 # ---- encounter zones
 with tempfile.TemporaryDirectory() as etmp:
-    copy_files(etmp, (enc.ZONES, enc.RULES, enc.SCENE_RULES, enc.FORMATIONS, enc.ENEMY_IDS, "games/tbs/text/en.po"))
+    copy_files(etmp, (enc.ZONES, enc.RULES, enc.RULE_NAMES, enc.SCENE_RULES, enc.FORMATIONS, enc.ENEMY_IDS, "games/tbs/text/en.po"))
     zones_path = os.path.join(etmp, enc.ZONES)
     original = read(zones_path)
     e = enc.Encounters(etmp)
@@ -301,10 +303,15 @@ with tempfile.TemporaryDirectory() as etmp:
     check("braces in comments don't change the zones", enc.Encounters(etmp).zones == plain)
     write(zones_path, original)
 
-    # World rules written with names would shift every rule after them.
+    # A name the editor can't look up would shift every rule after it.
     rules_path = os.path.join(etmp, enc.RULES)
     rules = read(rules_path)
-    write(rules_path, rules.replace("1,  4,  -1, 7,", "1,  BATTLE_ENVIRONMENT_BEACH,  -1, 7,", 1))
+    known = enc.Encounters(etmp).rules
+    check("the world's battle rules read as the game has them", len(known) == 32 and known[0]["zone"] == 7, known[:1])
+    if "BATTLE_ENVIRONMENT_BEACH" in rules:
+        write(rules_path, rules.replace("BATTLE_ENVIRONMENT_BEACH", "BATTLE_ENVIRONMENT_NOWHERE", 1))
+    else:
+        write(rules_path, rules.replace("1,  4,  -1, 7,", "1,  BATTLE_ENVIRONMENT_NOWHERE,  -1, 7,", 1))
     refused("world battle rules it can't read are said, not misread", lambda: enc.Encounters(etmp))
     write(rules_path, rules)
 
@@ -405,7 +412,7 @@ check("a grid reads repeated cells and empty rows as written",
       and g.planes["collision"][3] == [0, 255, 0, 0]
       and g.to_text() == "grid:4x4\tat:1,1\tfill:1c:0:0\nfff fff:30:1 fff\n\n4fff:255\n")
 walk_project = Project(source)
-walk_map = walk_project.maps["009"]
+walk_map = walk_project.maps["SolSanctumLunaSolRooms" if "SolSanctumLunaSolRooms" in walk_project.maps else "009"]
 first = walkmod.Walk(walk_project, walk_map, [], [])
 again = walkmod.Walk(walk_project, walk_map, [], [])
 check("a map's walking graph is reused when nothing it reads changed", again.edges is first.edges)

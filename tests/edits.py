@@ -12,6 +12,12 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from gsmap.project import Project  # noqa: E402
 from gsmap.walk import Walk  # noqa: E402
 
+
+def place(maps, name, number):
+    """A map by its name, or by its number in alchemy before 2026-11-13."""
+    return name if name in maps else number
+
+
 root = sys.argv[1] if len(sys.argv) > 1 else os.path.expanduser("~/gs_project/alchemy-port")
 failed = 0
 
@@ -30,7 +36,8 @@ with tempfile.TemporaryDirectory() as tmp:
     for name in ("games/tbs/src/graphics",):
         os.symlink(os.path.join(root, name), os.path.join(tmp, name))
     p = Project(tmp)
-    for number in ("002", "003", "107"):
+    VALE = place(p.maps, "Vale", "002")
+    for number in (VALE, place(p.maps, "ValePlaza", "003"), place(p.maps, "CrossboneIsle", "107")):
         info = p.maps[number]
         before = p.resolved_blocks(info)
         x, y = info.bounds[0] // 2 + 3, info.bounds[1] // 2 + 3
@@ -51,7 +58,7 @@ with tempfile.TemporaryDirectory() as tmp:
 
     # New heights: only the painted ones are added, an identical row is reused,
     # and painted squares are renumbered to the rows saved.
-    info = p.maps["002"]
+    info = p.maps[VALE]
     rows = p.shape_rows(info)
     base = len(rows)
     x, y = info.bounds[0] // 2 + 5, info.bounds[1] // 2 + 5
@@ -59,7 +66,7 @@ with tempfile.TemporaryDirectory() as tmp:
         {"plane": "shape", "x": x, "y": y, "value": base + 1},
         {"plane": "shape", "x": x + 1, "y": y, "value": base + 2},
     ], new_shapes=[[0, 99, 0, 0], [1, 60, 62, 0], list(rows[0])])
-    again = Project(tmp).maps["002"]
+    again = Project(tmp).maps[VALE]
     saved = p.shape_rows(again)
     grid = p.load_grid(again, "shape").cells
     check("new height: only the painted one is added", len(saved) == base + 1 and saved[base] == [1, 60, 62, 0])
@@ -84,7 +91,7 @@ with tempfile.TemporaryDirectory() as tmp:
             ok, bad = False, f"{bad!r} ({type(e).__name__})"
         check(f"malformed new height {bad!r} is refused", ok)
     check("refused heights leave shapes.tsv alone", open(info.source("SHAPES", "shapes.tsv")).read() == shapes_before)
-    check("refused heights leave the square alone", p.load_grid(Project(tmp).maps["002"], "shape").cells[y][x] == base)
+    check("refused heights leave the square alone", p.load_grid(Project(tmp).maps[VALE], "shape").cells[y][x] == base)
     # Signed and unsigned samples name the same row.
     out = p.apply_edits(info, [{"plane": "shape", "x": x, "y": y, "value": len(saved)}],
                         new_shapes=[[3, -2, 254, 0]])
@@ -97,21 +104,21 @@ with tempfile.TemporaryDirectory() as tmp:
         except Exception:  # noqa: BLE001
             ok = False
         check(f"walking checks refuse malformed new height {bad!r}", ok)
-    check("negative levels are saved as the game's bytes", p.shape_rows(Project(tmp).maps["002"])[-1] == [3, -2, -2, 0])
+    check("negative levels are saved as the game's bytes", p.shape_rows(Project(tmp).maps[VALE])[-1] == [3, -2, -2, 0])
 
     # Another save added a row after the editor numbered its new heights:
     # they are still read by the editor's own numbering, not the file's.
     p = Project(tmp)
-    info = p.maps["002"]
+    info = p.maps[VALE]
     seen = len(p.shape_rows(info))
     p.apply_edits(info, [{"plane": "shape", "x": 10, "y": 10, "value": seen}], new_shapes=[[0, 77, 0, 0]])
-    out = p.apply_edits(p.maps["002"], [{"plane": "shape", "x": 11, "y": 10, "value": seen}],
+    out = p.apply_edits(p.maps[VALE], [{"plane": "shape", "x": 11, "y": 10, "value": seen}],
                         new_shapes=[[0, 88, 0, 0]], shapes_base=seen)
-    rows = p.shape_rows(Project(tmp).maps["002"])
-    v = p.load_grid(Project(tmp).maps["002"], "shape").cells[10][11]
+    rows = p.shape_rows(Project(tmp).maps[VALE])
+    v = p.load_grid(Project(tmp).maps[VALE], "shape").cells[10][11]
     check("a height saved after the table grew elsewhere keeps its own level", rows[v] == [0, 88, 0, 0] and rows[seen] == [0, 77, 0, 0])
     try:
-        p.apply_edits(p.maps["002"], [{"plane": "shape", "x": 12, "y": 10, "value": 999}],
+        p.apply_edits(p.maps[VALE], [{"plane": "shape", "x": 12, "y": 10, "value": 999}],
                       new_shapes=[[0, 1, 0, 0]], shapes_base=999)
         check("a table smaller than the editor saw is refused", False)
     except ValueError:

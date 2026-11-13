@@ -49,7 +49,7 @@ def changed_maps(project):
         return None
     paths = {os.path.join(project.root, p) for p in (out.stdout + untracked.stdout).split()}
     folders = {os.path.dirname(p) for p in paths}
-    # A map's tables can live in another map's folder (maps 174 to 179 draw map_001's).
+    # A map's tables can live in another map's folder (the test maps draw map_001's).
     return {n for n, m in project.maps.items()
             if m.folder in folders or {m.grid_path(), m.source("CELL_PICTURES", "cell_pictures.tsv")} & paths}
 

@@ -9,7 +9,7 @@ SRC = "games/tbs/src"
 INCLUDE = "games/tbs/include"
 
 # Maps and what they draw
-MAPS = f"{SRC}/map"                                # map_NNN/map.s, map.txt, cell_pictures.tsv, shapes.tsv
+MAPS = f"{SRC}/map"                                # <place>/map.s, map.txt, cell_pictures.tsv, shapes.tsv (map_NNN/ before 2026-11-13)
 MAP_TABLE = f"{SRC}/map/maps.c"                    # gMaps: each map's resources
 DIRECTORY = f"{SRC}/gamepak/resource_directory.s"  # Resource_DirectoryTable
 DIRECTORY_LABEL = "Resource_DirectoryTable:"

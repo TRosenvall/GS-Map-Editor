@@ -43,7 +43,7 @@ if " " in CACHE:  # builds run from here too; macOS's per-user temporary folder 
 ALCHEMY_URL = "https://github.com/PascalPixel/alchemy"
 # The alchemy commit this editor was last tested against (round trip,
 # render-all, build). Newer commits usually work; this one is known to.
-ALCHEMY_PIN = "5ca23b1fe1774f954aacfbd7db35c8c9b9a59184"
+ALCHEMY_PIN = "35909133bca18fbe9a1ab3d1cbc8cd733552306d"
 BREW_PACKAGES = ["arm-none-eabi-binutils", "libpng"]
 BREW_DIRS = ["/opt/homebrew/bin", "/usr/local/bin"]
 # alchemy's INSTALL.md for Debian and Ubuntu (WSL included).

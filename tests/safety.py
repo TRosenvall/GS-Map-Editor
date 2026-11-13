@@ -200,7 +200,7 @@ with tempfile.TemporaryDirectory() as tmp:
     check("a scene's only table is the one", events._stage_placements("gX_LaterTriggers", tables[:1])[0] == "gX_ActorPlacements")
 
     # ---- nothing half done
-    sandbox = p.maps["173"] if "173" in p.maps else None
+    sandbox = next((p.maps[k] for k in ("Test1", "173") if k in p.maps), None)
     before = snapshot(tmp)
     try:
         with fsio.transaction(tmp):
@@ -443,7 +443,7 @@ with tempfile.TemporaryDirectory() as tmp:
     check("and drawn again once its map changes", atlasmod.thumb_path(p, tdir, sandbox.number) != first)
 
     # ---- image import
-    shared = [m for m in p.maps.values() if m.resources and m.number in ("005", "032", "003")]
+    shared = [m for m in p.maps.values() if m.resources and m.number in ("005", "032", "003", "CottageRoomsA", "CottageRoomsC", "ValePlaza")]
     check("maps sharing even one tile sheet can't take an import", not any(own_tileset(p, m) for m in shared))
     from gsmap.tileset import own_tileset_maps
     lone = own_tileset_maps(p)  # the mod's sandbox has its own sheets; the stock game has a few such places
@@ -559,7 +559,9 @@ with tempfile.TemporaryDirectory() as tmp:
 # ---- the world map's battles: a zone rewritten as it was stays byte for byte
 from gsmap import encounters as enc  # noqa: E402
 with tempfile.TemporaryDirectory() as etmp:
-    for rel in (enc.ZONES, enc.RULES, enc.SCENE_RULES, enc.FORMATIONS, enc.ENEMY_IDS, "games/tbs/text/en.po"):
+    for rel in (enc.ZONES, enc.RULES, enc.RULE_NAMES, enc.SCENE_RULES, enc.FORMATIONS, enc.ENEMY_IDS, "games/tbs/text/en.po"):
+        if not os.path.exists(os.path.join(source, rel)):  # what an older alchemy doesn't have
+            continue
         os.makedirs(os.path.dirname(os.path.join(etmp, rel)), exist_ok=True)
         shutil.copy(os.path.join(source, rel), os.path.join(etmp, rel))
     zones_path = os.path.join(etmp, enc.ZONES)

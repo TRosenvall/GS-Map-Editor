@@ -167,7 +167,7 @@ def reset_map(project, scenes, names, info, settings=None, shared_too=False):
     listing = _git(root, "ls-tree", "-r", "--name-only", base, folder + "/").stdout.decode().split()
     if not listing:
         raise ValueError(tr("The original game has no copy of this place to go back to (you made it)."))
-    # A place can draw another's grid or blocks (maps 174 to 179 draw map_001's).
+    # A place can draw another's grid or blocks (the test maps draw map_001's).
     borrowed = {os.path.relpath(p, root) for p in (info.grid_path(), info.source("CELL_PICTURES", "cell_pictures.tsv"),
                                                    info.source("SHAPES", "shapes.tsv"))} - set(listing)
     _refuse_if_set_up_by_hand(project, base, info)

@@ -11,7 +11,7 @@ L'éditeur s'appuie sur [alchemy](https://github.com/PascalPixel/alchemy), un pr
 
 > **Avant-première : testeurs recherchés.** L'éditeur couvre l'édition anglaise de The Broken Seal, sur macOS et, à titre de premier essai, sur Windows. Il a surtout été testé sur un seul Mac Intel, et la version Windows n'a jamais tourné sur un vrai PC Windows : chaque retour compte, y compris « ça a marché » : [téléchargez-le](https://github.com/TRosenvall/GS-Map-Editor/releases), essayez-le et [dites-nous comment ça s'est passé](https://github.com/TRosenvall/GS-Map-Editor/issues/new?template=bug_report.md). Gardez une sauvegarde de tout mod auquel vous tenez.
 
-**Version d'alchemy :** cet éditeur est testé avec le commit d'alchemy [`5ca23b1fe1`](https://github.com/PascalPixel/alchemy/commit/5ca23b1fe1774f954aacfbd7db35c8c9b9a59184) (2026-11-12). L'installation télécharge exactement ce commit. Alchemy évolue vite : une copie plus récente risque de ne pas fonctionner tant que l'éditeur ne l'a pas rattrapée.
+**Version d'alchemy :** cet éditeur est testé avec le commit d'alchemy [`35909133bc`](https://github.com/PascalPixel/alchemy/commit/35909133bca18fbe9a1ab3d1cbc8cd733552306d) (2026-11-13). L'installation télécharge exactement ce commit. Alchemy évolue vite : une copie plus récente risque de ne pas fonctionner tant que l'éditeur ne l'a pas rattrapée.
 
 ## Sommaire
 

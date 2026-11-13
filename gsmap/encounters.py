@@ -16,6 +16,7 @@ Editing rewrites a zone's initializer in encounter_zones.c in the file's own
 layout; zones nobody changes keep their text byte for byte.
 """
 
+import contextlib
 import os
 import re
 
@@ -26,6 +27,7 @@ from .messages import Messages
 
 ZONES = f"{layout.SRC}/field/encounter_zones.c"
 RULES = f"{layout.SRC}/field/world_map_encounter_rules.c"
+RULE_NAMES = f"{layout.INCLUDE}/module/field/field.h"  # BATTLE_ENVIRONMENT_*, WORLD_MAP_ENCOUNTER_REGION_*
 SCENE_RULES = f"{layout.SRC}/field/encounter_rules.s"  # gScene_EncounterRules: places' zones
 FORMATIONS = f"{layout.SRC}/battle/formations.c"
 ENEMY_IDS = f"{layout.INCLUDE}/enemy_ids.h"
@@ -54,6 +56,17 @@ def _skip_comment(text, i):
         end = text.find("*/", i + 2)
         return len(text) if end < 0 else end + 2
     return i
+
+
+def _constants(root):
+    """NAME -> value for the plain-number enum constants and #defines in the
+    header that names regions and battle environments."""
+    out = {}
+    pattern = re.compile(r"^\s*(?:#define\s+)?([A-Z][A-Z0-9_]+)\s*=?\s*(-?(?:0x[0-9a-fA-F]+|\d+))\b", re.M)
+    with contextlib.suppress(OSError):
+        for name, value in pattern.findall(_read(root, RULE_NAMES)):
+            out.setdefault(name, int(value, 0))
+    return out
 
 
 def _array_body(text, name):
@@ -134,9 +147,18 @@ class Encounters:
     def _rules(self):
         text = _strip_comments(_read(self.root, RULES))
         start, end = _array_body(text, "gWorldMap_EncounterRules")
+        # Plain numbers, or (alchemy from 2026-11-13) one {region, environment,
+        # flag, zone} per rule with regions and environments by name.
+        names = None
+        values = []
         try:
-            values = [int(v, 0) for v in text[start:end].replace("\n", " ").split(",") if v.strip()]
-        except ValueError:
+            for v in re.findall(r"-?\w+", text[start:end]):
+                if re.fullmatch(r"-?(0x[0-9a-fA-F]+|\d+)", v):
+                    values.append(int(v, 0))
+                else:
+                    names = names if names is not None else _constants(self.root)
+                    values.append(names[v])
+        except KeyError:
             # Named values (a region or zone by name) would shift every rule after them.
             raise ValueError(tr("The world map's battle rules ({path}) aren't plain numbers any more; "
                                 "this version of the game source is newer than the editor.", path=RULES)) from None
