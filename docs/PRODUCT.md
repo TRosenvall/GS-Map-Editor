@@ -20,7 +20,7 @@ The engine layer that exists today stays the foundation. That covers the file fo
 |---|---|---|
 | Explore the game's places | **World view:** overworld plus every town/dungeon, with connections drawn | Renderer ✅, Connections view ✅ (place by place), Atlas ✅ (every place at once), Go there ✅ (follow a door), overworld ✅ |
 | Repaint part of a map | **Paint:** tile palette by theme, brushes, fill, copy/paste regions | Block painting ✅; Fill ✅; copy and paste (Stamp) ✅ |
-| Change where you can walk | **Walkability brush:** walkable / blocked / ledge / ladder / water, shown as a clean overlay | Collision painting ✅; **named codes ❌ (research)** |
+| Change where you can walk | **Walkability brush:** walkable / blocked / ledge / ladder / water, shown as a clean overlay | Collision painting ✅; named codes ✅ (`gsmap/data/collision.json`) |
 | Move a door / change where it leads | Click a door, then pick the destination by clicking on the target map | ✅ Doors tool |
 | Add/move a chest or Psynergy stone | Drop a chest; pick contents (item picker with icons, coins, mimic) | ✅ Chest tool (items, coins); stones move only |
 | Place/move people | Drag NPCs with sprite previews; see and edit what they say | Positions ✅; sprite previews ✅; what they say on hover ✅; add and remove ✅ |

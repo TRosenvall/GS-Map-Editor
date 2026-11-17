@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 4a4d764092f8 -->
+<!-- translated from README.md @ 23cd52078ae0 -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · [Deutsch](README.de.md) · [Français](README.fr.md) · **Italiano** · [日本語](README.ja.md)
@@ -231,12 +231,13 @@ Non ogni punto che sembra libero è un buon posto per una persona. Spunta **Dove
 | Colore | Significa |
 |---|---|
 | Verde | Il gruppo può avvicinarsi e parlarci. |
+| Turchese | Il gruppo ci arriva quando la Psicoenergia o la storia aprono la strada, con gli eventi del luogo stesso. |
 | Giallo | Il gruppo non può salire su quella casella, ma può parlarci da accanto, come con un negoziante dietro un bancone. |
 | Blu | Ghiaccio su cui il gruppo scivola, come a Imil. Qualcuno fermo lì intralcia la scivolata. |
 | Arancione | Una porta, un'uscita o un punto di passaggio: qualcuno lì sarebbe d'intralcio. |
 | Rosso | Il gruppo non riesce ad avvicinarsi abbastanza camminando per parlarci. |
 
-Viene calcolato con le regole di movimento del gioco stesso, partendo da ogni punto in cui il gruppo arriva nel luogo: puoi salire o scendere di un livello alla volta, i muri ti fermano, e puoi parlare con qualcuno entro due caselle. I posti che si aprono solo con la Psicoenergia o con la storia appaiono in rosso, quindi lì il rosso non vuol sempre dire sbagliato.
+Viene calcolato con le regole di movimento del gioco stesso, partendo da ogni punto in cui il gruppo arriva nel luogo: puoi salire o scendere di un livello alla volta, i muri ti fermano, e puoi parlare con qualcuno entro due caselle. Vengono seguiti anche i cambiamenti fatti dagli eventi del luogo stesso, come una porta aperta con la Psicoenergia o un ponte abbassato dalla storia: ciò che aprono appare in turchese. Alcuni cambiamenti dipendono da dove il giocatore fa qualcosa, come spingere un pilastro, e non si possono calcolare in anticipo, quindi ciò che aprono appare ancora in rosso.
 
 Quando un punto ha un problema, l'editor dice qual è a parole semplici, per esempio "il terreno qui è 4 livelli più alto del percorso più vicino", oppure che stare lì taglierebbe fuori il gruppo da una porta. Poi offre una soluzione:
 

@@ -1685,6 +1685,7 @@ function evClick(e, x, y) {
 const WK = { cells: null, size: null, key: null, timer: null };
 const STAND = {
   good: ['rgba(80,200,120,0.38)', T('The party can walk up and talk')],
+  later: ['rgba(60,170,200,0.40)', T('The party gets here once Psynergy or the story opens the way')],
   talk: ['rgba(230,200,60,0.40)', T('Can be talked to from nearby (behind a counter, on a ledge)')],
   slide: ['rgba(70,140,255,0.50)', T('Ice the party slides across: keep people off it')],
   trigger: ['rgba(255,140,40,0.55)', T('A door, exit or step spot: keep it clear')],
@@ -1709,11 +1710,12 @@ async function loadStand() {
   if (WK.key !== key) return;
   if (r.error) { WK.cells = null; status(`<span class="err">${esc(r.error)}</span>`); drawAll(); return; }
   WK.cells = r.cells; WK.size = r.size;
-  $('#standLegend').innerHTML = Object.entries(STAND).filter(([k]) => k !== 'slide' || r.slide)
+  const shown = new Set(r.cells);
+  $('#standLegend').innerHTML = Object.entries(STAND).filter(([k]) => (k !== 'slide' || r.slide) && (k !== 'later' || shown.has('later')))
     .map(([, [c, t]]) => `<div style="display:flex;gap:6px;align-items:center"><span style="width:12px;height:12px;flex:none;background:${c};border:1px solid #0004"></span>${esc(t)}</div>`).join('')
     + (r.arrivals ? `<div style="margin-top:4px">${r.arrivals > 1
-      ? T("Worked out from the game's walking rules, starting at this place's {n} arrival points. Places opened by Psynergy or the story can show as red.", { n: r.arrivals })
-      : T("Worked out from the game's walking rules, starting at this place's 1 arrival point. Places opened by Psynergy or the story can show as red.")}</div>`
+      ? T("Worked out from the game's walking rules, starting at this place's {n} arrival points, with the changes this place's own events make. Changes made where the player chooses (a pushed pillar) can't be followed, so what they open can still show as red.", { n: r.arrivals })
+      : T("Worked out from the game's walking rules, starting at this place's 1 arrival point, with the changes this place's own events make. Changes made where the player chooses (a pushed pillar) can't be followed, so what they open can still show as red.")}</div>`
                   : `<div style="margin-top:4px">${T("This place has no arrival points, so the editor can't tell where the party walks.")}</div>`);
   drawAll();
 }

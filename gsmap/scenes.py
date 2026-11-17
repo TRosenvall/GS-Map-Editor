@@ -18,7 +18,7 @@ KINDS = ("entrances", "exits", "placements", "events", "regions")
 # Offsets of the getter pointers in struct SceneEntryPoints (field/scene.h).
 # The editor's kinds keep their own names: "placements" are the game's actor
 # placements and "events" its triggers.
-GETTER_OFFSETS = {"entrances": 0x0C, "exits": 0x14, "placements": 0x1C, "events": 0x24, "regions": 0x2C}
+GETTER_OFFSETS = {"initialize": 0x04, "entrances": 0x0C, "exits": 0x14, "placements": 0x1C, "events": 0x24, "regions": 0x2C}
 
 EXIT_SCENE_MASK = 0xFFF
 EXIT_HAS_FLAG = 0x10000000

@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 4a4d764092f8 -->
+<!-- translated from README.md @ 23cd52078ae0 -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · [Deutsch](README.de.md) · **Français** · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -231,12 +231,13 @@ Tous les emplacements qui semblent dégagés ne conviennent pas pour y placer qu
 | Couleur | Signification |
 |---|---|
 | Vert | Le groupe peut s'approcher et lui parler. |
+| Turquoise | Le groupe y arrive une fois que la Psynergie ou l'histoire ouvre le passage, par les événements du lieu lui-même. |
 | Jaune | Le groupe ne peut pas marcher sur cette case, mais peut lui parler depuis à côté, comme un marchand derrière un comptoir. |
 | Bleu | De la glace sur laquelle le groupe glisse, comme à Imil. Quelqu'un placé là gêne la glissade. |
 | Orange | Une porte, une sortie ou une case de passage : quelqu'un placé là gênerait. |
 | Rouge | Le groupe ne peut pas s'approcher assez en marchant pour parler. |
 
-C'est calculé à partir des propres règles de déplacement du jeu, en partant de chaque point où le groupe arrive dans le lieu : on peut monter ou descendre d'un niveau à la fois, les murs arrêtent, et on peut parler à quelqu'un jusqu'à deux cases de distance. Les endroits que seuls la Psynergie ou l'histoire rendent accessibles apparaissent en rouge, donc le rouge n'y signifie pas toujours une erreur.
+C'est calculé à partir des propres règles de déplacement du jeu, en partant de chaque point où le groupe arrive dans le lieu : on peut monter ou descendre d'un niveau à la fois, les murs arrêtent, et on peut parler à quelqu'un jusqu'à deux cases de distance. Les changements que font les événements du lieu lui-même, comme une porte que la Psynergie ouvre ou un pont que l'histoire abaisse, sont suivis aussi : ce qu'ils ouvrent apparaît en turquoise. Quelques changements dépendent de l'endroit où le joueur agit, comme pousser un pilier, et ne peuvent pas être calculés d'avance : ce qu'ils ouvrent apparaît encore en rouge.
 
 Quand un emplacement pose problème, l'éditeur dit lequel avec des mots simples, par exemple « le sol ici est 4 niveaux plus haut que le chemin le plus proche », ou que se tenir là couperait le groupe d'une porte. Puis il propose une solution :
 

@@ -17,9 +17,11 @@ game's own rules (alchemy's games/tbs/src/field):
   Imil_RunIceSlide does: cell by cell until a wall, ground more than 8 pixels
   up, or another kind of cell.
 
-The party is followed from every arrival point of the scene. Psynergy and story
-events that change cells are not followed, so a place they open shows as cut
-off. People are not obstacles, except the one being checked.
+The party is followed from every arrival point of the scene. Cells the room's
+own code changes as it plays (a door Psynergy opens, a bridge the story lowers;
+scene_cells.py) are followed too: a step counts if it can be taken on the map
+as saved or with those changes made, and what only the changes open is told
+apart ("later"). People are not obstacles, except the one being checked.
 """
 
 import collections
@@ -163,9 +165,10 @@ class Walk:
     Positions are map pixels, as actor placements and entrances store them.
     `edits` is a list of {plane, x, y, value} grid edits not yet saved, and
     `shapes` the heights made in the editor but not yet saved, as
-    [kind, h0, h1, h2] after the table's own (shape edits name them by index)."""
+    [kind, h0, h1, h2] after the table's own (shape edits name them by index).
+    `changes` are the room's own cell copies (scene_cells.room_changes)."""
 
-    def __init__(self, project, info, events, entrances, edits=(), shapes=()):
+    def __init__(self, project, info, events, entrances, edits=(), shapes=(), changes=()):
         self.info = info
         self.ox, self.oz = project.layer_origin(info, 0)
         self.x0, self.z0 = info.bounds[0] * 8, info.bounds[1] * 8
@@ -188,6 +191,7 @@ class Walk:
         self._heights = {}  # shape id -> its 16x16 heights, row-major (16.16 pixels)
         self._before = {}  # arrival lattice point -> (reach, standing) with no one in the way
         self._standable = {}  # lattice point -> whether standing() keeps it
+        self.changes = tuple(tuple(c) for c in changes or ())
         self._build()
 
     # ---- the map, in map pixels ------------------------------------------------------
@@ -309,6 +313,36 @@ class Walk:
         return out
 
     def _build(self):
+        nodes, edges, slide_ends = self._graph()
+        self.before_edges = edges
+        if self.changes:
+            # The moves on the changed map join the saved map's: each step is
+            # one the party can take before or after the changes.
+            col, shp = self.col, self.shp
+            self.col, self.shp = _changed(col, self.changes), _changed(shp, self.changes)
+            try:
+                _, after, after_ends = self._graph()
+            finally:
+                self.col, self.shp = col, shp
+            edges = {n: list(dict.fromkeys([*edges.get(n, ()), *after.get(n, ())])) for n in {*edges, *after}}
+            slide_ends = slide_ends | after_ends
+        self.nodes, self.edges, self.slide_ends = nodes, edges, slide_ends
+        self.starts = []
+        for e in self.entrances:
+            if self.inside(e["x"], e["z"]):
+                self.starts.append((e, self._node(e["x"], e["z"])))
+        self.reach = self.flood()
+        if self.changes:
+            edges, self.edges = self.edges, self.before_edges
+            try:
+                self.before_reach = self.flood()
+            finally:
+                self.edges = edges
+        else:
+            self.before_reach = self.reach
+
+    def _graph(self):
+        """(nodes, edges, slide ends) of the map's cells as they stand now."""
         # The moves depend only on the cells, heights and slides, which several
         # scenes of a map share and most saves (an event, a door) leave alone:
         # a graph made from the same ones is reused. Shared: treat it as read-only.
@@ -334,12 +368,7 @@ class Walk:
                 _GRAPHS[key] = hit
                 while len(_GRAPHS) > GRAPHS_KEPT:
                     _GRAPHS.popitem(last=False)
-        self.nodes, self.edges, self.slide_ends = hit
-        self.starts = []
-        for e in self.entrances:
-            if self.inside(e["x"], e["z"]):
-                self.starts.append((e, self._node(e["x"], e["z"])))
-        self.reach = self.flood()
+        return hit
 
     def _near(self, x, z, reach):
         """Lattice points within `reach` pixels of (x, z): every point the
@@ -436,9 +465,11 @@ class Walk:
     def cells(self):
         """Per window cell (row-major, w x h): what standing a person there means.
         good: the party can walk up and stand here; talk: the party can't stand
-        here but can talk to someone here from nearby; slide: a slide cell
-        (someone there is in the way of a slide); trigger: a door, exit or step
-        spot (keep it clear); cut: the party can't get near; wall: a wall."""
+        here but can talk to someone here from nearby; later: the party can
+        stand here once the room's own code opens the way (Psynergy, the
+        story); slide: a slide cell (someone there is in the way of a slide);
+        trigger: a door, exit or step spot (keep it clear); cut: the party
+        can't get near; wall: a wall."""
         standing = self.standing()
         stand_cells = {}
         for s in standing:
@@ -463,7 +494,7 @@ class Walk:
                 elif b in self.slide:
                     out.append("slide")
                 elif (i, j) in stand_cells and (x, z) in standing:
-                    out.append("good")
+                    out.append("good" if (x, z) in self.before_reach else "later")
                 else:
                     near = [s for dx in (-1, 0, 1) for dz in (-1, 0, 1) for s in index[(x // 32 + dx, z // 32 + dz)]]
                     out.append("talk" if self.talk_points(x, z, near) else "cut")
@@ -650,6 +681,17 @@ class Walk:
             if self.shp[gz][gx] != shape:
                 edits.append({"plane": "shape", "x": gx, "y": gz, "value": shape})
         return {"height": height, "cells": edits, "count": len(edits)} if edits else None
+
+
+def _changed(grid, changes):
+    """A copy of a 128x128 grid plane with every cell copy made, in order."""
+    out = [row[:] for row in grid]
+    for sx, sy, w, h, dx, dy in changes:
+        for j in range(h):
+            for i in range(w):
+                if 0 <= sx + i < 128 and 0 <= sy + j < 128 and 0 <= dx + i < 128 and 0 <= dy + j < 128:
+                    out[dy + j][dx + i] = grid[sy + j][sx + i]
+    return out
 
 
 def flat_shapes(project, info):

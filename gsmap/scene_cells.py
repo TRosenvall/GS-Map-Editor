@@ -1,0 +1,140 @@
+"""Cells a room's own code changes as it plays: a door Psynergy opens, a
+pillar pushed into a gap, a bridge the story lowers.
+
+The walking check (walk.py) reads the map as it is saved. Rooms whose paths
+open later need the cells their scene code copies in, which it does with the
+map grid's copy calls (alchemy's include/field/event.h):
+
+    MapGrid_CopyCellAttributes(sourceX, sourceY, width, height, toX, toY);
+
+copies where the party can walk and the height (everything but the picture);
+MapGrid_CopyCells copies whole cells. Older alchemy versions call the routines
+under them directly, some through a `Far` stand-in; those count the same. Copies of pictures alone change nothing
+underfoot and are left out. Only calls written in plain numbers are read: a
+copy to a place worked out while playing (where a pillar was pushed) can't be
+known beforehand.
+
+One overlay serves several rooms, and each room only runs part of its code.
+What runs in a room is followed from what the room itself starts: its own
+trigger and placement tables (the ones its getters return, getters.py) and its
+branch of the overlay's start-up function. From those, every function or table
+they name is followed in turn. A test of which room is playing is decided; any
+other test (a story flag) could go either way, so both sides count.
+"""
+
+import re
+
+from .doors import _scene_files, _source_text, sources_generation
+from .getters import _decide, _matching, _scene_macros, _strip_comments
+from .sceneedit import scene_tables
+
+COPY = re.compile(r"\bMapGrid_(?:CopyCellAttributes|CopyCellAttributeRect|CopyCells|CopyCellPictureCellsRect)(?:Far)?"
+                  r"\(\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*\)")
+# A top-level definition: a function, or data with an initializer.
+DEFINITION = re.compile(r"^(?!static\s+inline\b)[A-Za-z_][\w \t\*]*?\b(\w+)\s*(\([^;{}]*\)|\[[^\]]*\])?\s*(?:=\s*)?\{", re.M)
+IDENTIFIER = re.compile(r"\b[A-Za-z_]\w*\b")
+INLINE = re.compile(r"^static\s+inline\b[^;{]*?\b(\w+)\s*\([^;{}]*\)\s*\{", re.M)
+ROOM_KINDS = ("events", "placements")
+
+
+def _definitions(text):
+    """{name: body text} of a source's top-level functions and initialized data."""
+    out = {}
+    for pattern in (DEFINITION, INLINE):
+        for m in pattern.finditer(text):
+            start = m.end() - 1
+            try:
+                end = _matching(text, start, "{", "}")
+            except ValueError:
+                continue
+            out.setdefault(m.group(1), text[start:end])
+    return out
+
+
+def _prune(body, scene_name):
+    """The body with the branches a room never takes cut out: an `if` decided
+    by which room is playing keeps only its taken side."""
+    out, pos = [], 0
+    for m in re.finditer(r"\bif\s*\(", body):
+        if m.start() < pos:
+            continue
+        open_paren = m.end() - 1
+        try:
+            close = _matching(body, open_paren, "(", ")")
+        except ValueError:
+            break
+        verdict = _decide(body[open_paren + 1:close - 1], scene_name)
+        if verdict is None:
+            continue
+        then_start, then_end = _statement_span(body, close)
+        else_span = None
+        after = then_end
+        while after < len(body) and body[after] in " \t\r\n":
+            after += 1
+        if body.startswith("else", after) and not re.match(r"\w", body[after + 4:after + 5]):
+            else_span = _statement_span(body, after + 4)
+        out.append(body[pos:m.start()])
+        if verdict:
+            out.append(_prune(body[then_start:then_end], scene_name))
+        elif else_span:
+            out.append(_prune(body[else_span[0]:else_span[1]], scene_name))
+        pos = else_span[1] if else_span else then_end
+    out.append(body[pos:])
+    return "".join(out)
+
+
+def _statement_span(text, pos):
+    """(start, end) of the statement starting at or after pos."""
+    while pos < len(text) and text[pos] in " \t\r\n":
+        pos += 1
+    if pos < len(text) and text[pos] == "{":
+        return pos, _matching(text, pos, "{", "}")
+    if re.match(r"if\s*\(", text[pos:]):
+        close = _matching(text, text.index("(", pos), "(", ")")
+        _, end = _statement_span(text, close)
+        after = end
+        while after < len(text) and text[after] in " \t\r\n":
+            after += 1
+        if text.startswith("else", after) and not re.match(r"\w", text[after + 4:after + 5]):
+            _, end = _statement_span(text, after + 4)
+        return pos, end
+    return pos, text.index(";", pos) + 1
+
+
+def room_changes(tbs, overlay, scene_name):
+    """[(sourceX, sourceY, width, height, toX, toY)] of the cell copies the
+    room's code can make, in the order its source has them (grid cells)."""
+    key = ("cell changes", tbs, scene_name, sources_generation(tbs))
+    if key in overlay.memo:
+        return overlay.memo[key]
+    macros = _scene_macros(tbs)
+
+    def scene_ids(text):
+        return re.sub(r"\bSCENE_\w+\b", lambda m: f"(s32)&SceneId_{macros[m.group(0)]}"
+                      if m.group(0) in macros else m.group(0), text)
+
+    defs = {}
+    for path in _scene_files(tbs, overlay.tables):
+        defs.update(_definitions(scene_ids(_strip_comments(_source_text(path)))))
+    roots = []
+    for kind in ROOM_KINDS:
+        found = scene_tables(tbs, overlay, kind, scene_name)
+        roots += found if found is not None else [n for n, t in overlay.tables.items() if t["kind"] == kind]
+    start = overlay.getter_name("initialize")
+    if start:
+        roots.append(start)
+    seen, order, queue = set(), [], [r for r in roots if r in defs]
+    seen.update(queue)
+    while queue:
+        name = queue.pop(0)
+        body = _prune(defs[name], scene_name or "")
+        order.append((name, body))
+        for word in IDENTIFIER.findall(body):
+            if word in defs and word not in seen:
+                seen.add(word)
+                queue.append(word)
+    changes = []
+    for _, body in order:
+        changes += [tuple(int(v) for v in m.groups()) for m in COPY.finditer(body)]
+    overlay.memo[key] = changes
+    return changes

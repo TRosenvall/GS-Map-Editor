@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 4a4d764092f8 -->
+<!-- translated from README.md @ 23cd52078ae0 -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · **Deutsch** · [Français](README.fr.md) · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -231,12 +231,13 @@ Nicht jede Stelle, die frei aussieht, ist ein guter Platz für eine Person. Setz
 | Farbe | Bedeutet |
 |---|---|
 | Grün | Die Gruppe kann hingehen und mit der Person reden. |
+| Türkis | Die Gruppe kommt dorthin, sobald Psynergie oder die Story den Weg öffnet, durch die Ereignisse des Orts selbst. |
 | Gelb | Die Gruppe kann dieses Feld nicht betreten, aber von daneben mit der Person reden, wie mit einem Verkäufer hinter einer Theke. |
 | Blau | Eis, über das die Gruppe rutscht, wie in Imil. Wer dort steht, ist beim Rutschen im Weg. |
 | Orange | Eine Tür, ein Ausgang oder eine Trittstelle: Eine Person dort wäre im Weg. |
 | Rot | Die Gruppe kommt zu Fuß nicht nah genug heran, um zu reden. |
 
-Das wird aus den Laufregeln des Spiels selbst ermittelt, ausgehend von jedem Punkt, an dem die Gruppe an diesem Ort ankommt: Man kann immer eine Ebene hinauf- oder hinabsteigen, Wände halten einen auf, und man kann mit jemandem reden, der höchstens zwei Felder entfernt ist. Stellen, die erst durch Psynergie oder die Story zugänglich werden, erscheinen rot, Rot bedeutet dort also nicht immer einen Fehler.
+Das wird aus den Laufregeln des Spiels selbst ermittelt, ausgehend von jedem Punkt, an dem die Gruppe an diesem Ort ankommt: Man kann immer eine Ebene hinauf- oder hinabsteigen, Wände halten einen auf, und man kann mit jemandem reden, der höchstens zwei Felder entfernt ist. Änderungen, die die Ereignisse des Orts selbst vornehmen, etwa eine Tür, die Psynergie öffnet, oder eine Brücke, die die Story herablässt, werden mitverfolgt: Was sie öffnen, erscheint türkis. Einige Änderungen hängen davon ab, wo der Spieler etwas tut, etwa eine Säule schiebt, und lassen sich nicht vorher ermitteln; was diese öffnen, erscheint weiter rot.
 
 Wenn eine Stelle ein Problem hat, sagt der Editor in einfachen Worten, welches, zum Beispiel „der Boden hier ist 4 Ebenen höher als der nächste Weg“, oder dass eine Person dort die Gruppe von einer Tür abschneiden würde. Dann bietet er einen Ausweg an:
 

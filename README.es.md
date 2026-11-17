@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 4a4d764092f8 -->
+<!-- translated from README.md @ 23cd52078ae0 -->
 # GS Map Editor
 
 [English](README.md) · **Español** · [Deutsch](README.de.md) · [Français](README.fr.md) · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -231,12 +231,13 @@ No todo sitio que parece libre es un buen lugar para que alguien esté. Marca **
 | Color | Significa |
 |---|---|
 | Verde | El grupo puede acercarse caminando y hablar con ella. |
+| Turquesa | El grupo llega ahí cuando la Psinergía o la historia abren el paso, con los propios eventos del lugar. |
 | Amarillo | El grupo no puede pisar esa casilla, pero puede hablarle desde al lado, como a un tendero detrás de un mostrador. |
 | Azul | Hielo por el que se desliza el grupo, como en Imil. Alguien ahí estorba al deslizarse. |
 | Naranja | Una puerta, salida o sitio de paso: alguien ahí estorbaría. |
 | Rojo | El grupo no puede acercarse lo suficiente caminando para hablar. |
 
-Se calcula con las propias reglas de movimiento del juego, empezando en cada punto donde el grupo llega al lugar: puedes subir o bajar un nivel cada vez, las paredes te detienen y puedes hablar con alguien a dos casillas o menos. Las zonas que solo abren la Psinergía o la historia se ven en rojo, así que ahí el rojo no siempre significa que esté mal.
+Se calcula con las propias reglas de movimiento del juego, empezando en cada punto donde el grupo llega al lugar: puedes subir o bajar un nivel cada vez, las paredes te detienen y puedes hablar con alguien a dos casillas o menos. También se siguen los cambios que hacen los propios eventos del lugar, como una puerta que abre la Psinergía o un puente que baja la historia: lo que abren se ve en turquesa. Algunos cambios dependen de dónde hace algo el jugador, como empujar un pilar, y no se pueden calcular de antemano, así que lo que abren sigue viéndose en rojo.
 
 Cuando un sitio tiene un problema, el editor dice cuál es con palabras sencillas, por ejemplo "el suelo aquí está 4 niveles más alto que el camino más cercano", o que estar ahí dejaría al grupo sin acceso a una puerta. Luego ofrece una solución:
 

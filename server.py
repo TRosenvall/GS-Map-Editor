@@ -32,6 +32,7 @@ from gsmap.modgen import DamagedFile, Overrides, generate, validate_rows
 from gsmap.names import Names
 from gsmap.project import Project
 from gsmap.scenes import Scenes
+from gsmap.scene_cells import room_changes
 from gsmap.chests import ChestEditor
 from gsmap.doors import DoorEditor
 from gsmap.checks import Checker
@@ -180,13 +181,25 @@ def make_handler(project, token=None, local_only=True):
         same = sharing(n)
         cache.drop(lambda k: k[0] == "walk" or (k[1] in same and k[0] != "atlas"))  # tiles are unchanged
 
+    def room_cell_changes(sid):
+        """The cell copies scene sid's own code makes (scene_cells.py); none
+        when its overlay or sources can't be read, as before they were followed."""
+        sc = next((s for s in scenes().scenes if s["id"] == sid), None)
+        if sc is None:
+            return ()
+        try:
+            return room_changes(project.tbs, scenes().overlay(sc["overlay"]), sc["name"])
+        except (OSError, ValueError):
+            return ()
+
     def walk_for(n, sid, table=None, edits=(), shapes=()):
         """The walking graph of map n for scene sid, kept until a save changes
         anything (or built afresh around unsaved edits)."""
         def make():
             info = project.maps[n]
             events = EventEditor(project, scenes(), names).describe(info, sid, table)["events"]
-            return Walk(project, info, events, DoorEditor(project, scenes(), names).entrances(sid), edits, shapes)
+            return Walk(project, info, events, DoorEditor(project, scenes(), names).entrances(sid), edits, shapes,
+                        room_cell_changes(sid))
         if edits:
             return make()
         return cache.get(("walk", n, sid, table, i18n.current()), make)  # its words are in one language

@@ -423,5 +423,38 @@ check("and made afresh around an unsaved wall", walled.edges is not first.edges
       and walled.edges != first.edges and walled.edges == walkmod.Walk(walk_project, walk_map, [], [], [
           {"plane": "collision", "x": gx, "y": gz, "value": 255}]).edges)
 
+
+# ---- what a room's own code opens (scene_cells.py)
+from gsmap import scene_cells  # noqa: E402
+pruned = scene_cells._prune("{ if (sceneId == (s32)&SceneId_A) { a(); } else if (sceneId == (s32)&SceneId_B) { b(); }"
+                            " else { c(); } if (GameFlag_Get(1)) { d(); } }", "B")
+check("a room keeps only its own branch, and both sides of a story test",
+      "b()" in pruned and "a()" not in pruned and "c()" not in pruned and "d()" in pruned, pruned)
+changed = walkmod._changed([[1, 2] + [0] * 126] + [[0] * 128 for _ in range(127)],
+                           [(0, 0, 1, 1, 1, 0), (1, 0, 1, 1, 0, 1)])
+check("a room's cell copies all read from the saved map, whatever their order",
+      changed[0][:2] == [1, 1] and changed[1][0] == 2)
+cell_scenes, cell_project = Scenes(source), Project(source)
+babi = {s["name"]: s for s in cell_scenes.scenes if s["name"] and s["name"].startswith("BabiLighthouse")}
+if {"BabiLighthouseEntry", "BabiLighthouseStoneDoor"} <= set(babi):
+    ov = cell_scenes.overlay(babi["BabiLighthouseEntry"]["overlay"])
+    entry = scene_cells.room_changes(cell_project.tbs, ov, "BabiLighthouseEntry")
+    stone = scene_cells.room_changes(cell_project.tbs, ov, "BabiLighthouseStoneDoor")
+    check("a room follows its own triggers to the cells they change",
+          (82, 7, 1, 2, 18, 7) in entry and (81, 14, 4, 1, 17, 14) in stone, (entry, stone))
+    check("and not the copies of the other rooms its code serves", (82, 7, 1, 2, 18, 7) not in stone, stone)
+venus = next((s for s in cell_scenes.scenes if s["name"] == "VenusLighthouseThirdFloor"), None)
+if venus:
+    vmap = next(m for m in cell_project.maps.values()
+                if venus["layered_row"] in {r["row"] for r in [m.resources] + m.alternates if r})
+    vn = Names(source)
+    vev = EventEditor(cell_project, cell_scenes, vn).describe(vmap, venus["id"])["events"]
+    vent = DoorEditor(cell_project, cell_scenes, vn).entrances(venus["id"])
+    vch = scene_cells.room_changes(cell_project.tbs, cell_scenes.overlay(venus["overlay"]), venus["name"])
+    plain, opened = walkmod.Walk(cell_project, vmap, vev, vent), walkmod.Walk(cell_project, vmap, vev, vent, changes=vch)
+    check("what Psynergy or the story opens shows as reached later, not cut off",
+          "later" in opened.cells() and plain.reach <= opened.reach and opened.before_reach == plain.reach
+          and opened.cells().count("cut") < plain.cells().count("cut"))
+
 print("FAILED" if failed else "all ok")
 sys.exit(1 if failed else 0)

@@ -228,12 +228,13 @@ Not every spot that looks open is a good place for someone to stand. Tick **Wher
 | Colour | Means |
 |---|---|
 | Green | The party can walk up and talk to them. |
+| Teal | The party gets there once Psynergy or the story opens the way, through the place's own events. |
 | Yellow | The party can't walk onto that square, but can talk to them from beside it, like a shopkeeper behind a counter. |
 | Blue | Ice the party slides across, as in Imil. Someone standing there gets in the way of sliding. |
 | Orange | A door, exit or step spot: someone there would be in the way. |
 | Red | The party can't get near enough to talk by walking. |
 
-It's worked out from the game's own walking rules, starting from every point where the party arrives in the place: you can step up or down one level at a time, walls stop you, and you can talk to someone within two squares. Places that only Psynergy or the story open up show as red, so red there doesn't always mean wrong.
+It's worked out from the game's own walking rules, starting from every point where the party arrives in the place: you can step up or down one level at a time, walls stop you, and you can talk to someone within two squares. Changes the place's own events make, like a door Psynergy opens or a bridge the story lowers, are followed too: what they open shows as teal. A few changes depend on where the player does something, like pushing a pillar, and can't be worked out beforehand, so what those open still shows as red.
 
 When a spot has a problem, the editor says what it is in plain words, for example "the ground here is 4 levels higher than the nearest path", or that standing there would cut the party off from a door. Then it offers a way round:
 
