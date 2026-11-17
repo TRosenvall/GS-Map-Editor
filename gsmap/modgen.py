@@ -228,7 +228,7 @@ PLAYTEST_C = [
     "static s32 Mod_PlaytestStart(void) {",
     f"  u32 target = {PLAYTEST_SYMBOL};",
     "  MainRoutineWork_InitializeDefaults();",
-    "  WindowColor_Apply(gMainRoutineWork.windowColor[0], gMainRoutineWork.windowColor[1]);",
+    "  WindowColor_Apply(gMainRoutineWork.WINDOW_HUE, gMainRoutineWork.WINDOW_BRIGHTNESS);",
     "  gMainRoutineWork.next = target & 0xffff;",
     "  gMainRoutineWork.entrance = target >> 16;",
     "  gFieldWork->exit = EXIT_KEEP_DESTINATION;",
@@ -272,6 +272,18 @@ def step_message_functions(messages):
     for m in messages:
         lines.append(f"static void Mod_Step_{m}(s32 cell) {{ (void)cell; Mod_StepMessage({m}); }}")
     return lines + [""]
+
+
+def window_colour_fields(root):
+    """The window colour settings' fields in MainRoutineWork: two named ones
+    since alchemy 35909133bc, an array of two before."""
+    for rel in ("include/system/main_routine_work.h", "include/main_routine_work.h"):
+        path = os.path.join(root, "games/tbs", rel)
+        if os.path.exists(path):
+            with open(path, encoding="utf-8") as f:
+                if re.search(r"\bwindowHue\s*;", f.read()):
+                    return "windowHue", "windowBrightness"
+    return "windowColor[0]", "windowColor[1]"
 
 
 def generate(root, scenes, overrides):
@@ -346,7 +358,8 @@ def generate(root, scenes, overrides):
     if playable:
         if not by_overlay:
             lines.append("#ifdef TBS_EDITION_EN")
-        lines += PLAYTEST_C
+        hue, brightness = window_colour_fields(root)
+        lines += [line.replace("WINDOW_HUE", hue).replace("WINDOW_BRIGHTNESS", brightness) for line in PLAYTEST_C]
     lines.append("void Mod_SceneLoaded(int scene, struct SceneEntryPoints *entries) {")
     if playable:
         lines.append("  if (scene == (s32)&SceneId_Title && gModPlaytestTarget != PLAYTEST_NONE &&")
