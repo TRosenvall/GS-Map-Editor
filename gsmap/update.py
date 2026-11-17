@@ -1,0 +1,349 @@
+"""Bringing a player's copy of the game source (alchemy) to the version this
+editor was tested with (setup.ALCHEMY_PIN), with their mod.
+
+A copy the editor downloaded is a git clone sitting on the pinned commit, and
+everything the player made is uncommitted changes in it. The update:
+
+  1. saves all of it as one commit, under a backup ref
+     (refs/gs-map-editor/before-update-<time>), without touching the
+     player's files or index;
+  2. fetches the new commit and moves the copy to it;
+  3. applies the saved changes there with git's three-way merge (cherry-pick),
+     which follows files upstream moved or renamed. The two lines the editor's
+     hook adds to alchemy's own files are left out and put back afterwards
+     (modgen.ensure_hook), and mod.c is written afresh (modgen.generate).
+     A place's chests and stones (the `treasure_spot` rows of its map file)
+     are carried by the editor itself: upstream renames those files and the
+     labels in them, which git can't follow, so the rows are merged into the
+     same place's file in the new version, found by its row in the map table;
+  4. builds the game and checks the editor can read the copy.
+
+If any step fails (a change that can't be carried, a build that breaks), the
+copy goes back exactly as it was, uncommitted changes and all, and the reason
+is shown. The backup ref stays either way.
+
+Only copies the editor could have made are offered an update: alchemy's own
+repository, on no branch of its own, with no merge in progress, and older than
+the pinned commit. Someone's own checkout, on a branch, is never moved.
+"""
+
+import glob
+import os
+import shutil
+import subprocess
+import tempfile
+import threading
+import time
+
+from . import layout, preflight
+from .i18n import tr
+from .setup import ALCHEMY_PIN, ALCHEMY_URL, GIT_LIMITS, RUNNING, SUPPORT, build_env
+
+BACKUP_REFS = "refs/gs-map-editor/"
+# The editor's own commits stay in this copy; they never go anywhere.
+IDENTITY = {"GIT_AUTHOR_NAME": "GS Map Editor", "GIT_AUTHOR_EMAIL": "gs-map-editor@localhost",
+            "GIT_COMMITTER_NAME": "GS Map Editor", "GIT_COMMITTER_EMAIL": "gs-map-editor@localhost"}
+
+
+class Stop(Exception):
+    """The update can't go on; the message says why, in plain words."""
+
+
+def _git(root, *args, env=None, check=True, limits=False):
+    cmd = (GIT_LIMITS if limits else ["git"]) + ["-C", root, *args]
+    p = subprocess.run(cmd, capture_output=True, text=True, errors="replace", env={**build_env(), **(env or {})})
+    if check and p.returncode != 0:
+        raise subprocess.CalledProcessError(p.returncode, cmd, p.stdout, p.stderr)
+    return p
+
+
+def _out(root, *args, **kw):
+    return _git(root, *args, **kw).stdout.strip()
+
+
+def _known(root, sha):
+    return _git(root, "cat-file", "-e", f"{sha}^{{commit}}", check=False).returncode == 0
+
+
+def _older(root, head, pin):
+    return _git(root, "merge-base", "--is-ancestor", head, pin, check=False).returncode == 0
+
+
+def _busy(root):
+    """A merge, cherry-pick or rebase someone left unfinished."""
+    git_dir = _out(root, "rev-parse", "--absolute-git-dir")
+    return any(os.path.exists(os.path.join(git_dir, n))
+               for n in ("MERGE_HEAD", "CHERRY_PICK_HEAD", "REVERT_HEAD", "rebase-merge", "rebase-apply"))
+
+
+def offer(root):
+    """{"from", "to"} (short commits) when this copy can be brought to the
+    pinned version; None when it's there already or isn't the editor's to move."""
+    try:
+        if not root or _git(root, "rev-parse", "--git-dir", check=False).returncode != 0:
+            return None
+        head = _out(root, "rev-parse", "HEAD")
+        if head == ALCHEMY_PIN or _git(root, "symbolic-ref", "-q", "HEAD", check=False).returncode == 0:
+            return None
+        url = _out(root, "remote", "get-url", "origin", check=False).rstrip("/")
+        if url.removesuffix(".git") != ALCHEMY_URL or _busy(root):
+            return None
+        # Once the pinned commit is here, whether it's newer is known; before
+        # the first fetch it isn't, and the update finds out (and stops
+        # harmlessly) if this copy is already past it.
+        if _known(root, ALCHEMY_PIN) and not _older(root, head, ALCHEMY_PIN):
+            return None
+        return {"from": head[:10], "to": ALCHEMY_PIN[:10]}
+    except (OSError, subprocess.CalledProcessError):
+        return None
+
+
+def merge_rows(base, mine, theirs, end):
+    """Theirs (the new version's rows), less what mine removed from base, plus
+    what mine added, in order, ending with `end`."""
+    kept = [r for r in theirs if r != end and (r in mine or r not in base)]
+    return kept + [r for r in mine if r != end and r not in base and r not in kept] + [list(end)]
+
+
+class Update:
+    """The update as a background job, with the setup jobs' status()."""
+
+    def __init__(self, root, on_done=None):
+        self.root, self.on_done = root, on_done
+        self.name = tr("Updating the game source")
+        self.log, self.done, self.ok, self.error, self.result = [], False, None, None, None
+        threading.Thread(target=self._run, daemon=True).start()
+
+    def say(self, line):
+        self.log.append(line)
+        if len(self.log) > 4000:
+            del self.log[:1000]
+
+    def status(self, since=0):
+        return {"name": self.name, "done": self.done, "ok": self.ok, "error": self.error, "result": self.result,
+                "log": self.log[since:], "next": len(self.log)}
+
+    # ---- the steps ------------------------------------------------------------
+
+    def _run(self):
+        root = self.root
+        try:
+            if offer(root) is None:
+                raise Stop(tr("This copy of the game source isn't one the editor can update."))
+            self.old = _out(root, "rev-parse", "HEAD")
+            self.old_compilers = self._compilers(self.old)
+            self.gcc_head = _out(os.path.join(root, "alchemy-gcc"), "rev-parse", "HEAD", check=False)
+            self.markers = self._read_markers()
+            self.saved, self.carried = self._save()
+        except Stop as e:
+            return self._finish(False, str(e))
+        except Exception as e:  # noqa: BLE001  nothing has changed yet: just say so
+            return self._finish(False, tr("Couldn't start the update ({detail}). Nothing was changed.",
+                                          detail=f"{type(e).__name__}: {e}"))
+        moved = False
+        try:
+            self._fetch()
+            moved = True
+            self._move()
+            self._rebuild()
+        except Exception as e:  # noqa: BLE001  whatever it was, the copy goes back as it was
+            reason = str(e) if isinstance(e, Stop) else f"{type(e).__name__}: {e}"
+            if moved:
+                self.say(tr("Putting your copy back as it was…"))
+                try:
+                    self._put_back()
+                except Exception as e2:  # noqa: BLE001
+                    return self._finish(False, tr(
+                        "The update stopped ({reason}), and putting your copy back failed too ({detail}). "
+                        "Your changes are safe in the backup {ref}; ask for help before editing.",
+                        reason=reason, detail=f"{type(e2).__name__}: {e2}", ref=self.ref))
+            return self._finish(False, tr("The update stopped, and your copy is as it was: {reason}", reason=reason))
+        self._retire_history()
+        self.result = {"from": self.old[:10], "to": ALCHEMY_PIN[:10], "backup": self.ref}
+        self._finish(True, None)
+
+    def _finish(self, ok, error):
+        if error:
+            self.say(error)
+        self.ok, self.error, self.done = ok, error, True
+        if ok and self.on_done:
+            self.on_done()
+
+    def _run_cmd(self, cmd, cwd=None):
+        """A long command, its output in the log; raises on failure."""
+        self.say("$ " + " ".join(cmd))
+        p = subprocess.Popen(cmd, cwd=cwd or self.root, env=build_env(), stdout=subprocess.PIPE,
+                             stderr=subprocess.STDOUT, text=True, errors="replace", bufsize=1, start_new_session=True)
+        RUNNING.add(p)
+        try:
+            for line in p.stdout:
+                self.say(line.rstrip("\n"))
+            if p.wait() != 0:
+                raise Stop(tr("{command} failed.", command=" ".join(cmd[:3])))
+        finally:
+            RUNNING.discard(p)
+
+    def _compilers(self, commit):
+        """The compiler submodule's commit at `commit`, or None."""
+        line = _out(self.root, "ls-tree", commit, "alchemy-gcc", check=False)
+        return line.split()[2] if line else None
+
+    def _save(self):
+        """Commit everything the player has (their files and index untouched):
+        (the whole saved state, the same less what the editor redoes)."""
+        root = self.root
+        self.say(tr("Saving your changes as a backup…"))
+        fd, index = tempfile.mkstemp(prefix="gsmap-index-")
+        os.close(fd)
+        try:
+            env = {"GIT_INDEX_FILE": index, **IDENTITY}
+            _git(root, "read-tree", "HEAD", env=env)
+            _git(root, "add", "-A", env=env)
+            tree = _out(root, "write-tree", env=env)
+            saved = _out(root, "commit-tree", tree, "-p", "HEAD", "-m", "Your changes, saved before updating", env=env)
+            # The hook's two lines go back by the editor, into wherever the new
+            # version keeps those files.
+            # The compilers are the new version's own, never carried over.
+            redone = [p for p in (layout.HOOK_FILE, layout.object_list(root)[0], "alchemy-gcc") if p]
+            redone += [rel for rel, _, _ in self.markers.values()]  # carried by _carry_markers
+            _git(root, "reset", "-q", "HEAD", "--", *redone, env=env, check=False)
+            carried = _out(root, "commit-tree", _out(root, "write-tree", env=env), "-p", "HEAD",
+                           "-m", "Your changes, to carry to the new version", env=env)
+        finally:
+            os.unlink(index)
+        self.ref = BACKUP_REFS + "before-update-" + time.strftime("%Y%m%d-%H%M%S")
+        _git(root, "update-ref", self.ref, saved)
+        self.say(tr("Saved as {ref}.", ref=self.ref))
+        return saved, carried
+
+    def _read_markers(self):
+        """{map table row: (map file, rows as the old version has them, rows
+        as the player has them)} for each place whose chests or stones changed."""
+        from .project import Markers, Project
+        root, out = self.root, {}
+        changed = set(_out(root, "diff", "--name-only", "HEAD").split("\n"))
+        project = Project(root)
+        for info in project.maps.values():
+            rel = os.path.relpath(info.path, root)
+            if rel not in changed or not info.resources:
+                continue
+            fd, base = tempfile.mkstemp(suffix=".s")
+            try:
+                with os.fdopen(fd, "w", encoding="utf-8") as f:
+                    f.write(_git(root, "show", f"HEAD:{rel}").stdout)
+                out[info.resources["row"]] = (rel, Markers(base).rows, Markers(info.path).rows)
+            finally:
+                os.unlink(base)
+        return out
+
+    def _carry_markers(self):
+        """Each place's chests and stones into its file in the new version:
+        the new version's rows, less the ones the player removed, plus the
+        ones they added."""
+        if not self.markers:
+            return
+        from .project import Markers, Project
+        self.say(tr("Carrying your chests and stones over…"))
+        by_row = {info.resources["row"]: info for info in Project(self.root).maps.values() if info.resources}
+        for row, (rel, base, mine) in self.markers.items():
+            info = by_row.get(row)
+            if info is None:
+                raise Stop(tr("the place in {file} isn't in the new version.", file=rel))
+            mt = Markers(info.path)
+            mt.rows = merge_rows(base, mine, mt.rows, Markers.END)
+            mt.save()
+
+    def _fetch(self):
+        root = self.root
+        if not _known(root, ALCHEMY_PIN):
+            self.say(tr("Downloading the new version…"))
+            p = _git(root, "fetch", "-q", "origin", ALCHEMY_PIN, check=False, limits=True)
+            if p.returncode != 0 or not _known(root, ALCHEMY_PIN):
+                p = _git(root, "fetch", "-q", "origin", check=False, limits=True)
+            if not _known(root, ALCHEMY_PIN):
+                raise Stop(tr("Couldn't download the new version. Check your internet connection and try again."))
+        if not _older(root, self.old, ALCHEMY_PIN):
+            raise Stop(tr("Your copy is already newer than the version this editor was tested with."))
+
+    def _move(self):
+        root = self.root
+        # Every file the player has is in the saved commit (checked here, file
+        # by file), so the working tree can be made the old version's.
+        for rel in _out(root, "ls-files", "--others", "--exclude-standard", "-z").split("\0"):
+            if rel and _git(root, "cat-file", "-e", f"{self.saved}:{rel}", check=False).returncode != 0:
+                raise Stop(tr("{file} couldn't be saved in the backup.", file=rel))
+        self.say(tr("Moving to the new version…"))
+        _git(root, "reset", "-q", "--hard")
+        _git(root, "clean", "-fdq")
+        _git(root, "checkout", "-q", "--detach", ALCHEMY_PIN)
+        self._run_cmd(GIT_LIMITS + ["-C", root, "submodule", "update", "--init", "--recursive", "alchemy-gcc"])
+        self.say(tr("Carrying your changes over…"))
+        p = _git(root, "cherry-pick", "--no-commit", self.carried, env=IDENTITY, check=False)
+        if p.returncode != 0:
+            clashes = _out(root, "diff", "--name-only", "--diff-filter=U", check=False).split()
+            _git(root, "cherry-pick", "--abort", check=False)
+            if clashes:
+                raise Stop(tr("the new version changed the same parts of {files} that your mod changed, so "
+                              "they can't be combined automatically.", files=", ".join(clashes[:5])))
+            raise Stop(tr("your changes couldn't be applied to the new version ({detail}).",
+                          detail=(p.stderr or p.stdout).strip()[-300:]))
+        _git(root, "reset", "-q")  # as before: the changes uncommitted, nothing staged
+        self._carry_markers()
+
+    def _rebuild(self):
+        root = self.root
+        from .modgen import Overrides, ensure_hook, generate
+        from .scenes import Scenes
+        mod = os.path.join(root, layout.MOD)
+        if os.path.exists(os.path.join(mod, "overrides.json")) or os.path.exists(os.path.join(mod, "mod.c")):
+            self.say(tr("Putting the editor's hook back and writing mod.c…"))
+            ensure_hook(root)
+            # The scene overlays' tables keep their places and contents across
+            # versions (alchemy builds the same game), so the last build's
+            # overlays still say where they are; generate() matches renamed ones.
+            generate(root, Scenes(root), Overrides(root))
+        # Build state from the old version that would confuse the new one.
+        for path in glob.glob(os.path.join(root, "out", "*", "deps.mk")) + glob.glob(os.path.join(root, "out", "*", "objects.mk")):
+            os.remove(path)
+        shutil.rmtree(os.path.join(root, "tools", "out", "obj"), ignore_errors=True)
+        for path in glob.glob(os.path.join(root, "tools", "out", "ags-*")):
+            os.remove(path)
+        if self._compilers(ALCHEMY_PIN) != self.old_compilers:
+            self.say(tr("The new version has new compilers: building them (several minutes)…"))
+            self._run_cmd(["make", "bootstrap"])
+        self.say(tr("Building the game with your mod…"))
+        self._run_cmd(["make", "-j4", "tbs-en"])
+        problems = preflight.check(root)
+        if problems:
+            raise Stop(str(problems[0]))
+
+    def _put_back(self):
+        """The copy exactly as it was: the old commit, every file as the player
+        had it, nothing staged, and a build that works."""
+        root = self.root
+        _git(root, "cherry-pick", "--abort", check=False)
+        _git(root, "reset", "-q", "--hard")
+        _git(root, "clean", "-fdq")
+        _git(root, "checkout", "-q", "--detach", self.old)
+        _git(root, "read-tree", "-u", "--reset", self.saved)
+        _git(root, "reset", "-q", self.old)
+        self._run_cmd(GIT_LIMITS + ["-C", root, "submodule", "update", "--init", "--recursive", "alchemy-gcc"])
+        if self.gcc_head:  # where the player's compiler source was, if not where the old version says
+            _git(os.path.join(root, "alchemy-gcc"), "checkout", "-q", "--detach", self.gcc_head, check=False)
+        for path in glob.glob(os.path.join(root, "out", "*", "deps.mk")) + glob.glob(os.path.join(root, "out", "*", "objects.mk")):
+            os.remove(path)
+        shutil.rmtree(os.path.join(root, "tools", "out", "obj"), ignore_errors=True)
+        for path in glob.glob(os.path.join(root, "tools", "out", "ags-*")):
+            os.remove(path)
+        if self._compilers(ALCHEMY_PIN) != self.old_compilers:
+            self._run_cmd(["make", "bootstrap"])
+        self._run_cmd(["make", "-j4", "tbs-en"])
+
+    def _retire_history(self):
+        """Undo history names files as the old version laid them out: undoing
+        one now would put an old file back. It's moved aside, not deleted."""
+        import hashlib
+        key = hashlib.sha1(os.path.abspath(self.root).encode()).hexdigest()[:12]
+        history = os.path.join(SUPPORT, "history", key)
+        if os.path.isdir(history):
+            os.replace(history, history + "-before-update-" + time.strftime("%Y%m%d-%H%M%S"))

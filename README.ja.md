@@ -1,4 +1,4 @@
-<!-- translated from README.md @ ac654f1932c2 -->
+<!-- translated from README.md @ 8b907e56b51b -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · [Deutsch](README.de.md) · [Français](README.fr.md) · [Italiano](README.it.md) · **日本語**
@@ -11,7 +11,7 @@
 
 > **プレビュー版: テスターを募集しています。** このエディターが対応しているのは The Broken Seal の英語版で、macOS と、試験的に Windows で動きます。これまで主に1台の Intel Mac でテストしてきただけで、Windows 版はまだ実際の Windows PC で動かしたことがありません。そのため、「うまく動いた」という報告も含めて、どんな報告も助かります: [ダウンロード](https://github.com/TRosenvall/GS-Map-Editor/releases)して試し、[結果を教えてください](https://github.com/TRosenvall/GS-Map-Editor/issues/new?template=bug_report.md)。大切な MOD は必ずバックアップしておいてください。
 
-**alchemy のバージョン:** このエディターは alchemy のコミット [`0240eeebad`](https://github.com/PascalPixel/alchemy/commit/0240eeebadf7da77a5220e5869831b532ed1bc58)（2026-11-17）でテストしています。セットアップではちょうどそのコミットをダウンロードします。alchemy は変化が速いので、新しいコピーはエディターが追いつくまで動かないことがあります。
+**alchemy のバージョン:** このエディターは alchemy のコミット [`0240eeebad`](https://github.com/PascalPixel/alchemy/commit/0240eeebadf7da77a5220e5869831b532ed1bc58)（2026-11-17）でテストしています。セットアップではちょうどそのコミットをダウンロードします。alchemy は変化が速いので、新しいコピーはエディターが追いつくまで動かないことがあります。エディターの新しいバージョンがより新しいコミットでテストされると、以前にセットアップしたコピーでは上部バーに「**ゲームのソースをアップデート…**」が表示されます。変更をバックアップとして保存し、MOD ごとコピーをそのコミットにして、確認のためにゲームをビルドします。引き継げないものがあれば、コピーはそっくり元どおりに戻ります。
 
 ## 目次
 

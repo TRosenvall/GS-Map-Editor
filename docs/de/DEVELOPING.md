@@ -1,4 +1,4 @@
-<!-- translated from docs/DEVELOPING.md @ 24dc4b868d4b -->
+<!-- translated from docs/DEVELOPING.md @ 7fee4b124e31 -->
 # GS Map Editor entwickeln
 
 *Dies ist eine Übersetzung der englischen [DEVELOPING.md](../DEVELOPING.md). Wenn sich die beiden unterscheiden, ist die englische Fassung aktuell.*
@@ -148,6 +148,8 @@ Alles, was der Editor über den Aufbau von alchemy weiß, steht in `gsmap/layout
 3. Führ die Tests unten aus.
 
 Einen vorhandenen Checkout von Hand auf ein neues alchemy zu bringen ist gewöhnliches git: den neuen Commit mergen oder auschecken, dann `git submodule update --init --recursive alchemy-gcc`. Seit `alchemy-gcc` 3a12774 (alchemy 2026-11-08) ist agbcc normale Dateien statt eines verschachtelten Submoduls, und in einem Checkout von davor bricht das Update mit „untracked working tree files would be overwritten“ ab. Führ innerhalb von `alchemy-gcc` `git submodule deinit -f agbcc` aus, lösch den Ordner `agbcc` und `.git/modules/agbcc` unter dem git-Ordner von alchemy-gcc, dann aktualisiere erneut. Lösch `out/*/deps.mk` und `out/*/objects.mk` vor dem ersten Build. Am 2026-11-10 wurden die neuesten Commits von alchemy-gcc umformuliert und neu festgelegt, sodass ein `git fetch` in einem älteren Checkout mit „Errors during submodule fetch: alchemy-gcc“ („not our ref 8b1b6b4…“) enden kann; der Haupt-Fetch hat trotzdem funktioniert, und `git submodule update` checkt dann den neuen festgelegten Commit aus. **Herunterladen** in der Einrichtung macht immer einen frischen Klon, sodass Spieler das nicht erleben.
+
+Spieler bekommen dasselbe über **Quellcode aktualisieren…** (`gsmap/update.py`), angeboten, wenn ihre Kopie eine ist, die die Einrichtung heruntergeladen hat (das Repository von alchemy, kein eigener Branch, kein laufender Merge), und älter als `ALCHEMY_PIN`. Es speichert alles, was sie geändert haben, als einen Commit unter `refs/gs-map-editor/before-update-<time>`, ohne ihre Dateien anzufassen, holt den Pin, checkt ihn aus und übernimmt die gespeicherten Änderungen mit `cherry-pick --no-commit`, sodass gits Dreiwege-Merge verschobenen Dateien folgt. Davon ausgenommen und vom Editor neu gemacht: die zwei Zeilen des Hakens (`ensure_hook`), `mod.c` (`generate`), das Compiler-Submodul und die Truhen und Steine jedes Orts, dessen Kartendateien upstream samt ihren Labels umbenennt; diese Zeilen werden in die Datei derselben gMaps-Zeile der neuen Version eingefügt. Dann baut es und führt den Preflight aus. Jeder Fehler stellt die Kopie genau wieder her, ungespeicherte Änderungen eingeschlossen, und nach einem Erfolg wird der Rückgängig-Verlauf beiseitegelegt, da er die alten Dateien nennt.
 
 Gespeicherte Szenenänderungen tragen einen Fingerabdruck der Tabelle, für die sie gemacht wurden. Einer Tabelle, die upstream umbenannt wurde, folgen sie. Eine Änderung an einer Tabelle, deren ursprünglicher Inhalt sich geändert hat, wird behalten, aber aus dem Spiel herausgelassen, und die Prüfung meldet sie.
 

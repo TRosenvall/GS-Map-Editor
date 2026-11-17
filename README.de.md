@@ -1,4 +1,4 @@
-<!-- translated from README.md @ ac654f1932c2 -->
+<!-- translated from README.md @ 8b907e56b51b -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · **Deutsch** · [Français](README.fr.md) · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -11,7 +11,7 @@ Der Editor arbeitet mit [alchemy](https://github.com/PascalPixel/alchemy), einem
 
 > **Vorschau: Tester gesucht.** Der Editor deckt die englische Ausgabe von The Broken Seal ab, auf macOS und, als früher Test, auf Windows. Er wurde bisher hauptsächlich auf einem einzigen Intel-Mac getestet, und die Windows-Version lief noch nie auf einem echten Windows-PC, deshalb hilft jede Rückmeldung, auch „hat funktioniert“: [lade ihn herunter](https://github.com/TRosenvall/GS-Map-Editor/releases), probier ihn aus und [erzähl uns, wie es lief](https://github.com/TRosenvall/GS-Map-Editor/issues/new?template=bug_report.md). Mach eine Sicherungskopie von jeder Mod, die dir wichtig ist.
 
-**Alchemy-Version:** Dieser Editor ist mit dem alchemy-Commit [`0240eeebad`](https://github.com/PascalPixel/alchemy/commit/0240eeebadf7da77a5220e5869831b532ed1bc58) (2026-11-17) getestet. Die Einrichtung lädt genau diesen Commit herunter. Alchemy ändert sich schnell, daher funktioniert eine neuere Kopie vielleicht erst, wenn der Editor nachgezogen hat.
+**Alchemy-Version:** Dieser Editor ist mit dem alchemy-Commit [`0240eeebad`](https://github.com/PascalPixel/alchemy/commit/0240eeebadf7da77a5220e5869831b532ed1bc58) (2026-11-17) getestet. Die Einrichtung lädt genau diesen Commit herunter. Alchemy ändert sich schnell, daher funktioniert eine neuere Kopie vielleicht erst, wenn der Editor nachgezogen hat. Wird eine neue Version des Editors mit einem neueren Commit getestet, zeigt eine früher eingerichtete Kopie oben **Quellcode aktualisieren…**: Das sichert deine Änderungen, bringt die Kopie samt deiner Mod auf diesen Commit und baut das Spiel, um sie zu prüfen. Lässt sich etwas nicht übernehmen, wird die Kopie genau so wiederhergestellt, wie sie war.
 
 ## Inhalt
 

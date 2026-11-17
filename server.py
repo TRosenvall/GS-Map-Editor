@@ -23,7 +23,7 @@ from http.cookies import SimpleCookie
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlsplit
 
-from gsmap import fsio, host, i18n, layout, playtest, preflight
+from gsmap import fsio, host, i18n, layout, playtest, preflight, update
 from gsmap.i18n import N_, tr
 from gsmap.reset import reset_map, reset_world
 from gsmap.doors import script_exit_kinds as script_kinds
@@ -589,6 +589,16 @@ def make_handler(project, token=None, local_only=True):
                     fn = flag_names(project.root)
                     return self.send_json({"flags": [{"flag": k, "label": flag_label(k, fn)} for k in sorted(fn)],
                                            "search_targets": search_targets()})
+                if path == "/api/update":
+                    # A newer game source this editor was tested with, if this copy can take it.
+                    job = state.get("update")
+                    return self.send_json({"offer": None if job and job.ok else update.offer(project.root),
+                                           "running": bool(job and not job.done), "updated": bool(job and job.ok)})
+                if path == "/api/update/status":
+                    job = state.get("update")
+                    if not job:
+                        return self.send_json({"done": True, "ok": None, "log": [], "next": 0})
+                    return self.send_json(job.status(int(parse_qs(urlsplit(self.path).query).get("since", ["0"])[0])))
                 if path == "/api/export/status":
                     job = state.get("export")
                     if not job:
@@ -698,6 +708,12 @@ def make_handler(project, token=None, local_only=True):
             host_header = self.headers.get("Host", "")
             if self.headers.get("X-GSMap") != "1" or (origin and urlsplit(origin).netloc != host_header):
                 return self.send_json({"error": "cross-site write refused"}, 403)
+            # While the game source is being updated, and after (until the editor is
+            # reopened on the new version), nothing may change it.
+            job = state.get("update")
+            if job and (not job.done or job.ok) and path not in ("/api/language", "/api/update/start"):
+                return self.send_json({"error": tr("The game source is being updated. Wait for it to finish.")
+                                       if not job.done else tr("The game source was updated. Quit the app and open it again.")}, 409)
             state["conn"] = None  # links may change
             try:
                 length = int(self.headers.get("Content-Length", "0"))
@@ -709,6 +725,17 @@ def make_handler(project, token=None, local_only=True):
                     body = None
                 if not isinstance(body, dict):
                     return self.send_json({"error": "the request isn't a JSON object"}, 400)
+                if path == "/api/update/start":
+                    job, export = state.get("update"), state.get("export")
+                    if job and not job.done:
+                        return self.send_json({"error": tr("The update is already running.")}, 409)
+                    if job and job.ok:
+                        return self.send_json({"error": tr("The game source was updated. Quit the app and open it again.")}, 409)
+                    if export and not export["done"]:
+                        return self.send_json({"error": tr("Wait for the export to finish first.")}, 409)
+                    with write_lock:  # not halfway through a save
+                        state["update"] = update.Update(project.root)
+                    return self.send_json({"ok": True})
                 if path == "/api/language":
                     try:
                         i18n.choose(body.get("lang"))

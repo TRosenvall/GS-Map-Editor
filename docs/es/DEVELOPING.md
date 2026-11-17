@@ -1,4 +1,4 @@
-<!-- translated from docs/DEVELOPING.md @ 24dc4b868d4b -->
+<!-- translated from docs/DEVELOPING.md @ 7fee4b124e31 -->
 # Desarrollo de GS Map Editor
 
 *Esta es una traducción del documento en inglés [DEVELOPING.md](../DEVELOPING.md); si los dos difieren, el inglés es el actualizado.*
@@ -148,6 +148,8 @@ Todo lo que el editor sabe de la estructura de alchemy está en `gsmap/layout.py
 3. Ejecuta las pruebas de abajo.
 
 Mover a mano una copia existente a un alchemy nuevo es git normal: fusiona o haz checkout del commit nuevo, y luego `git submodule update --init --recursive alchemy-gcc`. Desde `alchemy-gcc` 3a12774 (alchemy 2026-11-08), agbcc son archivos normales en lugar de un submódulo anidado, y en una copia anterior a eso la actualización se detiene con "untracked working tree files would be overwritten". Dentro de `alchemy-gcc`, ejecuta `git submodule deinit -f agbcc`, borra la carpeta `agbcc` y `.git/modules/agbcc` dentro de la carpeta git de alchemy-gcc, y vuelve a actualizar. Borra `out/*/deps.mk` y `out/*/objects.mk` antes de la primera compilación. El 2026-11-10 los commits más recientes de alchemy-gcc se reescribieron y se volvieron a fijar, así que un `git fetch` en una copia antigua puede terminar con "Errors during submodule fetch: alchemy-gcc" ("not our ref 8b1b6b4…"); el fetch principal ha funcionado igualmente, y `git submodule update` luego hace checkout del nuevo commit fijado. **Descargar** en la instalación siempre hace un clon nuevo, así que los jugadores no se encuentran con esto.
+
+Los jugadores obtienen lo mismo con **Actualizar el código fuente…** (`gsmap/update.py`), que se ofrece cuando su copia es una que descargó la instalación (el repositorio de alchemy, sin rama propia, sin una fusión en curso) y es más antigua que `ALCHEMY_PIN`. Guarda todo lo que cambiaron como un commit en `refs/gs-map-editor/before-update-<time>` sin tocar sus archivos, descarga el pin, lo extrae y aplica los cambios guardados con `cherry-pick --no-commit`, para que la fusión a tres bandas de git siga los archivos movidos. Quedan fuera y los rehace el editor: las dos líneas del enganche (`ensure_hook`), `mod.c` (`generate`), el submódulo de compiladores y los cofres y piedras de cada lugar, cuyos archivos de mapa alchemy renombra junto con sus etiquetas; esas filas se fusionan en el archivo de la misma fila de gMaps en la nueva versión. Luego construye y ejecuta el preflight. Cualquier fallo deja la copia exactamente como estaba, cambios sin confirmar incluidos, y tras un éxito el historial de deshacer se aparta, porque nombra los archivos antiguos.
 
 Las ediciones de escena guardadas llevan una huella de la tabla para la que se hicieron. Una tabla renombrada en alchemy la sigue. Una edición de una tabla cuyo contenido original cambió se conserva pero se deja fuera del juego, y Revisar lo indica.
 

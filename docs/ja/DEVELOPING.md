@@ -1,4 +1,4 @@
-<!-- translated from docs/DEVELOPING.md @ 24dc4b868d4b -->
+<!-- translated from docs/DEVELOPING.md @ 7fee4b124e31 -->
 # GS Map Editor の開発
 
 *これは英語版 [DEVELOPING.md](../DEVELOPING.md) の翻訳です。内容が異なる場合は英語版が最新です。*
@@ -148,6 +148,8 @@ Actions ページの **Run workflow** は、リリースせずにイメージを
 3. 下のテストを実行します。
 
 既存のチェックアウトを新しい alchemy に手作業で移すのは、普通の git 操作です。新しいコミットをマージするかチェックアウトしてから、`git submodule update --init --recursive alchemy-gcc` を実行します。`alchemy-gcc` 3a12774（alchemy 2026-11-08）以降、agbcc は入れ子のサブモジュールではなく普通のファイルになったため、それより前のチェックアウトでは更新が「untracked working tree files would be overwritten」で止まります。`alchemy-gcc` の中で `git submodule deinit -f agbcc` を実行し、`agbcc` フォルダーと、alchemy-gcc の git フォルダーの下にある `.git/modules/agbcc` を削除してから、もう一度更新してください。最初のビルドの前に `out/*/deps.mk` と `out/*/objects.mk` を削除してください。2026-11-10 に alchemy-gcc の最新のコミットが書き直されて固定し直されたため、古いチェックアウトでの `git fetch` は「Errors during submodule fetch: alchemy-gcc」（「not our ref 8b1b6b4…」）で終わることがあります。それでもメインの fetch は成功しており、その後の `git submodule update` で新しい固定先がチェックアウトされます。セットアップの **ダウンロード** は常に新しくクローンするので、プレイヤーがこれに出会うことはありません。
+
+プレイヤーは「**ゲームのソースをアップデート…**」（`gsmap/update.py`）で同じことができます。コピーがセットアップでダウンロードしたもの（alchemy のリポジトリで、独自のブランチがなく、マージ途中でない）で、`ALCHEMY_PIN` より古いときに表示されます。変更したものをすべて、ファイルに触れずに `refs/gs-map-editor/before-update-<time>` の1つのコミットとして保存し、ピンを取得してチェックアウトし、保存した変更を `cherry-pick --no-commit` で適用するので、git の3方向マージが移動したファイルを追います。そこから外し、エディターがやり直すもの: フックの2行（`ensure_hook`）、`mod.c`（`generate`）、コンパイラーのサブモジュール、そして各場所の宝箱と石です。上流はマップファイルをラベルごと名前変更するため、それらの行は新しいバージョンの同じ gMaps 行のファイルにマージされます。そのあとビルドして preflight を実行します。失敗すればコピーは未コミットの変更も含めてそっくり元に戻り、成功後は古いファイルを指す取り消し履歴を脇へ移します。
 
 保存されたシーンの編集には、それが作られたテーブルのフィンガープリントが付いています。上流で名前が変わったテーブルには追従します。元の内容が変わったテーブルへの編集は保持されますが、ゲームからは外され、チェックがそれを報告します。
 

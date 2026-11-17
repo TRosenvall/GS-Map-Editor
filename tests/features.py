@@ -465,5 +465,18 @@ if venus:
     blank = opened._blank(opened.blocks)
     check("and never reaches ground that shows nothing", not any(blank(*pt) for pt in opened.reach - opened.before_reach))
 
+
+# ---- updating a player's copy (update.py)
+from gsmap import update as updatemod  # noqa: E402
+E = [0xFF, 0xFF, 0xFF]
+check("a place's chests carry over: the new version's, less removed, plus added",
+      updatemod.merge_rows([[1, 1, 100], [2, 2, 101], E], [[2, 2, 101], [5, 5, 102], E],
+                           [[1, 1, 100], [2, 2, 101], [9, 9, 104], E], E) == [[2, 2, 101], [9, 9, 104], [5, 5, 102], E])
+on_branch = subprocess.run(["git", "-C", source, "symbolic-ref", "-q", "HEAD"], capture_output=True).returncode == 0
+if on_branch:
+    check("a checkout on a branch of its own is never offered an update", updatemod.offer(source) is None)
+with tempfile.TemporaryDirectory() as plain:
+    check("nor is a folder that isn't a git copy", updatemod.offer(plain) is None)
+
 print("FAILED" if failed else "all ok")
 sys.exit(1 if failed else 0)

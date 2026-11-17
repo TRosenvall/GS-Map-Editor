@@ -2420,6 +2420,52 @@ $('#exGo').onclick = async () => {
   }
 };
 
+// ---- updating the game source to the version this editor was tested with (gsmap/update.py)
+const UP = { offer: null };
+async function checkUpdate() {
+  const r = await api('/api/update'); if (r.error) return;
+  UP.offer = r.offer;
+  $('#updateBtn').style.display = r.offer || r.running ? '' : 'none';
+  if (r.running) { openUpdate(); followUpdate(); }
+}
+function openUpdate() {
+  const o = UP.offer || {};
+  $('#upText').textContent = T("This editor was tested with a newer version of the game source ({to}; yours is {from}). Updating brings your copy to it with your mod: your changes are saved as a backup first, then carried over, and the game is built to check them. It takes a few minutes, longer if the new version needs new compilers. If anything can't be carried over, your copy is put back exactly as it was.", { to: o.to || '?', from: o.from || '?' });
+  $('#upd').style.display = 'flex';
+}
+$('#updateBtn').onclick = openUpdate;
+$('#upClose').onclick = () => { $('#upd').style.display = 'none'; };
+$('#upGo').onclick = async () => {
+  if (!await saveFirst()) return;
+  const r = await api('/api/update/start', {});
+  if (r.error) return $('#upMsg').innerHTML = `<span class="err">${esc(r.error)}</span>`;
+  followUpdate();
+};
+async function followUpdate() {
+  $('#upGo').disabled = true; $('#upClose').disabled = true;
+  $('#upLog').style.display = 'block'; $('#upLog').textContent = '';
+  let since = 0;
+  for (;;) {
+    const s = await api(`/api/update/status?since=${since}`);
+    if (s.done === undefined) { $('#upMsg').innerHTML = `<span class="err">${esc(s.error)}</span>`; break; }
+    if (s.log?.length) { $('#upLog').textContent += s.log.join('\n') + '\n'; $('#upLog').scrollTop = $('#upLog').scrollHeight; }
+    since = s.next ?? since;
+    $('#upMsg').textContent = s.done ? '' : T('Updating… you can leave this open. Editing waits until it finishes.');
+    if (s.done) {
+      $('#upClose').disabled = false; $('#upClose').textContent = T('Close');
+      if (s.ok) {
+        $('#updateBtn').style.display = 'none';
+        $('#upMsg').innerHTML = `<span class="ok">${T('Updated to {to}. Quit the app and open it again to keep editing. Undo starts afresh, since the old history names files as the old version had them.', { to: esc(s.result.to) })}</span>`;
+      } else {
+        $('#upGo').disabled = false;
+        $('#upMsg').innerHTML = `<span class="err">${esc(s.error)}</span>`;
+      }
+      break;
+    }
+    await new Promise(res => setTimeout(res, 800));
+  }
+}
+
 // The patcher: someone's mod onto the unmodified game (built here) or the player's own ROM.
 const PT = {};
 const readFile = f => new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(f); });
@@ -2668,6 +2714,7 @@ window.addEventListener('keydown', e => {
 });
 window.addEventListener('beforeunload', e => { if (dirtyCount()) { e.preventDefault(); e.returnValue = ''; } });
 init().then(() => {
+  checkUpdate();
   const practice = S.maps?.find(m => /Sandbox/.test(m.label || ''));
   if (practice) { $('#welcomeGo').style.display = ''; $('#welcomeGo').onclick = () => openMap(practice.number); }
   if (S.map) $('#welcome').style.display = 'none';

@@ -124,11 +124,11 @@
   .gbabox { width: 200px; min-height: 58px; background: #f4f4f4; color: #222; border: 3px solid #3a5ca8; border-radius: 6px; padding: 5px 7px;
             font: 12px/16px ui-monospace, monospace; white-space: pre; box-shadow: 0 2px 0 #1b2f66; }
   .gbabox.long { border-color: var(--bad); }
-  #ptc, #exp { position: fixed; inset: 0; background: #000a; z-index: 50; display: none; align-items: center; justify-content: center; }
-  #ptc .ex, #exp .ex { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; width: min(640px, 94vw); padding: 16px 18px; }
+  #ptc, #exp, #upd { position: fixed; inset: 0; background: #000a; z-index: 50; display: none; align-items: center; justify-content: center; }
+  #ptc .ex, #exp .ex, #upd .ex { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; width: min(640px, 94vw); padding: 16px 18px; }
   #ptc > .ex > label, #exp label { display: block; color: var(--muted); font-size: 12px; margin: 10px 0 3px; }
   #exp input, #exp textarea { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 4px; padding: 6px; font: inherit; }
-  #ptLog, #exLog { display: none; background: #0b0c0f; border: 1px solid var(--line); border-radius: 6px; height: 180px; overflow: auto; margin-top: 10px;
+  #ptLog, #exLog, #upLog { display: none; background: #0b0c0f; border: 1px solid var(--line); border-radius: 6px; height: 180px; overflow: auto; margin-top: 10px;
            font: 11px/1.4 ui-monospace, monospace; color: #b7bdc8; white-space: pre-wrap; padding: 8px; }
   #conn { position: fixed; inset: 0; background: #000a; z-index: 50; display: none; align-items: center; justify-content: center; }
   #conn .cn { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; width: min(1200px, 96vw); height: min(780px, 92vh);
@@ -224,6 +224,7 @@
     <label title="Which arrival point ▶ Play starts at">Start at <select id="playFrom"><option value="">best guess</option></select></label>
     <button id="exportBtn" title="Save your mod as a patch file to share">Export mod…</button>
     <button id="patcherBtn" title="Apply a .bps, .ips or .ups patch, and play it">Patcher…</button>
+    <button id="updateBtn" style="display:none" title="A newer version of the game source was tested with this editor">Update game source…</button>
     <label title="Show raw numbers and codes"><input type="checkbox" id="advanced"> Advanced</label>
     <label title="The editor's language. The game stays in English.">🌐 <select id="lang" style="width:auto"></select></label>
   </div>
@@ -336,6 +337,14 @@
   <div id="exMsg" style="margin-top:10px;min-height:20px"></div>
   <div class="row" style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
     <button id="exReveal" style="display:none">Show in Finder</button><button id="exClose">Close</button><button id="exGo" class="primary">Export</button></div>
+</div></div>
+<div id="upd" class="modal"><div class="ex">
+  <h2 style="margin:0 0 4px;font-size:16px">Update the game source</h2>
+  <div class="note" id="upText"></div>
+  <pre id="upLog"></pre>
+  <div id="upMsg" style="margin-top:10px;min-height:20px"></div>
+  <div class="row" style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
+    <button id="upClose">Not now</button><button id="upGo" class="primary">Update</button></div>
 </div></div>
 <div id="ptc" class="modal"><div class="ex">
   <h2 style="margin:0 0 4px;font-size:16px">Patcher</h2>

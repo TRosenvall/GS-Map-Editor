@@ -1,4 +1,4 @@
-<!-- translated from docs/DEVELOPING.md @ 24dc4b868d4b -->
+<!-- translated from docs/DEVELOPING.md @ 7fee4b124e31 -->
 # Sviluppare GS Map Editor
 
 *Questa è una traduzione del file inglese [DEVELOPING.md](../DEVELOPING.md); se i due differiscono, vale quello inglese.*
@@ -148,6 +148,8 @@ Tutto ciò che l'editor sa della struttura di alchemy si trova in `gsmap/layout.
 3. Esegui i test qui sotto.
 
 Spostare a mano un checkout esistente su un nuovo alchemy è normale git: fai il merge o il checkout del nuovo commit, poi `git submodule update --init --recursive alchemy-gcc`. Da `alchemy-gcc` 3a12774 (alchemy 2026-11-08), agbcc è composto da file normali invece che da un submodule annidato, e in un checkout precedente l'aggiornamento si ferma con "untracked working tree files would be overwritten". Dentro `alchemy-gcc`, esegui `git submodule deinit -f agbcc`, elimina la cartella `agbcc` e `.git/modules/agbcc` sotto la cartella git di alchemy-gcc, poi aggiorna di nuovo. Elimina `out/*/deps.mk` e `out/*/objects.mk` prima della prima build. Il 2026-11-10 i commit più recenti di alchemy-gcc sono stati riformulati e rifissati, quindi un `git fetch` in un checkout più vecchio può finire con "Errors during submodule fetch: alchemy-gcc" ("not our ref 8b1b6b4…"); il fetch principale ha comunque funzionato, e `git submodule update` poi fa il checkout del nuovo commit fissato. Il pulsante **Scarica** della configurazione crea sempre un clone nuovo, così i giocatori non incontrano questo problema.
+
+I giocatori ottengono lo stesso con **Aggiorna il codice sorgente…** (`gsmap/update.py`), offerto quando la loro copia è una di quelle scaricate dalla configurazione (il repository di alchemy, nessun branch proprio, nessun merge in corso) ed è più vecchia di `ALCHEMY_PIN`. Salva tutto ciò che hanno cambiato come un commit in `refs/gs-map-editor/before-update-<time>` senza toccare i loro file, scarica il pin, lo estrae e applica le modifiche salvate con `cherry-pick --no-commit`, così il merge a tre vie di git segue i file spostati. Restano fuori e li rifà l'editor: le due righe dell'aggancio (`ensure_hook`), `mod.c` (`generate`), il sottomodulo dei compilatori e i forzieri e le pietre di ogni luogo, i cui file di mappa alchemy rinomina insieme alle etichette; quelle righe vengono unite nel file della stessa riga di gMaps nella nuova versione. Poi costruisce ed esegue il preflight. Qualsiasi errore riporta la copia esattamente com'era, modifiche non salvate incluse, e dopo un successo la cronologia di annullamento viene messa da parte, perché nomina i vecchi file.
 
 Le modifiche salvate alle scene portano un'impronta della tabella per cui sono state fatte. Una tabella rinominata a monte la segue. Una modifica a una tabella il cui contenuto originale è cambiato viene conservata ma lasciata fuori dal gioco, e Controlla la segnala.
 
