@@ -199,11 +199,12 @@ Heights are counted in levels, the game's own unit (a level is 8 pixels, half a 
 Press **Chest** (K).
 
 - **Add one:** click an empty spot, choose an **Item** (start typing its name) or an amount of **Coins**, then press **Add chest**.
-- **Change one:** click it, change what's inside, and confirm.
-- **Remove one:** click it and press **Remove chest**.
-- **Move one:** drag it, then save. Psynergy Stones can be dragged too. A chest can't go on a square that's already a door, sign or step message.
+- **Add a Psynergy Stone:** click an empty spot, choose **Psynergy Stone**, then press **Add stone**. Using it restores all PP, once, like the game's own stones.
+- **Change one:** click it, change what's inside, and press **Change**. A chest can become a Psynergy Stone and back.
+- **Remove one:** click it and press **Remove chest** or **Remove stone**.
+- **Move one:** drag it, then save. A chest or stone can't go on a square that's already a door, sign or step message.
 
-The editor handles the rest, including the flag that remembers a chest has been opened, so a chest stays empty when you come back. A place can hold at most **10 chests and Psynergy Stones**. Other search spots don't count toward the 10.
+The editor handles the rest, including the flag that remembers a chest has been opened or a stone used, so it stays that way when you come back. A place can hold at most **10 chests and Psynergy Stones**. Other search spots don't count toward the 10.
 
 ## Events: people, signs and messages
 

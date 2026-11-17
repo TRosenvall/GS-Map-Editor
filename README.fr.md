@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 23cd52078ae0 -->
+<!-- translated from README.md @ 7c8f172afe81 -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · [Deutsch](README.de.md) · **Français** · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -202,11 +202,12 @@ Les hauteurs se comptent en niveaux, l'unité propre au jeu (un niveau fait 8 pi
 Appuyez sur **Coffre** (K).
 
 - **En ajouter un :** cliquez sur un emplacement vide, choisissez un **Objet** (commencez à taper son nom) ou une somme de **Pièces**, puis appuyez sur **Ajouter un coffre**.
-- **En changer un :** cliquez dessus, changez son contenu et confirmez.
-- **En supprimer un :** cliquez dessus et appuyez sur **Supprimer le coffre**.
-- **En déplacer un :** faites-le glisser, puis enregistrez. Les Pierres de Psynergie peuvent aussi être déplacées. Un coffre ne peut pas aller sur une case qui est déjà une porte, un panneau ou un message de passage.
+- **Ajouter une Pierre de Psynergie :** cliquez sur un emplacement vide, choisissez **Pierre de Psynergie**, puis appuyez sur **Ajouter une pierre**. L'utiliser rend tous les PP, une seule fois, comme les pierres du jeu.
+- **En changer un :** cliquez dessus, changez son contenu et appuyez sur **Modifier**. Un coffre peut devenir une Pierre de Psynergie, et inversement.
+- **En supprimer un :** cliquez dessus et appuyez sur **Supprimer le coffre** ou **Supprimer la pierre**.
+- **En déplacer un :** faites-le glisser, puis enregistrez. Un coffre ou une pierre ne peut pas aller sur une case qui est déjà une porte, un panneau ou un message de passage.
 
-L'éditeur s'occupe du reste, y compris du drapeau qui retient qu'un coffre a été ouvert, pour qu'un coffre reste vide quand vous revenez. Un lieu peut contenir au maximum **10 coffres et Pierres de Psynergie**. Les autres endroits à fouiller ne comptent pas dans les 10.
+L'éditeur s'occupe du reste, y compris du drapeau qui retient qu'un coffre a été ouvert ou une pierre utilisée, pour que cela reste ainsi quand vous revenez. Un lieu peut contenir au maximum **10 coffres et Pierres de Psynergie**. Les autres endroits à fouiller ne comptent pas dans les 10.
 
 ## Événements : personnages, panneaux et messages
 

@@ -1,4 +1,4 @@
-<!-- translated from docs/PRODUCT.md @ 34e70fd313ab -->
+<!-- translated from docs/PRODUCT.md @ 8a2e9a676b9b -->
 # gs-mapedit per i giocatori: piano di prodotto
 
 *Questa è una traduzione del file inglese [PRODUCT.md](../PRODUCT.md); se i due differiscono, vale quello inglese.*
@@ -23,9 +23,9 @@ Il livello del motore che esiste oggi resta la base. Questo comprende i formati 
 |---|---|---|
 | Esplorare i luoghi del gioco | **Vista del mondo:** il mondo esterno più ogni città/dungeon, con i collegamenti disegnati | Renderer ✅, vista Collegamenti ✅ (luogo per luogo), Atlante ✅ (tutti i luoghi insieme), Vai lì ✅ (seguire una porta), mondo esterno ✅ |
 | Ridipingere parte di una mappa | **Dipingi:** palette di tile per tema, pennelli, riempimento, copia/incolla di regioni | Pittura di blocchi ✅; Riempi ✅; copia e incolla (Timbro) ✅ |
-| Cambiare dove si può camminare | **Pennello di calpestabilità:** calpestabile / bloccato / sporgenza / scala / acqua, mostrato come una sovrapposizione pulita | Pittura della collisione ✅; **codici con nome ❌ (ricerca)** |
+| Cambiare dove si può camminare | **Pennello di calpestabilità:** calpestabile / bloccato / sporgenza / scala / acqua, mostrato come una sovrapposizione pulita | Pittura della collisione ✅; codici con nome ✅ (`gsmap/data/collision.json`) |
 | Spostare una porta / cambiare dove porta | Clicca una porta, poi scegli la destinazione cliccando sulla mappa di arrivo | ✅ Strumento Porte |
-| Aggiungere/spostare un forziere o una Psynergy Stone | Piazza un forziere; scegli il contenuto (selettore di oggetti con icone, monete, mimic) | ✅ Strumento Forziere (oggetti, monete); le pietre si possono solo spostare |
+| Aggiungere/spostare un forziere o una Psynergy Stone | Piazza un forziere; scegli il contenuto (selettore di oggetti con icone, monete, mimic) | ✅ Strumento Forziere (oggetti, monete, Psynergy Stone) |
 | Piazzare/spostare persone | Trascina i PNG con anteprime degli sprite; guarda e modifica ciò che dicono | Posizioni ✅; anteprime degli sprite ✅; ciò che dicono al passaggio del mouse ✅; aggiunta e rimozione ✅ |
 | Provarlo | **Gioca:** build più apertura dell'emulatore su quella mappa | Gioca con un clic ✅ (salva, controlla, compila, apre nel luogo che si sta modificando) |
 | Condividerlo | **Esporta mod:** un file di patch più una descrizione | ✅ BPS dalla build originale alla build della mod |

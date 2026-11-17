@@ -581,7 +581,12 @@ function drawMarkers(ctx) {
     ctx.strokeStyle = moved ? '#7ee787' : '#e0b84a';
     ctx.strokeRect(w[0] * s + 2, w[1] * s + 2, s - 4, s - 4);
     const c = S.chests?.find(c => c.code === mk.id);  // by its code: a moved chest keeps its picture
+    const stone = c?.stone && stoneImage();
     if (c?.chest && c.value >> 20 === 1 && S.icons[c.value & 0xffff]?.complete) ctx.drawImage(S.icons[c.value & 0xffff], w[0] * s + 2, w[1] * s + 2, s - 4, s - 4);
+    else if (stone?.complete && stone.naturalWidth) {  // the game's own stone sprite, fitted to the square
+      const k = Math.min((s - 4) / stone.naturalWidth, (s - 4) / stone.naturalHeight);
+      ctx.drawImage(stone, w[0] * s + (s - stone.naturalWidth * k) / 2, w[1] * s + (s - stone.naturalHeight * k) / 2, stone.naturalWidth * k, stone.naturalHeight * k);
+    }
     else if (z >= 2 && S.advanced) { ctx.fillStyle = moved ? '#7ee787' : '#e0b84a'; ctx.fillText(hex(mk.id), w[0] * s + s / 2, w[1] * s + s / 2); }
   }
   if (S.tool === 'chest' && S.chestAt) {
@@ -1441,6 +1446,15 @@ function chestIcon(id) {
   if (!S.icons[id]) { S.icons[id] = new Image(); S.icons[id].onload = drawAllSoon; S.icons[id].src = `/api/asset/item/${id}.png`; }
   return S.icons[id];
 }
+// The Psynergy Stone's sprite, by its name in the game's sprite list (none in a
+// checkout that hasn't named it: the square is then outlined only).
+function stoneImage() {
+  if (S.stoneImg === undefined) {
+    const sp = S.names.sprites.find(sp => sp.name === 'Psynergy Stone' && sp.has_image);
+    S.stoneImg = sp ? Object.assign(new Image(), { onload: drawAllSoon, src: `/api/asset/sprite/${sp.id}.png` }) : null;
+  }
+  return S.stoneImg;
+}
 function itemByName(name) {
   const t = name.trim().toLowerCase();
   return t ? S.names.items.find(i => i.name && !i.unused && i.name.toLowerCase() === t) : null;
@@ -1450,36 +1464,48 @@ function chestSelect(x, z, mk) {
   if (!$('#itemList').options.length)
     $('#itemList').innerHTML = S.names.items.filter(i => !i.unused && i.id && i.name).map(i => `<option value="${esc(i.name)}">`).join('');
   const c = mk && S.chests?.find(c => c.x === x && c.z === z);
-  if (mk && !c?.chest) {
+  if (mk && !c?.chest && !c?.stone) {
     chestDeselect(); drawAll();
     return status(T('This is {what}; it can be moved but not changed here.', { what: esc(S.legend[String(mk.id)]?.[0] || T('a Psynergy Stone or scripted find')) }));
   }
   S.chestAt = { x, z, chest: c || null };
   $('#chestForm').style.display = 'block';
-  $('#chestOk').textContent = c ? T('Change contents') : T('Add chest');
   $('#chestRemove').style.display = c ? '' : 'none';
-  const kind = c && c.value >> 20 === 2 ? 'coins' : 'item';
+  $('#chestRemove').textContent = c?.stone ? T('Remove stone') : T('Remove chest');
+  const kind = c?.stone ? 'stone' : c && c.value >> 20 === 2 ? 'coins' : 'item';
   document.querySelector(`input[name=chestKind][value=${kind}]`).checked = true;
   if (c && kind === 'coins') $('#chestCoins').value = c.value & 0xffff;
   if (c && kind === 'item') $('#chestItem').value = S.names.itemById[c.value & 0xffff]?.name || '';
-  updateChestIcon();
-  $('#chestInfo').innerHTML = c ? T('Chest holding {what}.', { what: `<b>${esc(c.contents)}</b>` }) + (S.advanced ? ' ' + T('Code {code}, opened flag {flag}.', { code: hex(c.code), flag: hex(c.flag) }) : '')
-    : T('New chest here. Pick what it holds:');
+  updateChestIcon(); chestButton();
+  const stone = stoneImage();
+  $('#stoneIcon').src = stone?.src || ''; $('#stoneIcon').style.visibility = stone ? 'visible' : 'hidden';
+  $('#chestInfo').innerHTML = (c?.stone ? T('A Psynergy Stone: using it restores all PP, once.')
+    : c ? T('Chest holding {what}.', { what: `<b>${esc(c.contents)}</b>` })
+    : T('New here: a chest holding an item or coins, or a Psynergy Stone.'))
+    + (c && S.advanced ? ' ' + T('Code {code}, opened flag {flag}.', { code: hex(c.code), flag: hex(c.flag) }) : '');
   drawAll();
 }
+// The button says what pressing it does: change what's here, or add the kind picked.
+function chestButton() {
+  const stone = document.querySelector('input[name=chestKind]:checked')?.value === 'stone';
+  $('#chestOk').textContent = S.chestAt?.chest ? T('Change') : stone ? T('Add stone') : T('Add chest');
+}
+for (const r of document.querySelectorAll('input[name=chestKind]')) r.addEventListener('change', chestButton);
 function updateChestIcon() {
   const it = itemByName($('#chestItem').value);
   $('#chestIcon').src = it ? chestIcon(it.id).src : '';
   $('#chestIcon').style.visibility = it ? 'visible' : 'hidden';
 }
-$('#chestItem').oninput = () => { document.querySelector('input[name=chestKind][value=item]').checked = true; updateChestIcon(); };
-$('#chestCoins').oninput = () => { document.querySelector('input[name=chestKind][value=coins]').checked = true; };
+$('#chestItem').oninput = () => { document.querySelector('input[name=chestKind][value=item]').checked = true; updateChestIcon(); chestButton(); };
+$('#chestCoins').oninput = () => { document.querySelector('input[name=chestKind][value=coins]').checked = true; chestButton(); };
 $('#chestCancel').onclick = () => { chestDeselect(); drawAll(); };
 async function chestAction(action) {
   const at = S.chestAt; if (!at) return;
   let contents = {};
   if (action !== 'remove') {
-    if (document.querySelector('input[name=chestKind]:checked').value === 'coins') contents = { coins: +$('#chestCoins').value };
+    const kind = document.querySelector('input[name=chestKind]:checked').value;
+    if (kind === 'stone') contents = { stone: true };
+    else if (kind === 'coins') contents = { coins: +$('#chestCoins').value };
     else {
       const it = itemByName($('#chestItem').value);
       if (!it) return status(`<span class="err">${T('Pick an item from the list (start typing its name).')}</span>`);
@@ -1493,11 +1519,13 @@ async function chestAction(action) {
   S.pending.clear(); S.markerMoves.clear(); S.tableEdits.clear();
   await openMap(n);
   chestDeselect();
-  const what = `<b>${esc(r.contents)}</b>`;
-  status(`<span class="ok">${action === 'add' ? T('Added a chest with {what}.', { what }) : action === 'remove' ? T('Removed the chest.') : T('The chest now holds {what}.', { what })}</span> ${T('Press ▶ Play to try it.')}`);
+  const what = `<b>${esc(r.contents)}</b>`, stone = contents.stone === true, was = at.chest?.stone;
+  status(`<span class="ok">${action === 'add' ? (stone ? T('Added a Psynergy Stone.') : T('Added a chest with {what}.', { what }))
+    : action === 'remove' ? (was ? T('Removed the Psynergy Stone.') : T('Removed the chest.'))
+    : stone ? T('This is now a Psynergy Stone.') : T('The chest now holds {what}.', { what })}</span> ${T('Press ▶ Play to try it.')}`);
 }
 $('#chestOk').onclick = () => chestAction(S.chestAt?.chest ? 'contents' : 'add');
-$('#chestRemove').onclick = () => confirm(T('Remove this chest?')) && chestAction('remove');
+$('#chestRemove').onclick = () => confirm(S.chestAt?.chest?.stone ? T('Remove this Psynergy Stone?') : T('Remove this chest?')) && chestAction('remove');
 
 // ---- events: what people say, signs and step messages, in words -----------------------
 const EV = { data: null, sel: null, stage: null, spot: null };

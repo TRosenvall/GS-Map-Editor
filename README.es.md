@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 23cd52078ae0 -->
+<!-- translated from README.md @ 7c8f172afe81 -->
 # GS Map Editor
 
 [English](README.md) · **Español** · [Deutsch](README.de.md) · [Français](README.fr.md) · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -202,11 +202,12 @@ Las alturas se cuentan en niveles, la unidad propia del juego (un nivel son 8 p�
 Pulsa **Cofre** (K).
 
 - **Añadir uno:** haz clic en un sitio vacío, elige un **Objeto** (empieza a escribir su nombre) o una cantidad de **Monedas** y luego pulsa **Añadir cofre**.
-- **Cambiar uno:** haz clic en él, cambia lo que contiene y confirma.
-- **Quitar uno:** haz clic en él y pulsa **Quitar cofre**.
-- **Mover uno:** arrástralo y luego guarda. Las Piedras de Psinergía también se pueden arrastrar. Un cofre no puede ir en una casilla que ya es una puerta, un letrero o un mensaje al pisar.
+- **Añadir una Piedra de Psinergía:** haz clic en un sitio vacío, elige **Piedra de Psinergía** y luego pulsa **Añadir piedra**. Usarla restaura todos los PP una vez, como las piedras del propio juego.
+- **Cambiar uno:** haz clic en él, cambia lo que contiene y pulsa **Cambiar**. Un cofre puede convertirse en Piedra de Psinergía y volver a ser cofre.
+- **Quitar uno:** haz clic en él y pulsa **Quitar cofre** o **Quitar piedra**.
+- **Mover uno:** arrástralo y luego guarda. Un cofre o una piedra no puede ir en una casilla que ya es una puerta, un letrero o un mensaje al pisar.
 
-El editor se ocupa del resto, incluida la marca que recuerda que un cofre se ha abierto, para que un cofre siga vacío cuando vuelvas. Un lugar puede tener como máximo **10 cofres y Piedras de Psinergía**. Los demás sitios que examinar no cuentan para el límite de 10.
+El editor se ocupa del resto, incluida la marca que recuerda que un cofre se ha abierto o una piedra se ha usado, para que siga así cuando vuelvas. Un lugar puede tener como máximo **10 cofres y Piedras de Psinergía**. Los demás sitios que examinar no cuentan para el límite de 10.
 
 ## Eventos: personas, letreros y mensajes
 

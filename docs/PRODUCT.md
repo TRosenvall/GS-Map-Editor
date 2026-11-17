@@ -22,7 +22,7 @@ The engine layer that exists today stays the foundation. That covers the file fo
 | Repaint part of a map | **Paint:** tile palette by theme, brushes, fill, copy/paste regions | Block painting ✅; Fill ✅; copy and paste (Stamp) ✅ |
 | Change where you can walk | **Walkability brush:** walkable / blocked / ledge / ladder / water, shown as a clean overlay | Collision painting ✅; named codes ✅ (`gsmap/data/collision.json`) |
 | Move a door / change where it leads | Click a door, then pick the destination by clicking on the target map | ✅ Doors tool |
-| Add/move a chest or Psynergy stone | Drop a chest; pick contents (item picker with icons, coins, mimic) | ✅ Chest tool (items, coins); stones move only |
+| Add/move a chest or Psynergy stone | Drop a chest; pick contents (item picker with icons, coins, mimic) | ✅ Chest tool (items, coins, Psynergy Stones) |
 | Place/move people | Drag NPCs with sprite previews; see and edit what they say | Positions ✅; sprite previews ✅; what they say on hover ✅; add and remove ✅ |
 | Try it | **Play:** build plus open the emulator at that map | One-click Play ✅ (saves, checks, builds, opens at the place being edited) |
 | Share it | **Export mod:** a patch file plus a description | ✅ BPS from stock build to mod build |

@@ -1,4 +1,4 @@
-<!-- translated from docs/PRODUCT.md @ 34e70fd313ab -->
+<!-- translated from docs/PRODUCT.md @ 8a2e9a676b9b -->
 # gs-mapedit für Spieler: Produktplan
 
 *Dies ist eine Übersetzung der englischen [PRODUCT.md](../PRODUCT.md). Wenn sich die beiden unterscheiden, ist die englische Fassung aktuell.*
@@ -23,9 +23,9 @@ Die Engine-Schicht, die es heute gibt, bleibt das Fundament. Dazu gehören die D
 |---|---|---|
 | Die Orte des Spiels erkunden | **Weltansicht:** Oberwelt plus jede Stadt und jeder Dungeon, mit eingezeichneten Verbindungen | Renderer ✅, Ansicht Verbindungen ✅ (Ort für Ort), Atlas ✅ (alle Orte auf einmal), Dorthin gehen ✅ (einer Tür folgen), Oberwelt ✅ |
 | Einen Teil einer Karte neu malen | **Malen:** Kachelpalette nach Thema, Pinsel, Füllen, Bereiche kopieren/einfügen | Blöcke malen ✅; Füllen ✅; Kopieren und Einfügen (Stempel) ✅ |
-| Ändern, wo man laufen kann | **Begehbarkeits-Pinsel:** begehbar / gesperrt / Absatz / Leiter / Wasser, als klares Overlay gezeigt | Kollision malen ✅; **benannte Codes ❌ (Forschung)** |
+| Ändern, wo man laufen kann | **Begehbarkeits-Pinsel:** begehbar / gesperrt / Absatz / Leiter / Wasser, als klares Overlay gezeigt | Kollision malen ✅; benannte Codes ✅ (`gsmap/data/collision.json`) |
 | Eine Tür verschieben / ändern, wohin sie führt | Auf eine Tür klicken, dann das Ziel durch Klick auf die Zielkarte wählen | ✅ Werkzeug Türen |
-| Eine Truhe oder einen Psynergie-Stein hinzufügen/verschieben | Eine Truhe absetzen; Inhalt wählen (Gegenstandsauswahl mit Symbolen, Münzen, Mimic) | ✅ Werkzeug Truhe (Gegenstände, Münzen); Steine nur verschieben |
+| Eine Truhe oder einen Psynergie-Stein hinzufügen/verschieben | Eine Truhe absetzen; Inhalt wählen (Gegenstandsauswahl mit Symbolen, Münzen, Mimic) | ✅ Werkzeug Truhe (Gegenstände, Münzen, Psynergie-Steine) |
 | Personen platzieren/verschieben | NPCs mit Sprite-Vorschauen ziehen; sehen und bearbeiten, was sie sagen | Positionen ✅; Sprite-Vorschauen ✅; was sie sagen, beim Überfahren mit der Maus ✅; Hinzufügen und Entfernen ✅ |
 | Ausprobieren | **Spielen:** Build plus Emulator an dieser Karte öffnen | Spielen mit einem Klick ✅ (speichert, prüft, baut, öffnet am gerade bearbeiteten Ort) |
 | Teilen | **Mod exportieren:** eine Patch-Datei plus eine Beschreibung | ✅ BPS vom Original-Build zum Mod-Build |

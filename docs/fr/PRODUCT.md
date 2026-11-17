@@ -1,4 +1,4 @@
-<!-- translated from docs/PRODUCT.md @ 34e70fd313ab -->
+<!-- translated from docs/PRODUCT.md @ 8a2e9a676b9b -->
 # gs-mapedit pour les joueurs : plan produit
 
 *Ceci est une traduction du document anglais [PRODUCT.md](../PRODUCT.md) ; en cas de différence, c'est la version anglaise qui fait foi.*
@@ -23,9 +23,9 @@ La couche moteur qui existe aujourd'hui reste la fondation. Elle couvre les form
 |---|---|---|
 | Explorer les lieux du jeu | **Vue du monde :** le monde extérieur plus chaque ville/donjon, avec les connexions dessinées | Moteur de rendu ✅, vue Connexions ✅ (lieu par lieu), Atlas ✅ (tous les lieux d'un coup), Y aller ✅ (suivre une porte), monde extérieur ✅ |
 | Repeindre une partie d'une carte | **Peindre :** palette de tuiles par thème, pinceaux, remplissage, copier/coller de zones | Peinture de blocs ✅ ; Remplir ✅ ; copier-coller (Tampon) ✅ |
-| Changer où l'on peut marcher | **Pinceau de praticabilité :** praticable / bloqué / rebord / échelle / eau, montré comme une surcouche nette | Peinture de collision ✅ ; **codes nommés ❌ (recherche)** |
+| Changer où l'on peut marcher | **Pinceau de praticabilité :** praticable / bloqué / rebord / échelle / eau, montré comme une surcouche nette | Peinture de collision ✅ ; codes nommés ✅ (`gsmap/data/collision.json`) |
 | Déplacer une porte / changer sa destination | Cliquer sur une porte, puis choisir la destination en cliquant sur la carte cible | ✅ outil Portes |
-| Ajouter/déplacer un coffre ou une Pierre de Psynergie | Poser un coffre ; choisir son contenu (sélecteur d'objets avec icônes, pièces, mimique) | ✅ outil Coffre (objets, pièces) ; les pierres se déplacent seulement |
+| Ajouter/déplacer un coffre ou une Pierre de Psynergie | Poser un coffre ; choisir son contenu (sélecteur d'objets avec icônes, pièces, mimique) | ✅ outil Coffre (objets, pièces, Pierres de Psynergie) |
 | Placer/déplacer des personnages | Faire glisser les PNJ avec aperçus de sprites ; voir et modifier ce qu'ils disent | Positions ✅ ; aperçus de sprites ✅ ; ce qu'ils disent au survol ✅ ; ajout et suppression ✅ |
 | Essayer | **Jouer :** compiler puis ouvrir l'émulateur sur cette carte | Jouer en un clic ✅ (enregistre, vérifie, compile, ouvre au lieu en cours de modification) |
 | Partager | **Exporter le mod :** un fichier patch plus une description | ✅ BPS de la version d'origine à la version moddée |

@@ -1,4 +1,4 @@
-<!-- translated from docs/PRODUCT.md @ 34e70fd313ab -->
+<!-- translated from docs/PRODUCT.md @ 8a2e9a676b9b -->
 # gs-mapedit para jugadores: plan de producto
 
 *Esta es una traducción del documento en inglés [PRODUCT.md](../PRODUCT.md); si los dos difieren, el inglés es el actualizado.*
@@ -23,9 +23,9 @@ La capa del motor que existe hoy sigue siendo la base. Eso abarca los formatos d
 |---|---|---|
 | Explorar los lugares del juego | **Vista del mundo:** el mapa del mundo más cada pueblo/mazmorra, con las conexiones dibujadas | Renderizador ✅, vista de Conexiones ✅ (lugar por lugar), Atlas ✅ (todos los lugares a la vez), Ir allí ✅ (seguir una puerta), mapa del mundo ✅ |
 | Repintar parte de un mapa | **Pintar:** paleta de tiles por tema, pinceles, relleno, copiar/pegar zonas | Pintado de bloques ✅; Rellenar ✅; copiar y pegar (Sello) ✅ |
-| Cambiar por dónde se puede caminar | **Pincel de zonas de paso:** transitable / bloqueado / saliente / escalera / agua, mostrado como una capa limpia | Pintado de colisión ✅; **códigos con nombre ❌ (investigación)** |
+| Cambiar por dónde se puede caminar | **Pincel de zonas de paso:** transitable / bloqueado / saliente / escalera / agua, mostrado como una capa limpia | Pintado de colisión ✅; códigos con nombre ✅ (`gsmap/data/collision.json`) |
 | Mover una puerta / cambiar adónde lleva | Haz clic en una puerta y elige el destino haciendo clic en el mapa de destino | ✅ herramienta Puertas |
-| Añadir/mover un cofre o una Piedra de Psinergía | Suelta un cofre; elige el contenido (selector de objetos con iconos, monedas, mímico) | ✅ herramienta de cofres (objetos, monedas); las piedras solo se mueven |
+| Añadir/mover un cofre o una Piedra de Psinergía | Suelta un cofre; elige el contenido (selector de objetos con iconos, monedas, mímico) | ✅ herramienta de cofres (objetos, monedas, Piedras de Psinergía) |
 | Colocar/mover personas | Arrastra PNJ con vistas previas de sus sprites; ve y edita lo que dicen | Posiciones ✅; vistas previas de sprites ✅; lo que dicen al pasar el cursor ✅; añadir y quitar ✅ |
 | Probarlo | **Jugar:** compilar y abrir el emulador en ese mapa | Jugar con un clic ✅ (guarda, revisa, compila y abre en el lugar que se está editando) |
 | Compartirlo | **Exportar mod:** un archivo de parche más una descripción | ✅ BPS de la compilación original a la compilación del mod |

@@ -1,4 +1,4 @@
-"""Chests as one action: add, change what's inside, remove.
+"""Chests and Psynergy Stones as one action: add, change what's inside, remove.
 
 A chest is four things that must agree (docs/research/local-connections.md §3):
 
@@ -11,6 +11,11 @@ A chest is four things that must agree (docs/research/local-connections.md §3):
      *first* event of any kind with that trigger;
   4. a fresh "opened" flag, set when the chest is taken.
 
+A Psynergy Stone is the same four things, with an examine event instead:
+{EXAMINE_TRIGGER(EXAMINE_SILENT), code, flag, FIND_PSYNERGY_STONE}
+(field/scene_tables.h). treasure_spots.c then places the stone, which
+restores all PP, in place of a chest; the flag is set once it is used.
+
 So a new code must be unused by every event table the map's scenes can load,
 and by the collision of every map sharing those tables (or a cell there would
 become searchable). Event rows go into editor overrides (overrides.json ->
@@ -22,6 +27,7 @@ from .i18n import tr
 from .sceneedit import EVENTS_END, SceneEditor
 
 CHEST_CONTROL = 0x13  # SEARCH(SEARCH_CHEST)
+STONE_CONTROL = 3  # EXAMINE_TRIGGER(EXAMINE_SILENT)
 CODE_LO, CODE_HI = 100, 239
 MARKER_MAX = 10
 FIND_ITEM, FIND_COINS = 0x100000, 0x200000
@@ -33,12 +39,26 @@ def placed_codes(rows, codes):
     Psynergy Stone: the only markers the game counts toward its 10
     (treasure_spots.c). A marker with no such event places nothing."""
     return {r["trigger"] for r in rows if r["control"] != EVENTS_END and r["trigger"] in codes
-            and ((r["control"] & 0x1FF) == CHEST_CONTROL or
-                 ((r["control"] & 0x1FF) == 3 and (r["value"] & 0xFFF00000) == FIND_STONE))}
+            and (is_chest(r) or is_stone(r))}
+
+
+def is_chest(row):
+    return row["control"] & 0x1FF == CHEST_CONTROL
+
+
+def is_stone(row):
+    return row["control"] & 0x1FF == STONE_CONTROL and row["value"] & 0xFFF00000 == FIND_STONE
+
+
+def control_for(value):
+    """The event kind a FIND_* value takes: a stone is examined, a chest searched."""
+    return STONE_CONTROL if value == FIND_STONE else CHEST_CONTROL
 
 
 def find_value(contents):
-    """{"item": id} or {"coins": n} -> the event's FIND_* value."""
+    """{"item": id}, {"coins": n} or {"stone": true} -> the event's FIND_* value."""
+    if contents.get("stone") is True:
+        return FIND_STONE
     if "item" in contents:
         item = int(contents["item"])
         if not 1 <= item <= 0xFFFF:
@@ -52,7 +72,7 @@ def find_value(contents):
         if not 1 <= n <= 0xFFFF:
             raise ValueError(tr("coins must be between 1 and 65535"))
         return FIND_COINS | n
-    raise ValueError(tr("say what the chest holds: an item or coins"))
+    raise ValueError(tr("say what the chest holds: an item or coins, or make it a Psynergy Stone"))
 
 
 class ChestEditor(SceneEditor):
@@ -73,7 +93,9 @@ class ChestEditor(SceneEditor):
     # ---- actions ------------------------------------------------------------------
 
     def list(self, info):
-        """[{x, z, code, flag, contents}] for this map's chests."""
+        """[{x, z, code, chest, stone, flag, value, contents}] for this map's
+        markers: chests and stones can be changed; other markers (a scripted
+        find) can only be moved."""
         path, t = self.project.load_markers(info)
         ov = self._read_overrides()
         try:
@@ -84,11 +106,11 @@ class ChestEditor(SceneEditor):
         for x, z, code in [tuple(r[:3]) for r in t.rows if tuple(r[:3]) != (0xFF, 0xFF, 0xFF)]:
             ev = next((r for _, _, rows in tables for r in rows
                        if r["trigger"] == code and r["control"] != EVENTS_END), None)
-            chest = ev is not None and ev["control"] & 0x1FF == CHEST_CONTROL
-            out.append({"x": x, "z": z, "code": code, "chest": chest,
+            chest, stone = ev is not None and is_chest(ev), ev is not None and is_stone(ev)
+            out.append({"x": x, "z": z, "code": code, "chest": chest, "stone": stone,
                         "flag": ev["condition"] if ev else None,
                         "value": ev["value"] if ev else None,
-                        "contents": self.names.find_value(ev["value"]) if chest else None})
+                        "contents": self.names.find_value(ev["value"]) if chest or stone else None})
         return out
 
     def add(self, info, x, z, contents):
@@ -105,7 +127,7 @@ class ChestEditor(SceneEditor):
         if any(len(placed_codes(rs, codes)) >= MARKER_MAX for _, _, rs in tables):
             raise ValueError(tr("A place can hold at most {n} chests and Psynergy Stones.", n=MARKER_MAX))
         if any(tuple(r[:2]) == (x, z) for r in rows):
-            raise ValueError(tr("that cell already holds a chest"))
+            raise ValueError(tr("that cell already holds a chest or stone"))
         if not (0 <= x < 128 and 0 <= z < 128):
             raise ValueError(tr("that cell is outside the map"))
         col = p.load_grid(info, "collision").cells
@@ -125,7 +147,7 @@ class ChestEditor(SceneEditor):
         if flag is None:
             raise ValueError(tr("The game has no room for more chests."))
 
-        row = {"control": CHEST_CONTROL, "trigger": code, "condition": flag, "value": value}
+        row = {"control": control_for(value), "trigger": code, "condition": flag, "value": value}
         for o, name, rs in tables:
             end = next(i for i, r in enumerate(rs) if r["control"] == EVENTS_END)
             rs.insert(end, dict(row))
@@ -143,7 +165,7 @@ class ChestEditor(SceneEditor):
         for i, r in enumerate(mt.rows):
             if tuple(r[:2]) == (x, z) and tuple(r[:3]) != (0xFF, 0xFF, 0xFF):
                 return path, mt, i, r[2]
-        raise ValueError(tr("no chest there"))
+        raise ValueError(tr("no chest or stone there"))
 
     def set_contents(self, info, x, z, contents):
         value = find_value(contents)
@@ -155,7 +177,10 @@ class ChestEditor(SceneEditor):
         for o, name, rs in self._event_tables(info, ov):
             changed = False
             for r in rs:
-                if r["trigger"] == code and r["control"] & 0x1FF == CHEST_CONTROL:
+                if r["trigger"] == code and (is_chest(r) or is_stone(r)):
+                    # A chest made a stone, or back, changes its kind too; the
+                    # control's bits above the kind (a facing) are kept.
+                    r["control"] = (r["control"] & ~0x1FF) | control_for(value)
                     r["value"], changed = value, True
             if changed:
                 ov.set(o.id, name, "events", rs)
@@ -171,7 +196,7 @@ class ChestEditor(SceneEditor):
         path, mt, i, code = self._find(info, x, z)
         ov = Overrides(p.root)
         for o, name, rs in self._event_tables(info, ov):
-            keep = [r for r in rs if not (r["trigger"] == code and r["control"] & 0x1FF == CHEST_CONTROL)]
+            keep = [r for r in rs if not (r["trigger"] == code and (is_chest(r) or is_stone(r)))]
             if len(keep) == len(rs):
                 continue
             if keep == o.rows(name):

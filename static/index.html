@@ -203,7 +203,7 @@
     <button data-tool="block" title="Paint what the ground looks like (B)">Paint</button>
     <button data-tool="collision" title="Paint where you can walk (C)">Walkability</button>
     <button data-tool="shape" title="Paint how high the ground is (H)">Height</button>
-    <button data-tool="chest" title="Add chests, change what's inside, drag them (K)">Chest</button>
+    <button data-tool="chest" title="Add chests and Psynergy Stones, change what's inside, drag them (K)">Chest</button>
     <button data-tool="events" title="What people say, signs, step messages; who's where (E)">Events</button>
     <button data-tool="doors" title="See where doors lead, link them anywhere, make new ones (D)">Doors</button>
     <button data-tool="points" title="Drag where people stand and where the party arrives (P)">Move people</button>
@@ -261,12 +261,13 @@
   </div>
   <h2 id="chestTitle" style="display:none">Chest</h2>
   <div id="chestPanel">
-    <div id="chestInfo" class="note" style="color:var(--muted);font-size:12px">Click an empty spot to add a chest, or click a chest to change it. Drag a chest to move it.</div>
+    <div id="chestInfo" class="note" style="color:var(--muted);font-size:12px">Click an empty spot to add a chest or Psynergy Stone, or click one to change it. Drag one to move it.</div>
     <div id="chestForm" style="display:none">
       <div class="row"><label><input type="radio" name="chestKind" value="item" checked> Item</label>
         <input id="chestItem" list="itemList" placeholder="e.g. Herb" style="flex:1;min-width:90px"><img id="chestIcon" alt=""></div>
       <div class="row"><label><input type="radio" name="chestKind" value="coins"> Coins</label>
         <input id="chestCoins" type="number" min="1" max="65535" value="100" style="width:90px"></div>
+      <div class="row"><label title="A stone the party can use once to restore all PP"><input type="radio" name="chestKind" value="stone"> Psynergy Stone</label><img id="stoneIcon" alt=""></div>
       <div class="row"><button id="chestOk" class="primary">Add chest</button><button id="chestRemove">Remove chest</button><button id="chestCancel">Cancel</button></div>
     </div>
     <datalist id="itemList"></datalist>

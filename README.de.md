@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 23cd52078ae0 -->
+<!-- translated from README.md @ 7c8f172afe81 -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · **Deutsch** · [Français](README.fr.md) · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -202,11 +202,12 @@ Höhen werden in Ebenen gezählt, der eigenen Einheit des Spiels (eine Ebene sin
 Drück auf **Truhe** (K).
 
 - **Eine hinzufügen:** Klick auf eine leere Stelle, wähl einen **Gegenstand** (fang an, seinen Namen zu tippen) oder eine Menge **Münzen** und drück dann auf **Truhe hinzufügen**.
-- **Eine ändern:** Klick darauf, ändere den Inhalt und bestätige.
-- **Eine entfernen:** Klick darauf und drück auf **Truhe entfernen**.
-- **Eine verschieben:** Zieh sie und speichere dann. Auch Psynergie-Steine lassen sich ziehen. Eine Truhe kann nicht auf ein Feld, das schon eine Tür, ein Schild oder eine Tritt-Nachricht ist.
+- **Einen Psynergie-Stein hinzufügen:** Klick auf eine leere Stelle, wähl **Psynergie-Stein** und drück dann auf **Stein hinzufügen**. Ihn zu benutzen füllt einmal alle PP wieder auf, wie bei den Steinen des Spiels.
+- **Eine ändern:** Klick darauf, ändere den Inhalt und drück auf **Ändern**. Eine Truhe kann zum Psynergie-Stein werden und zurück.
+- **Eine entfernen:** Klick darauf und drück auf **Truhe entfernen** oder **Stein entfernen**.
+- **Eine verschieben:** Zieh sie und speichere dann. Eine Truhe oder ein Stein kann nicht auf ein Feld, das schon eine Tür, ein Schild oder eine Tritt-Nachricht ist.
 
-Den Rest erledigt der Editor, auch das Flag, das sich merkt, dass eine Truhe geöffnet wurde, sodass eine Truhe leer bleibt, wenn du zurückkommst. Ein Ort kann höchstens **10 Truhen und Psynergie-Steine** haben. Andere Stellen zum Untersuchen zählen nicht zu den 10.
+Den Rest erledigt der Editor, auch das Flag, das sich merkt, dass eine Truhe geöffnet oder ein Stein benutzt wurde, sodass es so bleibt, wenn du zurückkommst. Ein Ort kann höchstens **10 Truhen und Psynergie-Steine** haben. Andere Stellen zum Untersuchen zählen nicht zu den 10.
 
 ## Ereignisse: Personen, Schilder und Nachrichten
 

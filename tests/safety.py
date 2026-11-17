@@ -106,7 +106,32 @@ with tempfile.TemporaryDirectory() as tmp:
     listed = [c for c in chests.list(room) if c["code"] == 100]
     check("the chest reads back with its new contents", listed and listed[0]["contents"] == "77 coins", listed)
     check("generate produced mod.c without error", "Mod_" in read(os.path.join(tmp, "games/tbs/src/mod/mod.c")))
+    chests.set_contents(room, x, z, {"stone": True})
+    listed = [c for c in chests.list(room) if c["code"] == 100]
+    row = next(r for r in Overrides(tmp).data["tables"][edited[0]]["rows"] if r["trigger"] == 100)
+    check("a chest made a Psynergy Stone is examined for FIND_PSYNERGY_STONE",
+          listed and listed[0]["stone"] and not listed[0]["chest"] and row["control"] & 0x1FF == 3
+          and row["value"] == 0x300000, (listed, row))
     chests.set_contents(room, x, z, {"item": 1})
+    row = next(r for r in Overrides(tmp).data["tables"][edited[0]]["rows"] if r["trigger"] == 100)
+    check("and back to a chest is searched again", row["control"] & 0x1FF == 0x13 and row["value"] == 0x100001, row)
+    col = p.load_grid(room, "collision").cells
+    taken = {(cx, cz) for cx, cz, _ in p.markers(room)}
+    ox, oz = p.layer_origin(room, 0)
+    sx, sz = next((gx % 128, gz % 128) for gz in range(oz, oz + room.size[1]) for gx in range(ox, ox + room.size[0])
+                  if col[gz % 128][gx % 128] == 0 and (gx % 128, gz % 128) not in taken)
+    try:
+        added = chests.add(room, sx, sz, {"stone": True})
+        listed = [c for c in chests.list(room) if (c["x"], c["z"]) == (sx, sz)]
+        check("a new Psynergy Stone lists as one, with a fresh flag",
+              listed and listed[0]["stone"] and listed[0]["flag"] == added["flag"]
+              and p.load_grid(room, "collision").cells[sz][sx] == added["code"], (added, listed))
+        chests.remove(room, sx, sz)
+        check("removing it leaves the square as it was",
+              p.load_grid(room, "collision").cells[sz][sx] == 0
+              and not [c for c in chests.list(room) if (c["x"], c["z"]) == (sx, sz)])
+    except ValueError as e:
+        check("a new Psynergy Stone can be added", False, e)
     # back to clean for what follows
     ov = Overrides(tmp)
     ov.data["tables"] = {k: v for k, v in ov.data["tables"].items() if "ArcticBlade" not in k}

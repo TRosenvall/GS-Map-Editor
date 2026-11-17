@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 23cd52078ae0 -->
+<!-- translated from README.md @ 7c8f172afe81 -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · [Deutsch](README.de.md) · [Français](README.fr.md) · **Italiano** · [日本語](README.ja.md)
@@ -202,11 +202,12 @@ Le altezze si contano in livelli, l'unità propria del gioco (un livello è 8 pi
 Premi **Forziere** (K).
 
 - **Aggiungerne uno:** clicca un punto libero, scegli un **Oggetto** (inizia a scriverne il nome) o una quantità di **Monete**, poi premi **Aggiungi forziere**.
-- **Modificarne uno:** cliccalo, cambia cosa contiene e conferma.
-- **Rimuoverne uno:** cliccalo e premi **Rimuovi forziere**.
-- **Spostarne uno:** trascinalo, poi salva. Anche le Psynergy Stone si possono trascinare. Un forziere non può stare su una casella che è già una porta, un cartello o un messaggio al passaggio.
+- **Aggiungere una Psynergy Stone:** clicca un punto libero, scegli **Psynergy Stone**, poi premi **Aggiungi pietra**. Usarla ripristina tutti i PP una volta, come le pietre del gioco.
+- **Modificarne uno:** cliccalo, cambia cosa contiene e premi **Cambia**. Un forziere può diventare una Psynergy Stone e viceversa.
+- **Rimuoverne uno:** cliccalo e premi **Rimuovi forziere** o **Rimuovi pietra**.
+- **Spostarne uno:** trascinalo, poi salva. Un forziere o una pietra non può stare su una casella che è già una porta, un cartello o un messaggio al passaggio.
 
-L'editor pensa al resto, compreso il flag che ricorda che un forziere è stato aperto, così il forziere resta vuoto quando torni. Un luogo può contenere al massimo **10 forzieri e Psynergy Stone**. Gli altri punti da esaminare non contano nei 10.
+L'editor pensa al resto, compreso il flag che ricorda che un forziere è stato aperto o una pietra usata, così resta tale quando torni. Un luogo può contenere al massimo **10 forzieri e Psynergy Stone**. Gli altri punti da esaminare non contano nei 10.
 
 ## Eventi: persone, cartelli e messaggi
 
