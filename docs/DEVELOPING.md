@@ -89,7 +89,7 @@ Local maps, The Broken Seal, English edition. For how to use these, see the [REA
 - **Chests** (K): click an empty spot, pick an item (with its icon) or an amount of coins, and **Add chest**. Click a chest to change what's inside or remove it.
   - One action writes everything a chest needs: the marker, the cell's collision code, a `SEARCH(SEARCH_CHEST)` event in the scene's event table (as an override, so scene `.c` files stay untouched) and a fresh "opened" flag from the free chest range.
   - The code is one no event table of the map's scenes uses, and no map sharing those tables has in its collision, so nothing else becomes searchable. The game places at most 10 chests and Psynergy Stones per scene; other search spots don't count.
-  - A chest is a `treasure_spot` line in the map's `map.s`, in the English edition's part of the file.
+  - A chest is a `treasure_spot` line in the map's `map.inc`, in the English edition's part of the file.
 - **Chests and Psynergy stones:** drag to move. The marker row and both cells' collision codes update together, and saves that break the marker/collision rule are refused.
 - **Scene tables:** for every scene using the map, pick a table.
   - Entrances and NPCs show on the map; drag them with the Move people tool (P).

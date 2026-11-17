@@ -35,6 +35,7 @@
  "A message when you step here": "Un message quand on passe ici",
  "A new icon here would take another place's pause-screen marker.": "Une nouvelle icône ici prendrait le repère d'un autre lieu sur la carte de pause.",
  "A place can hold at most {n} chests and Psynergy Stones.": "Un lieu peut contenir au maximum {n} coffres et Pierres de Psynergie.",
+ "A place's battle rule uses a story flag the editor can't find: {name}.": "Une règle de combat d'un lieu utilise un drapeau d'histoire que l'éditeur ne trouve pas : {name}.",
  "A sign or something to examine": "Un panneau ou quelque chose à examiner",
  "A spot that runs something when stepped on: an exit or a scene event. What it does depends on the place.": "Un endroit qui déclenche quelque chose quand on marche dessus : une sortie ou un événement de scène. L'effet dépend du lieu.",
  "A step spot at {x},{y}": "Une case de passage en {x},{y}",

@@ -35,6 +35,7 @@
  "A message when you step here": "踏んだときのメッセージ",
  "A new icon here would take another place's pause-screen marker.": "ここに新しいアイコンを置くと、別の場所のポーズ画面マップの目印を奪ってしまいます。",
  "A place can hold at most {n} chests and Psynergy Stones.": "1つの場所に置ける宝箱とエナジーストーンは最大 {n} 個です。",
+ "A place's battle rule uses a story flag the editor can't find: {name}.": "ある場所のバトルのルールが、エディターの見つけられないストーリーフラグを使っています: {name}。",
  "A sign or something to examine": "看板や調べられるもの",
  "A spot that runs something when stepped on: an exit or a scene event. What it does depends on the place.": "踏むと何かが起きる場所です。出口やシーンのイベントなど。何が起きるかは場所によります。",
  "A step spot at {x},{y}": "{x},{y} の移動マス",

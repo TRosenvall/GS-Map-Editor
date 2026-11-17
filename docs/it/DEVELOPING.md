@@ -1,4 +1,4 @@
-<!-- translated from docs/DEVELOPING.md @ 7c12555ac53b -->
+<!-- translated from docs/DEVELOPING.md @ 22d3ae44efc8 -->
 # Sviluppare GS Map Editor
 
 *Questa è una traduzione del file inglese [DEVELOPING.md](../DEVELOPING.md); se i due differiscono, vale quello inglese.*
@@ -92,7 +92,7 @@ Mappe locali, The Broken Seal, edizione inglese. Per come usarle, vedi il [READM
 - **Forzieri** (K): clicca un punto vuoto, scegli un oggetto (con la sua icona) o una quantità di monete, e **Aggiungi forziere**. Clicca un forziere per cambiarne il contenuto o rimuoverlo.
   - Una sola azione scrive tutto ciò che serve a un forziere: il marcatore, il codice di collisione della cella, un evento `SEARCH(SEARCH_CHEST)` nella tabella degli eventi della scena (come override, così i file `.c` delle scene restano intatti) e un nuovo flag "aperto" preso dall'intervallo libero dei forzieri.
   - Il codice è uno che nessuna tabella degli eventi delle scene della mappa usa, e che nessuna mappa che condivide quelle tabelle ha nella sua collisione, così nient'altro diventa ispezionabile. Il gioco piazza al massimo 10 forzieri e Psynergy Stone per scena; gli altri punti da esaminare non contano.
-  - Un forziere è una riga `treasure_spot` nel `map.s` della mappa, nella parte del file dell'edizione inglese.
+  - Un forziere è una riga `treasure_spot` nel `map.inc` della mappa, nella parte del file dell'edizione inglese.
 - **Forzieri e Psynergy Stone:** trascina per spostarli. La riga del marcatore e i codici di collisione di entrambe le celle si aggiornano insieme, e i salvataggi che violano la regola marcatore/collisione vengono rifiutati.
 - **Tabelle delle scene:** per ogni scena che usa la mappa, scegli una tabella.
   - Ingressi e PNG appaiono sulla mappa; trascinali con lo strumento Sposta persone (P).

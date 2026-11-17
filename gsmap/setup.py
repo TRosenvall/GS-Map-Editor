@@ -43,7 +43,7 @@ if " " in CACHE:  # builds run from here too; macOS's per-user temporary folder 
 ALCHEMY_URL = "https://github.com/PascalPixel/alchemy"
 # The alchemy commit this editor was last tested against (round trip,
 # render-all, build). Newer commits usually work; this one is known to.
-ALCHEMY_PIN = "35909133bca18fbe9a1ab3d1cbc8cd733552306d"
+ALCHEMY_PIN = "0240eeebadf7da77a5220e5869831b532ed1bc58"
 BREW_PACKAGES = ["arm-none-eabi-binutils", "libpng"]
 BREW_DIRS = ["/opt/homebrew/bin", "/usr/local/bin"]
 # alchemy's INSTALL.md for Debian and Ubuntu (WSL included).
@@ -151,9 +151,10 @@ def path_problem(root):
 
 
 def is_alchemy(root):
-    """A checkout in the layout this editor reads (map/maps.c arrived with it)."""
+    """A checkout in the layout this editor reads (its map table, map/maps.c
+    or later map/resources.c, arrived with it)."""
     return bool(root) and os.path.exists(os.path.join(root, "Makefile")) and \
-        os.path.exists(os.path.join(root, layout.MAP_TABLE))
+        any(os.path.exists(os.path.join(root, rel)) for rel in layout.MAP_TABLES)
 
 
 def has_compiler_source(root):

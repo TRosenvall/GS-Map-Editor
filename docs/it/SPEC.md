@@ -1,4 +1,4 @@
-<!-- translated from docs/SPEC.md @ fc648c206c4f -->
+<!-- translated from docs/SPEC.md @ c19706671471 -->
 # gs-mapedit: specifica dell'editor e piano di sviluppo
 
 *Questa è una traduzione del file inglese [SPEC.md](../SPEC.md); se i due differiscono, vale quello inglese.*
@@ -19,7 +19,7 @@ L'editor legge e scrive solo i file sorgente di alchemy: TSV, PNG e zone ristret
 
 ### Rendering (implementato, verificato su tutte le 182 mappe)
 
-- **Risorse:** la palette, i char block 1–3 e il foglio D di ogni mappa vengono dalla sua riga di `gMaps` (`map/maps.c`), risolta tramite il `gamepak/resource_directory.s` espanso. Le mappe 001, 002, 108 e 110 hanno righe alternative.
+- **Risorse:** la palette, i char block 1–3 e il foglio D di ogni mappa vengono dalla sua riga di `gMaps` (`map/resources.c`), risolta tramite il `gamepak/resource_directory.s` espanso. Le mappe 001, 002, 108 e 110 hanno righe alternative.
 - **Segnaposto:** la k-esima cella `0xfff`, per righe sull'intera griglia 128×128, è il blocco k con il suo nibble alto mantenuto (`field/map_grid_convert.s`). Il numero di segnaposto è uguale al numero di righe di `metatiles.tsv` su tutte le 182 mappe.
 - **Finestre:** la finestra di ogni livello parte dall'origine del livello più i limiti dell'intestazione e si avvolge a 128.
 - **Ancora da fare:**
@@ -38,7 +38,7 @@ L'editor legge e scrive solo i file sorgente di alchemy: TSV, PNG e zone ristret
 | Definizioni dei blocchi | `cell_pictures.tsv` | aggiungere nuove combinazioni di tile 2×2 | Massimo 4.095 blocchi. Numero di riga = id del blocco. |
 | Codici di collisione | `map.txt`, il comportamento di ogni cella | dipingere | Per finestra di livello. I codici 1–239 possono portare eventi (uscite, forzieri). |
 | Altezza / forma | `map.txt`, la forma di ogni cella, + `shapes.tsv` | dipingere | Per finestra di livello. |
-| Forzieri / Psynergy Stone | righe `treasure_spot x, z, id` in `map.s` | aggiungere/spostare/rimuovere | **id deve essere uguale al codice di collisione in (x, z)**: verificato 418/418. Il gioco ne piazza al massimo 10 per scena, contando solo i marcatori il cui codice è un forziere o una Psynergy Stone non ancora presa negli eventi di quella scena (`treasure_spots.c`). Riga marcatore di fine `ff ff ff`. Il contenuto richiede un evento `SEARCH(SEARCH_CHEST)` nella scena con un nuovo flag. |
+| Forzieri / Psynergy Stone | righe `treasure_spot x, z, id` in `map.inc` | aggiungere/spostare/rimuovere | **id deve essere uguale al codice di collisione in (x, z)**: verificato 418/418. Il gioco ne piazza al massimo 10 per scena, contando solo i marcatori il cui codice è un forziere o una Psynergy Stone non ancora presa negli eventi di quella scena (`treasure_spots.c`). Riga marcatore di fine `ff ff ff`. Il contenuto richiede un evento `SEARCH(SEARCH_CHEST)` nella scena con un nuovo flag. |
 | Animazione delle tile | `animation.tsv` | più avanti | Massimo 16 canali. |
 
 File condivisi: i blocchi possono venire dalla cartella di un'altra mappa, e anche le celle e gli attributi di `default/` sono condivisi. L'editor mostra quando un file è condiviso e avvisa prima di modificarlo.
@@ -78,7 +78,7 @@ Il grafo delle uscite è: codice di collisione / script / regione → tipo di us
 
 La lista di controllo è in `local-connections.md` §6:
 - 25 slot liberi nella directory delle risorse, fissati a 0x08320000;
-- aggiungere righe a `gMaps` (`map/maps.c`) e `scenes.s`;
+- aggiungere righe a `gMaps` (`map/resources.c`) e `scenes.s`;
 - aggiungere la riga della mappa a `ld_script.ld` prima degli overlay, più l'overlay, la musica, il nome dell'area e le regole degli incontri;
 - gruppo ≤ 0x7f, id di scena < 511.
 

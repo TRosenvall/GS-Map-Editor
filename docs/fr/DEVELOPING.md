@@ -1,4 +1,4 @@
-<!-- translated from docs/DEVELOPING.md @ 7c12555ac53b -->
+<!-- translated from docs/DEVELOPING.md @ 22d3ae44efc8 -->
 # Développer GS Map Editor
 
 *Ceci est une traduction du document anglais [DEVELOPING.md](../DEVELOPING.md) ; en cas de différence, c'est la version anglaise qui fait foi.*
@@ -92,7 +92,7 @@ Cartes locales, The Broken Seal, édition anglaise. Pour savoir comment les util
 - **Coffre** (K) : cliquez sur une case vide, choisissez un objet (avec son icône) ou une quantité de pièces, puis **Ajouter un coffre**. Cliquez sur un coffre pour changer son contenu ou le supprimer.
   - Une seule action écrit tout ce dont un coffre a besoin : le marqueur, le code de collision de la case, un événement `SEARCH(SEARCH_CHEST)` dans la table d'événements de la scène (sous forme de remplacement, pour que les fichiers `.c` des scènes restent intacts) et un nouveau drapeau « ouvert » pris dans la plage libre des coffres.
   - Le code est un code qu'aucune table d'événements des scènes de la carte n'utilise, et qu'aucune carte partageant ces tables n'a dans sa collision, donc rien d'autre ne devient fouillable. Le jeu place au plus 10 coffres et Pierres de Psynergie par scène ; les autres endroits à fouiller ne comptent pas.
-  - Un coffre est une ligne `treasure_spot` dans le `map.s` de la carte, dans la partie du fichier propre à l'édition anglaise.
+  - Un coffre est une ligne `treasure_spot` dans le `map.inc` de la carte, dans la partie du fichier propre à l'édition anglaise.
 - **Coffres et Pierres de Psynergie :** faites-les glisser pour les déplacer. La ligne du marqueur et les codes de collision des deux cases sont mis à jour ensemble, et les enregistrements qui enfreignent la règle marqueur/collision sont refusés.
 - **Tables de scène :** pour chaque scène qui utilise la carte, choisissez une table.
   - Les entrées et les PNJ apparaissent sur la carte ; faites-les glisser avec l'outil Déplacer les personnages (P).

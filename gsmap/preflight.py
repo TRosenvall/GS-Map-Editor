@@ -47,7 +47,7 @@ def _check(root):
 
     objects_path, objects_after, objects_rows = layout.object_list(root)
     for rel, problem in ((layout.MAPS, tr("Can't find the maps ({path}).")),
-                         (layout.MAP_TABLE, tr("Can't find the map list ({path}).")),
+                         (layout.map_table(root), tr("Can't find the map list ({path}).")),
                          (layout.DIRECTORY, tr("Can't find the resource directory ({path}).")),
                          (layout.SCENE_TABLE, tr("Can't find the scene list ({path}).")),
                          (layout.EXIT_NAMES, tr("Can't find the exit names ({path}).")),
@@ -125,11 +125,11 @@ def _check(root):
         problems.append(tr("Only found {n} maps; expected about 180.", n=len(project.maps)))
     rows = project.map_rows()
     entries = project.directory_entries()
-    if layout.FIRST_MAP_ENTRY not in entries:
-        problems.append(tr("The resource directory has no {name}, which map art is counted from.",
-                           name=layout.FIRST_MAP_ENTRY))
+    first = layout.first_map_entry(entries)
+    if first not in entries:
+        problems.append(tr("The resource directory has no {name}, which map art is counted from.", name=first))
         return problems
-    base = entries.index(layout.FIRST_MAP_ENTRY)
+    base = entries.index(first)
     too_far = sum(1 for row in rows for v in row if base + v >= len(entries))
     if too_far:
         problems.append(tr("{n} map resources point past the end of the resource directory.", n=too_far))

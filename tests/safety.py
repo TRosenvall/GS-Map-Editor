@@ -71,7 +71,7 @@ def snapshot(root):
     out = {}
     for base, _, files in os.walk(os.path.join(root, "games/tbs/src/map")):
         for f in files:
-            if f in ("map.txt", "map.s"):
+            if f in ("map.txt", "map.inc", "map.s"):
                 out[os.path.join(base, f)] = read(os.path.join(base, f))
     for rel in ("games/tbs/text/en.po", "games/tbs/src/mod/overrides.json", "games/tbs/src/mod/mod.c"):
         out[rel] = read(os.path.join(root, rel))
@@ -559,7 +559,7 @@ with tempfile.TemporaryDirectory() as tmp:
 # ---- the world map's battles: a zone rewritten as it was stays byte for byte
 from gsmap import encounters as enc  # noqa: E402
 with tempfile.TemporaryDirectory() as etmp:
-    for rel in (enc.ZONES, enc.RULES, enc.RULE_NAMES, enc.SCENE_RULES, enc.FORMATIONS, enc.ENEMY_IDS, "games/tbs/text/en.po"):
+    for rel in (enc.ZONES, enc.RULES, *enc.RULE_NAMES, enc.SCENE_RULES, enc.FORMATIONS, enc.ENEMY_IDS, layout.FLAG_NAMES, "games/tbs/text/en.po"):
         if not os.path.exists(os.path.join(source, rel)):  # what an older alchemy doesn't have
             continue
         os.makedirs(os.path.dirname(os.path.join(etmp, rel)), exist_ok=True)

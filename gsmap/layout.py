@@ -9,11 +9,12 @@ SRC = "games/tbs/src"
 INCLUDE = "games/tbs/include"
 
 # Maps and what they draw
-MAPS = f"{SRC}/map"                                # <place>/map.s, map.txt, cell_pictures.tsv, shapes.tsv (map_NNN/ before 2026-11-13)
-MAP_TABLE = f"{SRC}/map/maps.c"                    # gMaps: each map's resources
+MAPS = f"{SRC}/map"                                # <place>/map.inc, map.txt, cell_pictures.tsv, shapes.tsv (map_NNN/ before 2026-11-13)
+MAP_FILES = ("map.inc", "map.s")                   # a place's header and markers (map.s before 2026-11-17)
+MAP_TABLES = (f"{SRC}/map/resources.c", f"{SRC}/map/maps.c")  # gMaps: each map's resources (maps.c before 2026-11-17)
 DIRECTORY = f"{SRC}/gamepak/resource_directory.s"  # Resource_DirectoryTable
 DIRECTORY_LABEL = "Resource_DirectoryTable:"
-FIRST_MAP_ENTRY = "Field_Map001"                   # what gMaps' positions count from
+FIRST_MAP_ENTRIES = ("Field_EmptyMap", "Field_Map001")  # what gMaps' positions count from (Map001 before 2026-11-17)
 
 # Scenes
 SCENE_TABLE = f"{SRC}/field/scenes.s"              # gScenes
@@ -21,7 +22,7 @@ SCENE_SOURCES = (f"{SRC}/scene", f"{SRC}/debug")   # where the overlays' C lives
 EXIT_NAMES = f"{INCLUDE}/scene_exits.h"
 EXIT_REQUEST = "Import_EventSetExitRequest"        # what a scene script calls to leave
 WORLD_PLACEMENTS = "gWorldMapActorPlacements"
-AREA_MARKERS = f"{SRC}/field/scripts.s"          # gWorldPicture_AreaMarkers: pause-map markers, actor 11 + row
+AREA_MARKERS = (f"{SRC}/field/world_picture_markers.c", f"{SRC}/field/scripts.s")  # gWorldPicture_AreaMarkers: pause-map markers, actor 11 + row (scripts.s before 2026-11-17)
 AREA_MARKERS_LABEL = "gWorldPicture_AreaMarkers"
 SCENE_HEADERS = {f"{INCLUDE}/field/scene.h": ["struct SceneEntryPoints) == 48", "struct SceneExitRegion) == 16"],
                  f"{INCLUDE}/field/scene_tables.h": ["struct SceneEntrance) == 24", "struct ActorPlacement) == 24",
@@ -38,8 +39,11 @@ TEXT_EN = "games/tbs/text/en.po"
 FLAG_NAMES = f"{INCLUDE}/flags.h"                  # FLAG_* defines
 SPRITE_NAMES = f"{INCLUDE}/sprite_ids.h"           # enum SpriteId
 ITEM_TABLE = f"{SRC}/game/item_table.c"            # type and icon per item
+ITEM_NAMES = f"{INCLUDE}/item_ids.h"               # enum ItemId: which row each [ITEM_*] is
 AREA_RULES = f"{SRC}/field/scene_rules.s"          # gArea_NameRules
-SPRITE_PICTURE = f"{SRC}/graphics/sprite/spr_{{id:03d}}.png"
+SPRITE_TABLE = f"{SRC}/graphics/sprite/sprites.tsv"  # a row per sprite id; its pictures column names <name>.png
+SPRITE_PICTURE_DIR = f"{SRC}/graphics/sprite"
+SPRITE_PICTURE = f"{SRC}/graphics/sprite/spr_{{id:03d}}.png"  # before 2026-11-13, with no sprites.tsv
 
 # The world map
 WORLD_BLOCKS = f"{SRC}/map/world/blocks.tsv"
@@ -48,7 +52,8 @@ WORLD_COLLISION = f"{SRC}/map/default/collision.txt"
 WORLD_GRAPHICS = f"{SRC}/graphics/world_map"
 
 # Art cut at runtime
-ITEM_ICON = f"{SRC}/graphics/ui/menu_icons/item_{{icon:03d}}.png"
+ITEM_ICONS = f"{SRC}/graphics/ui/menu_icons.s"     # gItemIcons: icon n is its n-th label's .incbin, as a .png
+ITEM_ICON = f"{SRC}/graphics/ui/menu_icons/item_{{icon:03d}}.png"  # before 2026-11-13
 
 # The mod's folder and hook
 MOD = f"{SRC}/mod"
@@ -70,15 +75,43 @@ OBJECT_LISTS = (
 )
 
 
+def first_existing(root, paths):
+    """The first of these paths this checkout has (the first when none is there)."""
+    return next((p for p in paths if os.path.exists(os.path.join(root, p))), paths[0])
+
+
+def first_map_entry(entries):
+    """The directory label gMaps' positions count from, as this checkout names it."""
+    return next((e for e in FIRST_MAP_ENTRIES if e in entries), FIRST_MAP_ENTRIES[0])
+
+
+def map_table(root):
+    return first_existing(root, MAP_TABLES)
+
+
 def object_list(root):
     """(path, the line the mod's rows follow, the rows) for this checkout."""
     for entry in OBJECT_LISTS:
         if os.path.exists(os.path.join(root, entry[0])):
             return entry
     return OBJECT_LISTS[0]
-MOD_INCLUDES = ("types.h", "field/scene.h", "field/scene_tables.h", "frame.h", "main_routine_work.h",
-                "module/field/event_commands.h", "field_work.h", "scene_ids.h", "scene_exits.h", "module/game/game.h",
-                "module/window/window.h", "module/system/system.h", "system.h", "game.h", "field.h", "window.h")
+
+
+MOD_INCLUDES = ("types.h", "field/scene.h", "field/scene_tables.h", "system/frame.h", "system/main_routine_work.h",
+                "field/event_commands.h", "field/field_work.h", "scene_ids.h", "scene_exits.h", "game/game.h",
+                "window/window.h", "system/system.h", "field/field.h")
+# Before 2026-11-17 the headers sat flat or under module/<bank>/.
+MOD_INCLUDES_FLAT = ("types.h", "field/scene.h", "field/scene_tables.h", "frame.h", "main_routine_work.h",
+                     "module/field/event_commands.h", "field_work.h", "scene_ids.h", "scene_exits.h",
+                     "module/game/game.h", "module/window/window.h", "module/system/system.h", "system.h", "game.h",
+                     "field.h", "window.h")
+
+
+def mod_includes(root):
+    """The headers mod.c includes, as this checkout lays them out."""
+    flat = os.path.isdir(os.path.join(root, INCLUDE, "module"))
+    return MOD_INCLUDES_FLAT if flat else MOD_INCLUDES
+
 
 # Build output
 ROM = "out/tbs-en/tbs-en.gba"

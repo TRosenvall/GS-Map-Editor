@@ -1,4 +1,4 @@
-<!-- translated from docs/SPEC.md @ fc648c206c4f -->
+<!-- translated from docs/SPEC.md @ c19706671471 -->
 # gs-mapedit: Editor-Spezifikation und Bauplan
 
 *Dies ist eine Übersetzung der englischen [SPEC.md](../SPEC.md). Wenn sich die beiden unterscheiden, ist die englische Fassung aktuell.*
@@ -19,7 +19,7 @@ Der Editor liest und schreibt nur alchemys Quelldateien: TSV, PNG und eng begren
 
 ### Darstellung (umgesetzt, auf allen 182 Karten überprüft)
 
-- **Ressourcen:** Palette, Char-Blöcke 1–3 und Sheet D jeder Karte kommen aus ihrer `gMaps`-Zeile (`map/maps.c`), aufgelöst über das expandierte `gamepak/resource_directory.s`. Die Karten 001, 002, 108 und 110 haben alternative Zeilen.
+- **Ressourcen:** Palette, Char-Blöcke 1–3 und Sheet D jeder Karte kommen aus ihrer `gMaps`-Zeile (`map/resources.c`), aufgelöst über das expandierte `gamepak/resource_directory.s`. Die Karten 001, 002, 108 und 110 haben alternative Zeilen.
 - **Platzhalter:** Das k-te `0xfff`-Feld, zeilenweise über das ganze 128×128-Raster, ist Block k mit erhaltenem oberem Nibble (`field/map_grid_convert.s`). Die Anzahl der Platzhalter entspricht auf allen 182 Karten der Zeilenzahl von `metatiles.tsv`.
 - **Fenster:** Das Fenster jeder Ebene beginnt am Ursprung der Ebene plus den Grenzen aus dem Header und läuft bei 128 um.
 - **Noch zu tun:**
@@ -38,7 +38,7 @@ Der Editor liest und schreibt nur alchemys Quelldateien: TSV, PNG und eng begren
 | Blockdefinitionen | `cell_pictures.tsv` | neue 2×2-Kachelkombinationen anhängen | Höchstens 4,095 Blöcke. Zeilennummer = Block-ID. |
 | Kollisionscodes | `map.txt`, das Verhalten jedes Felds | malen | Pro Ebenenfenster. Die Codes 1–239 können Ereignisse tragen (Ausgänge, Truhen). |
 | Höhe / Form | `map.txt`, die Form jedes Felds, + `shapes.tsv` | malen | Pro Ebenenfenster. |
-| Truhen / Psynergie-Steine | `treasure_spot x, z, id`-Zeilen in `map.s` | hinzufügen/verschieben/entfernen | **id muss dem Kollisionscode bei (x, z) entsprechen**: überprüft 418/418. Das Spiel platziert höchstens 10 pro Szene und zählt dabei nur Markierungen, deren Code in den Ereignissen dieser Szene eine Truhe oder ein noch nicht genommener Psynergie-Stein ist (`treasure_spots.c`). Endmarkierungszeile `ff ff ff`. Der Inhalt braucht ein `SEARCH(SEARCH_CHEST)`-Ereignis in der Szene mit einem neuen Flag. |
+| Truhen / Psynergie-Steine | `treasure_spot x, z, id`-Zeilen in `map.inc` | hinzufügen/verschieben/entfernen | **id muss dem Kollisionscode bei (x, z) entsprechen**: überprüft 418/418. Das Spiel platziert höchstens 10 pro Szene und zählt dabei nur Markierungen, deren Code in den Ereignissen dieser Szene eine Truhe oder ein noch nicht genommener Psynergie-Stein ist (`treasure_spots.c`). Endmarkierungszeile `ff ff ff`. Der Inhalt braucht ein `SEARCH(SEARCH_CHEST)`-Ereignis in der Szene mit einem neuen Flag. |
 | Kachelanimation | `animation.tsv` | später | Höchstens 16 Kanäle. |
 
 Geteilte Dateien: Blöcke können aus dem Ordner einer anderen Karte kommen, und Felder und Attribute aus `default/` werden ebenfalls geteilt. Der Editor zeigt, wenn eine Datei geteilt ist, und warnt vor dem Bearbeiten.
@@ -78,7 +78,7 @@ Der Ausgangsgraph ist: Kollisionscode / Skript / Region → Ausgangsart → Ausg
 
 Die Checkliste steht in `local-connections.md` §6:
 - 25 freie Plätze im Ressourcenverzeichnis, festgelegt bei 0x08320000;
-- Zeilen an `gMaps` (`map/maps.c`) und `scenes.s` anhängen;
+- Zeilen an `gMaps` (`map/resources.c`) und `scenes.s` anhängen;
 - die Kartenzeile vor den Overlays zu `ld_script.ld` hinzufügen, plus Overlay, Musik, Gebietsname und Kampfregeln;
 - Gruppe ≤ 0x7f, Szenen-IDs < 511.
 

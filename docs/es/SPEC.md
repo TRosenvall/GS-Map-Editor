@@ -1,4 +1,4 @@
-<!-- translated from docs/SPEC.md @ fc648c206c4f -->
+<!-- translated from docs/SPEC.md @ c19706671471 -->
 # gs-mapedit: especificación del editor y plan de construcción
 
 *Esta es una traducción del documento en inglés [SPEC.md](../SPEC.md); si los dos difieren, el inglés es el actualizado.*
@@ -19,7 +19,7 @@ El editor lee y escribe solo los archivos fuente de alchemy: TSV, PNG y zonas ac
 
 ### Renderizado (implementado, verificado en los 182 mapas)
 
-- **Recursos:** la paleta, los bloques de caracteres 1–3 y la hoja D de cada mapa vienen de su fila de `gMaps` (`map/maps.c`), resueltos mediante el `gamepak/resource_directory.s` expandido. Los mapas 001, 002, 108 y 110 tienen filas alternativas.
+- **Recursos:** la paleta, los bloques de caracteres 1–3 y la hoja D de cada mapa vienen de su fila de `gMaps` (`map/resources.c`), resueltos mediante el `gamepak/resource_directory.s` expandido. Los mapas 001, 002, 108 y 110 tienen filas alternativas.
 - **Marcadores de posición:** la k-ésima celda `0xfff`, en orden por filas sobre toda la cuadrícula de 128×128, es el bloque k con su nibble superior conservado (`field/map_grid_convert.s`). El número de marcadores de posición es igual al número de filas de `metatiles.tsv` en los 182 mapas.
 - **Ventanas:** la ventana de cada capa empieza en el origen de la capa más los límites de la cabecera y da la vuelta en 128.
 - **Pendiente:**
@@ -38,7 +38,7 @@ El editor lee y escribe solo los archivos fuente de alchemy: TSV, PNG y zonas ac
 | Definiciones de bloques | `cell_pictures.tsv` | añadir al final nuevas combinaciones de 2×2 tiles | Máximo 4.095 bloques. Número de fila = id de bloque. |
 | Códigos de colisión | `map.txt`, el comportamiento de cada celda | pintar | Por ventana de capa. Los códigos 1–239 pueden llevar eventos (salidas, cofres). |
 | Altura / forma | `map.txt`, la forma de cada celda, + `shapes.tsv` | pintar | Por ventana de capa. |
-| Cofres / Piedras de Psinergía | líneas `treasure_spot x, z, id` en `map.s` | añadir/mover/quitar | **el id debe ser igual al código de colisión en (x, z)**: verificado 418/418. El juego coloca como máximo 10 por escena y solo cuenta los marcadores cuyo código es un cofre o una Piedra de Psinergía aún no recogida en los eventos de esa escena (`treasure_spots.c`). Fila marcadora final `ff ff ff`. El contenido necesita un evento `SEARCH(SEARCH_CHEST)` en la escena con un indicador nuevo. |
+| Cofres / Piedras de Psinergía | líneas `treasure_spot x, z, id` en `map.inc` | añadir/mover/quitar | **el id debe ser igual al código de colisión en (x, z)**: verificado 418/418. El juego coloca como máximo 10 por escena y solo cuenta los marcadores cuyo código es un cofre o una Piedra de Psinergía aún no recogida en los eventos de esa escena (`treasure_spots.c`). Fila marcadora final `ff ff ff`. El contenido necesita un evento `SEARCH(SEARCH_CHEST)` en la escena con un indicador nuevo. |
 | Animación de tiles | `animation.tsv` | más adelante | 16 canales como máximo. |
 
 Archivos compartidos: los bloques pueden venir de la carpeta de otro mapa, y las celdas y atributos de `default/` también se comparten. El editor muestra cuándo un archivo está compartido y avisa antes de editarlo.
@@ -78,7 +78,7 @@ El grafo de salidas es: código de colisión / script / región → tipo de sali
 
 La lista de comprobación está en `local-connections.md` §6:
 - 25 huecos libres en el directorio de recursos, fijados en 0x08320000;
-- añadir filas al final de `gMaps` (`map/maps.c`) y `scenes.s`;
+- añadir filas al final de `gMaps` (`map/resources.c`) y `scenes.s`;
 - añadir la fila del mapa a `ld_script.ld` antes de los overlays, más el overlay, la música, el nombre de zona y las reglas de encuentros;
 - grupo ≤ 0x7f, ids de escena < 511.
 

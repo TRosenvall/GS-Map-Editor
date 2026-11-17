@@ -1,4 +1,4 @@
-<!-- translated from docs/SPEC.md @ fc648c206c4f -->
+<!-- translated from docs/SPEC.md @ c19706671471 -->
 # gs-mapedit : spécification de l'éditeur et plan de construction
 
 *Ceci est une traduction du document anglais [SPEC.md](../SPEC.md) ; en cas de différence, c'est la version anglaise qui fait foi.*
@@ -19,7 +19,7 @@ L'éditeur lit et écrit uniquement les fichiers source d'alchemy : TSV, PNG, et
 
 ### Rendu (implémenté, vérifié sur les 182 cartes)
 
-- **Ressources :** la palette, les blocs de caractères 1–3 et la planche D de chaque carte proviennent de sa ligne `gMaps` (`map/maps.c`), résolue via le `gamepak/resource_directory.s` développé. Les cartes 001, 002, 108 et 110 ont des lignes alternatives.
+- **Ressources :** la palette, les blocs de caractères 1–3 et la planche D de chaque carte proviennent de sa ligne `gMaps` (`map/resources.c`), résolue via le `gamepak/resource_directory.s` développé. Les cartes 001, 002, 108 et 110 ont des lignes alternatives.
 - **Emplacements réservés :** la k-ième case `0xfff`, ligne par ligne sur toute la grille de 128×128, est le bloc k avec son quartet supérieur conservé (`field/map_grid_convert.s`). Le nombre d'emplacements réservés est égal au nombre de lignes de `metatiles.tsv` sur les 182 cartes.
 - **Fenêtres :** la fenêtre de chaque calque commence à l'origine du calque plus les limites de l'en-tête et boucle à 128.
 - **Reste à faire :**
@@ -38,7 +38,7 @@ L'éditeur lit et écrit uniquement les fichiers source d'alchemy : TSV, PNG, et
 | Définitions de blocs | `cell_pictures.tsv` | ajouter de nouvelles combinaisons de tuiles 2×2 | 4 095 blocs au maximum. Numéro de ligne = id du bloc. |
 | Codes de collision | `map.txt`, le comportement de chaque case | peindre | Par fenêtre de calque. Les codes 1–239 peuvent porter des événements (sorties, coffres). |
 | Hauteur / forme | `map.txt`, la forme de chaque case, + `shapes.tsv` | peindre | Par fenêtre de calque. |
-| Coffres / Pierres de Psynergie | lignes `treasure_spot x, z, id` dans `map.s` | ajouter/déplacer/supprimer | **l'id doit être égal au code de collision en (x, z)** : vérifié 418/418. Le jeu en place au plus 10 par scène, en ne comptant que les marqueurs dont le code est un coffre ou une Pierre de Psynergie pas encore prise dans les événements de cette scène (`treasure_spots.c`). Ligne de marqueur de fin `ff ff ff`. Le contenu nécessite un événement `SEARCH(SEARCH_CHEST)` dans la scène avec un nouveau drapeau. |
+| Coffres / Pierres de Psynergie | lignes `treasure_spot x, z, id` dans `map.inc` | ajouter/déplacer/supprimer | **l'id doit être égal au code de collision en (x, z)** : vérifié 418/418. Le jeu en place au plus 10 par scène, en ne comptant que les marqueurs dont le code est un coffre ou une Pierre de Psynergie pas encore prise dans les événements de cette scène (`treasure_spots.c`). Ligne de marqueur de fin `ff ff ff`. Le contenu nécessite un événement `SEARCH(SEARCH_CHEST)` dans la scène avec un nouveau drapeau. |
 | Animation des tuiles | `animation.tsv` | plus tard | 16 canaux au maximum. |
 
 Fichiers partagés : les blocs peuvent venir du dossier d'une autre carte, et les cases et attributs de `default/` sont partagés aussi. L'éditeur indique quand un fichier est partagé et avertit avant de le modifier.
@@ -78,7 +78,7 @@ Le graphe des sorties est : code de collision / script / région → type de sor
 
 La liste de contrôle se trouve dans `local-connections.md` §6 :
 - 25 emplacements libres dans le répertoire de ressources, épinglés à 0x08320000 ;
-- ajouter des lignes à `gMaps` (`map/maps.c`) et à `scenes.s` ;
+- ajouter des lignes à `gMaps` (`map/resources.c`) et à `scenes.s` ;
 - ajouter la ligne de la carte à `ld_script.ld` avant les overlays, plus l'overlay, la musique, le nom de zone et les règles de rencontres ;
 - groupe ≤ 0x7f, id de scène < 511.
 

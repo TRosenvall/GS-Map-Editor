@@ -27,7 +27,8 @@ from .messages import Messages
 
 ZONES = f"{layout.SRC}/field/encounter_zones.c"
 RULES = f"{layout.SRC}/field/world_map_encounter_rules.c"
-RULE_NAMES = f"{layout.INCLUDE}/module/field/field.h"  # BATTLE_ENVIRONMENT_*, WORLD_MAP_ENCOUNTER_REGION_*
+# BATTLE_ENVIRONMENT_*, WORLD_MAP_ENCOUNTER_REGION_* (in module/field/field.h before 2026-11-17)
+RULE_NAMES = (f"{layout.INCLUDE}/field/field.h", f"{layout.INCLUDE}/module/field/field.h")
 SCENE_RULES = f"{layout.SRC}/field/encounter_rules.s"  # gScene_EncounterRules: places' zones
 FORMATIONS = f"{layout.SRC}/battle/formations.c"
 ENEMY_IDS = f"{layout.INCLUDE}/enemy_ids.h"
@@ -58,14 +59,22 @@ def _skip_comment(text, i):
     return i
 
 
+def _read_or_empty(root, rel):
+    try:
+        return _read(root, rel)
+    except OSError:
+        return ""
+
+
 def _constants(root):
     """NAME -> value for the plain-number enum constants and #defines in the
     header that names regions and battle environments."""
     out = {}
     pattern = re.compile(r"^\s*(?:#define\s+)?([A-Z][A-Z0-9_]+)\s*=?\s*(-?(?:0x[0-9a-fA-F]+|\d+))\b", re.M)
-    with contextlib.suppress(OSError):
-        for name, value in pattern.findall(_read(root, RULE_NAMES)):
-            out.setdefault(name, int(value, 0))
+    for rel in RULE_NAMES:
+        with contextlib.suppress(OSError):
+            for name, value in pattern.findall(_read(root, rel)):
+                out.setdefault(name, int(value, 0))
     return out
 
 
@@ -179,9 +188,24 @@ class Encounters:
             text = _read(self.root, SCENE_RULES)
         except OSError:
             return []
+        # The flag is a number, or (since 2026-11-17) its name in flags.h.
+        from .names import read_flag_names
+        flags = {name: n for n, name in read_flag_names(self.root).items()}
+        flags.update(re.findall(r"^#define\s+(FLAG_\w+)\s+(0[xX][0-9a-fA-F]+|\d+)\s*(?:$|/)",
+                                _read_or_empty(self.root, layout.FLAG_NAMES), re.M))
+
+        def flag(token):
+            try:
+                return int(token, 0)
+            except ValueError:
+                if token not in flags:
+                    raise ValueError(tr("A place's battle rule uses a story flag the editor can't find: {name}.", name=token))
+                value = flags[token]
+                return value if isinstance(value, int) else int(value, 0)
+
         out = []
         for m in re.finditer(r"^\s*encounter_rule\s+(\w+),\s*(-?\w+),\s*(-?\w+),\s*(\d+),\s*(\d+)", text, re.M):
-            out.append({"scene": m.group(1), "entrance": int(m.group(2), 0), "flag": int(m.group(3), 0),
+            out.append({"scene": m.group(1), "entrance": int(m.group(2), 0), "flag": flag(m.group(3)),
                         "shift": int(m.group(4)), "zone": int(m.group(5))})
         return out
 
@@ -221,7 +245,18 @@ class Encounters:
         m = re.search(r"enum\s+EnemyId\s*\{(.*?)\}", text, re.S)
         if not m:
             raise ValueError(tr("Can't find the enemy list ({path}).", path=ENEMY_IDS))
-        ids = [re.match(r"\s*(\w+)", part).group(1) for part in m.group(1).split(",") if part.strip()]
+        # Rows in order, each `NAME` or `NAME = ENEMY_ID_FIRST + n`; since
+        # 2026-11-17 unused rows are left out, so a gap keeps its number.
+        ids, n = [], 0
+        for part in m.group(1).split(","):
+            e = re.match(r"\s*(\w+)\s*(?:=\s*\w+\s*(?:\+\s*(\d+))?)?\s*$", part)
+            if not e:
+                continue
+            if e.group(2):
+                n = int(e.group(2))
+            ids += [f"ENEMY_{k:03d}" for k in range(len(ids), n)]
+            ids.append(e.group(1))
+            n = len(ids)
         try:
             msgs = Messages(self.root)
         except (OSError, ValueError):

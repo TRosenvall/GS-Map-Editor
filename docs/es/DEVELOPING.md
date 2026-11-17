@@ -1,4 +1,4 @@
-<!-- translated from docs/DEVELOPING.md @ 7c12555ac53b -->
+<!-- translated from docs/DEVELOPING.md @ 22d3ae44efc8 -->
 # Desarrollo de GS Map Editor
 
 *Esta es una traducción del documento en inglés [DEVELOPING.md](../DEVELOPING.md); si los dos difieren, el inglés es el actualizado.*
@@ -92,7 +92,7 @@ Mapas locales, The Broken Seal, edición inglesa. Para saber cómo usarlas, cons
 - **Cofres** (K): haz clic en un sitio vacío, elige un objeto (con su icono) o una cantidad de monedas, y **Añadir cofre**. Haz clic en un cofre para cambiar su contenido o quitarlo.
   - Una sola acción escribe todo lo que necesita un cofre: el marcador, el código de colisión de la celda, un evento `SEARCH(SEARCH_CHEST)` en la tabla de eventos de la escena (como sustitución, para que los archivos `.c` de escena no se toquen) y una marca de "abierto" nueva del rango libre para cofres.
   - El código es uno que no usa ninguna tabla de eventos de las escenas del mapa, y que ningún mapa que comparta esas tablas tiene en su colisión, así que nada más se vuelve examinable. El juego coloca como máximo 10 cofres y Piedras de Psinergía por escena; los demás sitios que examinar no cuentan.
-  - Un cofre es una línea `treasure_spot` en el `map.s` del mapa, en la parte del archivo de la edición inglesa.
+  - Un cofre es una línea `treasure_spot` en el `map.inc` del mapa, en la parte del archivo de la edición inglesa.
 - **Cofres y Piedras de Psinergía:** arrastra para mover. La fila del marcador y los códigos de colisión de ambas celdas se actualizan juntos, y se rechazan los guardados que rompan la regla marcador/colisión.
 - **Tablas de escena:** para cada escena que usa el mapa, elige una tabla.
   - Las entradas y los PNJ aparecen en el mapa; arrástralos con la herramienta Mover personas (P).

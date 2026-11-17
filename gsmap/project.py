@@ -3,9 +3,9 @@
 Facts this relies on, each checked against alchemy's engine source or by
 rendering (see README.md):
 
-- A map is games/tbs/src/map/<dir>/map.s plus its tables: map.txt (the grid),
+- A map is games/tbs/src/map/<dir>/map.inc (map.s before 2026-11-17) plus its tables: map.txt (the grid),
   cell_pictures.tsv, shapes.tsv; the chests are `treasure_spot` lines inside
-  map.s. Its header gives the map bounds and the layer origins in 8 px tile units, three BG priorities
+  map.inc. Its header gives the map bounds and the layer origins in 8 px tile units, three BG priorities
   (0 = layer off) and three BG char bases (16 KiB blocks).
 - Each layer's cells start at (x/2, y/2) in the 128x128 cell grid.
 - A cell's low 12 bits pick a block (a cell picture). 0xfff marks the map's next
@@ -17,8 +17,9 @@ rendering (see README.md):
   vflip 0x800, palette in the top 4 bits.
 - Absolute tile = char_base*512 + (entry & 0x3ff); char block 1..3 hold the
   three tile sheets the map's gMaps row names; block 0 is window tiles.
-- map/maps.c (gMaps) gives each map's resources as positions in the
-  expanded resource directory counted from Field_Map001: header, palette,
+- map/resources.c (gMaps; map/maps.c before 2026-11-17) gives each map's resources as positions in the
+  expanded resource directory counted from Field_EmptyMap (Field_Map001 before
+  2026-11-17): header, palette,
   char blocks 1-3, and sheet D (tile animation source).
 - Layer windows wrap at 128 cells.
 """
@@ -188,7 +189,7 @@ class MapInfo:
         self.games_root = games_root
         text = _preprocess(map_s, {EDITION})
         # A table may come from another map's folder:
-        # `.LField_Map172_GRID:` then `.incbin "games/tbs/src/map/map_001/map.grid.lz"`.
+        # `.LField_Map172_GRID:` then `.incbin "games/tbs/src/map/empty_map/map.grid.lz"`.
         self.sources = {}
         for kind, path in re.findall(
             r"^\.LField_\w*?_(CELL_PICTURES|SHAPES|GRID|ANIMATION|BLEND):\s*\n\s*\.incbin\s+\"([^\"]+)\"", text, re.M
@@ -228,8 +229,8 @@ class MapInfo:
 class Project:
     def __init__(self, root):
         self.root = root
-        if not os.path.exists(os.path.join(root, layout.MAP_TABLE)):
-            raise SystemExit(f"{root} isn't a version of alchemy this editor can read (no {layout.MAP_TABLE}).")
+        if not any(os.path.exists(os.path.join(root, rel)) for rel in layout.MAP_TABLES):
+            raise SystemExit(f"{root} isn't a version of alchemy this editor can read (no {layout.MAP_TABLES[0]}).")
         self.tbs = os.path.join(root, layout.SRC)
         self.maps = {}
         self.symbols = {}  # Tileset_* label -> source PNG path
@@ -252,7 +253,8 @@ class Project:
     # ---- discovery -------------------------------------------------------
 
     def _scan_maps(self):
-        for path in sorted(glob.glob(os.path.join(self.root, layout.MAPS, "*/map.s"))):
+        paths = (p for name in layout.MAP_FILES for p in glob.glob(os.path.join(self.root, layout.MAPS, "*", name)))
+        for path in sorted(paths):
             text = open(path, encoding="utf-8").read()
             # Field_Altin, or a numbered map Field_Map001 (most were numbered before 2026-11-13).
             m = re.search(r"^Field_(?:Map(\d+)|(\w+)):", text, re.M)
@@ -261,6 +263,7 @@ class Project:
                 self.maps[key] = MapInfo(
                     key, os.path.dirname(path), text, os.path.join(self.root, "games")
                 )
+                self.maps[key].path = path
 
     def _scan_symbols(self):
         """Map every Tileset_* label to the PNG its .incbin is built from.
@@ -271,6 +274,7 @@ class Project:
         games = os.path.join(self.root, "games")
         files = glob.glob(os.path.join(self.tbs, "**/*.s"), recursive=True)
         files += glob.glob(os.path.join(self.tbs, "**/*.S"), recursive=True)
+        files += glob.glob(os.path.join(self.tbs, "**/*.inc"), recursive=True)  # map.inc since 2026-11-17
         for path in files:
             text = open(path, encoding="utf-8", errors="replace").read()
             if "Tileset_" not in text:
@@ -330,7 +334,7 @@ class Project:
         return out
 
     def maps_path(self):
-        return os.path.join(self.root, layout.MAP_TABLE)
+        return os.path.join(self.root, layout.map_table(self.root))
 
     def map_rows(self):
         """gMaps, as lists of six directory positions."""
@@ -339,13 +343,20 @@ class Project:
 
     @staticmethod
     def parse_map_rows(text):
-        return [[int(v, 0) for v in row.split(",")] for row in re.findall(r"\{\{([^{}]+)\}\}", text)]
+        """Rows as `{0, 1, {2, 3, 4}, 5},` (map/resources.c) or `{{0, 1, 2, 3, 4, 5}},`
+        (map/maps.c before 2026-11-17), each followed by at most a comment."""
+        rows = []
+        for line in text.splitlines():
+            line = line.split("//")[0].strip()
+            if re.fullmatch(r"\{[\d\s,{}]*\},?", line):
+                rows.append([int(v) for v in re.findall(r"\d+", line)])
+        return rows
 
     def _read_directory(self):
         """Give each map its palette, char blocks 1-3 and sheet D from
-        gMaps in map/maps.c (positions in the directory from Field_Map001)."""
+        gMaps (positions in the directory from its first map's entry)."""
         entries = self.directory_entries()
-        base = entries.index(layout.FIRST_MAP_ENTRY)
+        base = entries.index(layout.first_map_entry(entries))
         for row, values in enumerate(self.map_rows()):
             labels = [entries[base + v] for v in values]
             m = re.fullmatch(r"Field_(?:Map(\d+)|(\w+))", labels[0] or "")
@@ -502,25 +513,25 @@ class Project:
         return out, k
 
     def render_inputs(self, info):
-        """The files render() reads for this map: its map.s and tables, its
+        """The files render() reads for this map: its map.inc and tables, its
         palette and its tile sheets. A picture made from them stays right
         until one of them changes."""
-        paths = {os.path.join(info.folder, "map.s"), info.grid_path(), *info.sources.values()}
+        paths = {info.path, info.grid_path(), *info.sources.values()}
         if info.resources:
             paths.add(self.label_path(info.resources["palette"]))
             paths.update(self.label_path(b) for b in info.resources["blocks"])
         return sorted(p for p in paths if p)
 
     def marker_path(self, info):
-        """The file holding this map's chests and stones: its own map.s."""
-        return os.path.join(info.folder, "map.s")
+        """The file holding this map's chests and stones: its own map.inc."""
+        return info.path
 
     def marker_users(self, path):
         """Maps whose markers are in `path`: only its own, since they're inline."""
         return sorted(n for n, m in self.maps.items() if self.marker_path(m) == path)
 
     def load_markers(self, info):
-        """(path, Markers), which save themselves back into map.s."""
+        """(path, Markers), which save themselves back into map.inc."""
         path = self.marker_path(info)
         return path, Markers(path)
 

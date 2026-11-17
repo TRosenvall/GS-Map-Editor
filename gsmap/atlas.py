@@ -298,7 +298,7 @@ def layout_key(project, lang):
     except (OSError, subprocess.SubprocessError):
         head = ""
     files = [os.path.join(project.root, rel) for rel in
-             (f"{layout.SRC}/mod/overrides.json", layout.MAP_TABLE, layout.SCENE_TABLE)]
+             (f"{layout.SRC}/mod/overrides.json", layout.map_table(project.root), layout.SCENE_TABLE)]
     # A door's cells can change with no scene edit (painted, or removed where
     # another map still uses its code), and links start from them.
     files += sorted({info.grid_path() for info in project.maps.values()})

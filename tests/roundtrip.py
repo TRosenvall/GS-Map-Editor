@@ -10,7 +10,7 @@ import sys
 import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from gsmap import grid, project, table, world  # noqa: E402
+from gsmap import grid, layout, project, table, world  # noqa: E402
 
 root = sys.argv[1] if len(sys.argv) > 1 else os.path.expanduser("~/gs_project/alchemy-port")
 maps = os.path.join(root, "games/tbs/src/map")
@@ -43,14 +43,14 @@ for path in sorted(glob.glob(f"{maps}/*/*.tsv") + glob.glob(f"{maps}/*/*.txt")):
         continue
     compare(path, text, out)
 
-# Chests live in map.s: saving an unchanged list must leave the file alone.
-for path in sorted(glob.glob(f"{maps}/*/map.s")):
+# Chests live in map.inc (map.s before 2026-11-17): saving an unchanged list must leave the file alone.
+for path in sorted(p for name in layout.MAP_FILES for p in glob.glob(f"{maps}/*/{name}")):
     with open(path, encoding="utf-8") as f:
         text = f.read()
     if "_MARKERS:" not in text:
         continue
     with tempfile.TemporaryDirectory() as d:
-        copy = shutil.copy(path, os.path.join(d, "map.s"))
+        copy = shutil.copy(path, os.path.join(d, os.path.basename(path)))
         project.Markers(copy).save()
         with open(copy, encoding="utf-8") as f:
             compare(path, text, f.read())

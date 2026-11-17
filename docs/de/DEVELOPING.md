@@ -1,4 +1,4 @@
-<!-- translated from docs/DEVELOPING.md @ 7c12555ac53b -->
+<!-- translated from docs/DEVELOPING.md @ 22d3ae44efc8 -->
 # GS Map Editor entwickeln
 
 *Dies ist eine Übersetzung der englischen [DEVELOPING.md](../DEVELOPING.md). Wenn sich die beiden unterscheiden, ist die englische Fassung aktuell.*
@@ -92,7 +92,7 @@ Lokale Karten, The Broken Seal, englische Edition. Wie man sie benutzt, steht in
 - **Truhen** (K): Klick auf eine freie Stelle, wähl einen Gegenstand (mit seinem Symbol) oder eine Menge Münzen und **Truhe hinzufügen**. Klick auf eine Truhe, um ihren Inhalt zu ändern oder sie zu entfernen.
   - Eine Aktion schreibt alles, was eine Truhe braucht: die Markierung, den Kollisionscode des Felds, ein `SEARCH(SEARCH_CHEST)`-Ereignis in der Ereignistabelle der Szene (als Override, sodass die `.c`-Dateien der Szenen unberührt bleiben) und ein neues „Geöffnet“-Flag aus dem freien Truhenbereich.
   - Der Code ist einer, den keine Ereignistabelle der Szenen dieser Karte benutzt und den keine Karte, die diese Tabellen teilt, in ihrer Kollision hat, sodass nichts anderes untersuchbar wird. Das Spiel platziert höchstens 10 Truhen und Psynergie-Steine pro Szene; andere Stellen zum Untersuchen zählen nicht.
-  - Eine Truhe ist eine `treasure_spot`-Zeile in der `map.s` der Karte, im Teil der Datei für die englische Edition.
+  - Eine Truhe ist eine `treasure_spot`-Zeile in der `map.inc` der Karte, im Teil der Datei für die englische Edition.
 - **Truhen und Psynergie-Steine:** zum Verschieben ziehen. Die Markierungszeile und die Kollisionscodes beider Felder werden zusammen aktualisiert, und Speichervorgänge, die die Regel Markierung/Kollision verletzen, werden abgelehnt.
 - **Szenentabellen:** Wähl für jede Szene, die die Karte nutzt, eine Tabelle.
   - Eingänge und NPCs erscheinen auf der Karte; zieh sie mit dem Werkzeug „Personen verschieben“ (P).

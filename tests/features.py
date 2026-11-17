@@ -15,6 +15,7 @@ import tempfile
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from gsmap import atlas as atlasmod  # noqa: E402
 from gsmap import encounters as enc  # noqa: E402
+from gsmap import layout  # noqa: E402
 from gsmap import patch, playtest  # noqa: E402
 from gsmap import reset as resetmod  # noqa: E402
 from gsmap import world as worldmod  # noqa: E402
@@ -276,7 +277,7 @@ with tempfile.TemporaryDirectory() as tmp:
 
 # ---- encounter zones
 with tempfile.TemporaryDirectory() as etmp:
-    copy_files(etmp, (enc.ZONES, enc.RULES, enc.RULE_NAMES, enc.SCENE_RULES, enc.FORMATIONS, enc.ENEMY_IDS, "games/tbs/text/en.po"))
+    copy_files(etmp, (enc.ZONES, enc.RULES, *enc.RULE_NAMES, enc.SCENE_RULES, enc.FORMATIONS, enc.ENEMY_IDS, layout.FLAG_NAMES, "games/tbs/text/en.po"))
     zones_path = os.path.join(etmp, enc.ZONES)
     original = read(zones_path)
     e = enc.Encounters(etmp)

@@ -540,21 +540,25 @@ FIRST_MARKER_ACTOR = 11  # gWorldPicture_AreaMarkers' row i is actor 11 + i (wor
 
 def marker_rows(root):
     """How many actors the pause-screen map has a marker row for, from actor 11
-    up: the rows of gWorldPicture_AreaMarkers before its -1 end."""
+    up: the rows of gWorldPicture_AreaMarkers before its -1 end. Rows are
+    `AREA_MARKER(...)` or `0, 0` in field/world_picture_markers.c, or
+    `.4byte a, b` in field/scripts.s before 2026-11-17."""
     import re
-    with open(os.path.join(root, layout.AREA_MARKERS), encoding="utf-8") as f:
+    rel = layout.first_existing(root, layout.AREA_MARKERS)
+    with open(os.path.join(root, rel), encoding="utf-8") as f:
         text = f.read()
-    at = text.find(layout.AREA_MARKERS_LABEL + ":")
-    if at < 0:
-        raise ValueError(tr("Can't find the pause-screen map's markers ({path}).", path=layout.AREA_MARKERS))
+    m = re.search(rf"\b{layout.AREA_MARKERS_LABEL}(?::|\s*\[\s*\]\s*=\s*\{{)", text)
+    if not m:
+        raise ValueError(tr("Can't find the pause-screen map's markers ({path}).", path=rel))
     rows = 0
-    for line in text[at:].splitlines()[1:]:
-        m = re.match(r"\s*\.4byte\s+([^,]+),", line)
-        if not m:
-            if line.strip() and not line.strip().startswith(("@", "//", "/*")):
-                break
+    for line in text[m.end():].splitlines()[1:]:
+        line = line.split("//")[0].split("@")[0].strip()
+        if not line or line.startswith("/*"):
             continue
-        if m.group(1).strip() == "-1":
+        row = re.match(r"(?:\.4byte\s+)?(AREA_MARKER\(.*\)|[^,]+),", line)
+        if not row:
+            break
+        if row.group(1).strip() == "-1":
             break
         rows += 1
     return rows

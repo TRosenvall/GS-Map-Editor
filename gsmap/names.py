@@ -69,7 +69,18 @@ def _read_items(root, msgs):
     A row whose name is only question marks is a blank the game never hands out."""
     text = _source(root, layout.ITEM_TABLE)
     text = text[text.find("gItem_DefinitionTable"):]
-    rows = re.split(r"^\s*\[ITEM_\w+\]\s*=", text, flags=re.M)[1:]  # rows hold nested braces
+    parts = re.split(r"^\s*\[(ITEM_\w+(?:\s*\.\.\.\s*ITEM_\w+)?)\]\s*=", text, flags=re.M)[1:]  # rows hold nested braces
+    # Since 2026-11-17 the table leaves out blank rows and writes the spares as
+    # one range, so each row's number comes from its name in enum ItemId;
+    # before, every row was written in order.
+    numbers = _enum_values(_source(root, layout.ITEM_NAMES), "ItemId")
+    by_number = {}
+    for i, (name, row) in enumerate(zip(parts[::2], parts[1::2])):
+        first, _, last = (n.strip() for n in name.partition("..."))
+        start = numbers.get(first, i)
+        for n in range(start, numbers.get(last, start) + 1):
+            by_number[n] = row
+    rows = [by_number.get(i, "") for i in range(max(by_number) + 1)] if by_number else []
     names = _message_block(msgs, "MsgItemName", len(rows))
     items = {}
     for i, row in enumerate(rows):
@@ -79,6 +90,27 @@ def _read_items(root, msgs):
         items[i] = {"id": i, "name": name, "type": kind.group(1).lower() if kind else "none",
                     "icon": int(icon.group(1)) if icon else 0, "unused": i >= len(names) or set(name) <= {"?"}}
     return items
+
+
+def _enum_values(text, enum):
+    """{NAME: value} for `enum <enum> { ... }`, counting on from each `= n`."""
+    m = re.search(rf"enum {enum}\s*\{{(.*?)\}}", text, re.S)
+    body = re.sub(r"/\*.*?\*/|//[^\n]*", "", m.group(1), flags=re.S) if m else ""
+    out, n = {}, 0
+    for part in body.split(","):
+        e = re.fullmatch(r"\s*(\w+)\s*(?:=\s*(\w+)\s*)?", part)
+        if not e:
+            continue
+        if e.group(2):
+            try:
+                n = int(e.group(2), 0)
+            except ValueError:
+                if e.group(2) not in out:
+                    continue
+                n = out[e.group(2)]
+        out[e.group(1)] = n
+        n += 1
+    return out
 
 
 def _read_places(root, msgs):
@@ -131,12 +163,35 @@ def _read_sprites(root):
         if not m.group(1).isdigit():
             names[n] = re.sub(r"\bMc([a-z])", lambda c: "Mc" + c.group(1).upper(), m.group(1).replace("_", " ").title())
         n += 1
+    pictures = _sprite_pictures(root)
     sprites = {}
     for s in _load("sprites.json"):
         sid = s["id"]
+        png = pictures.get(sid) if pictures is not None else layout.SPRITE_PICTURE.format(id=sid)
         sprites[sid] = {**s, "name": names.get(sid),  # None: sprite_name() says "Sprite 12"
-                        "png": layout.SPRITE_PICTURE.format(id=sid) if s.get("has_image") else None}
+                        "png": png if s.get("has_image") else None}
     return sprites
+
+
+def _sprite_pictures(root):
+    """{id: picture path} from sprites.tsv, whose rows are the sprite ids in
+    order and whose pictures column names graphics/sprite/<name>.png (two ids
+    can share one: BALD_MAN_IN_RED_KALAY draws BALD_MAN_IN_RED's). None when
+    the checkout has no sprites.tsv: then sprite n is spr_<n>.png."""
+    try:
+        with open(os.path.join(root, layout.SPRITE_TABLE), encoding="utf-8") as f:
+            lines = f.read().splitlines()
+    except OSError:
+        return None
+    head = lines[0].split("\t")
+    col = head.index("pictures") if "pictures" in head else None
+    out = {}
+    for sid, line in enumerate(lines[1:]):
+        cells = line.split("\t")
+        name = cells[col].split(":")[0].strip() if col is not None and col < len(cells) else ""
+        if name and name != "-":
+            out[sid] = f"{layout.SPRITE_PICTURE_DIR}/{name.lower()}.png"
+    return out
 
 
 _FLAGS = {}  # flags.h path -> (mtime, names)
@@ -180,6 +235,7 @@ class Names:
             except (OSError, ValueError, AttributeError, TypeError):
                 pass  # only names: the places still work, under their own
         self._png_cache = {}
+        self._icon_paths = None  # icon number -> picture, see _item_icon_path
 
     # ---- lookups ------------------------------------------------------------
 
@@ -278,10 +334,29 @@ class Names:
             return out
         return img.convert("RGBA")
 
+    def _item_icon_path(self, icon):
+        """Icon n is gItemIcons' n-th label, whose .incbin names its picture
+        (item_long_sword.icon4, built from item_long_sword.png); a checkout
+        without that table numbers its pictures item_001.png."""
+        if self._icon_paths is None:
+            self._icon_paths = {}
+            try:
+                from .project import EDITION, _preprocess
+                with open(os.path.join(self.root, layout.ITEM_ICONS), encoding="utf-8") as f:
+                    text = _preprocess(f.read(), {EDITION})  # some pictures differ by edition
+            except OSError:
+                text = ""
+            table = re.search(r"^gItemIcons:\s*\n((?:\s*\.4byte\s+\w+\s*\n)+)", text, re.M)
+            files = dict(re.findall(r"^(\w+):\s*\n\s*\.incbin\s+\"([^\"]+)\"", text, re.M))
+            for n, label in enumerate(re.findall(r"\.4byte\s+(\w+)", table.group(1) if table else "")):
+                if label in files:
+                    self._icon_paths[n] = os.path.splitext(files[label])[0] + ".png"
+        return self._icon_paths.get(icon) or layout.ITEM_ICON.format(icon=icon)
+
     def item_icon_png(self, item_id):
         it = self.items.get(item_id)
         icon = it["icon"] if it else 0
-        img = self._png(layout.ITEM_ICON.format(icon=icon))
+        img = self._png(self._item_icon_path(icon))
         buf = io.BytesIO()
         self._rgba(img).save(buf, "PNG")
         return buf.getvalue()

@@ -16,7 +16,7 @@ The editor reads and writes only alchemy's source files: TSV, PNG, and narrow re
 
 ### Rendering (implemented, verified on all 182 maps)
 
-- **Resources:** each map's palette, char blocks 1–3 and sheet D come from its `gMaps` row (`map/maps.c`), resolved through the expanded `gamepak/resource_directory.s`. Maps 001, 002, 108 and 110 have alternate rows.
+- **Resources:** each map's palette, char blocks 1–3 and sheet D come from its `gMaps` row (`map/resources.c`), resolved through the expanded `gamepak/resource_directory.s`. Maps 001, 002, 108 and 110 have alternate rows.
 - **Placeholders:** the k-th `0xfff` cell, row-major over the whole 128×128 grid, is block k with its top nibble kept (`field/map_grid_convert.s`). The placeholder count equals the `metatiles.tsv` row count on all 182 maps.
 - **Windows:** each layer's window starts at the layer origin plus the header bounds and wraps at 128.
 - **Still to do:**
@@ -35,7 +35,7 @@ The editor reads and writes only alchemy's source files: TSV, PNG, and narrow re
 | Block definitions | `cell_pictures.tsv` | append new 2×2 tile combos | Max 4,095 blocks. Row number = block id. |
 | Collision codes | `map.txt`, each cell's behavior | paint | Per layer window. Codes 1–239 can carry events (exits, chests). |
 | Height / shape | `map.txt`, each cell's shape, + `shapes.tsv` | paint | Per layer window. |
-| Chests / Psynergy stones | `treasure_spot x, z, id` lines in `map.s` | add/move/remove | **id must equal the collision code at (x, z)**: verified 418/418. The game places at most 10 per scene, counting only markers whose code is a chest or a not-yet-taken Psynergy Stone in that scene's events (`treasure_spots.c`). End marker row `ff ff ff`. Contents need a `SEARCH(SEARCH_CHEST)` event in the scene with a fresh flag. |
+| Chests / Psynergy stones | `treasure_spot x, z, id` lines in `map.inc` | add/move/remove | **id must equal the collision code at (x, z)**: verified 418/418. The game places at most 10 per scene, counting only markers whose code is a chest or a not-yet-taken Psynergy Stone in that scene's events (`treasure_spots.c`). End marker row `ff ff ff`. Contents need a `SEARCH(SEARCH_CHEST)` event in the scene with a fresh flag. |
 | Tile animation | `animation.tsv` | later | 16 channels max. |
 
 Shared files: blocks can come from another map's folder, and `default/` cells and attributes are shared too. The editor shows when a file is shared and warns before editing it.
@@ -75,7 +75,7 @@ The exit graph is: collision code / script / region → exit kind → exit table
 
 The checklist is in `local-connections.md` §6:
 - 25 spare resource-directory slots, pinned at 0x08320000;
-- append rows to `gMaps` (`map/maps.c`) and `scenes.s`;
+- append rows to `gMaps` (`map/resources.c`) and `scenes.s`;
 - add the map row to `ld_script.ld` before the overlays, plus the overlay, music, area-name and encounter rules;
 - group ≤ 0x7f, scene ids < 511.
 

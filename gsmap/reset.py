@@ -149,8 +149,11 @@ def _refuse_if_set_up_by_hand(project, base, info):
     """A place given its own art outside the editor has a changed row in the map
     list. Its folder alone can't go back: the original files would be drawn with
     the new art, or none."""
-    original = _git(project.root, "show", f"{base}:{layout.MAP_TABLE}")
-    if original.returncode != 0:
+    for rel in layout.MAP_TABLES:
+        original = _git(project.root, "show", f"{base}:{rel}")
+        if original.returncode == 0:
+            break
+    else:
         return
     rows = project.parse_map_rows(original.stdout.decode("utf-8", "replace"))
     now = project.map_rows()
@@ -167,7 +170,7 @@ def reset_map(project, scenes, names, info, settings=None, shared_too=False):
     listing = _git(root, "ls-tree", "-r", "--name-only", base, folder + "/").stdout.decode().split()
     if not listing:
         raise ValueError(tr("The original game has no copy of this place to go back to (you made it)."))
-    # A place can draw another's grid or blocks (the test maps draw map_001's).
+    # A place can draw another's grid or blocks (the test maps draw empty_map's).
     borrowed = {os.path.relpath(p, root) for p in (info.grid_path(), info.source("CELL_PICTURES", "cell_pictures.tsv"),
                                                    info.source("SHAPES", "shapes.tsv"))} - set(listing)
     _refuse_if_set_up_by_hand(project, base, info)

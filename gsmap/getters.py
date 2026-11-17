@@ -18,11 +18,32 @@ count, which is what makes them that scene's story stages. A getter this can't
 follow gets every table it names; with no source, every table of the kind.
 """
 
+import os
 import re
 
 from .doors import _scan, _scene_files, _source_text
 
 _SCENE_TEST = re.compile(r"^\(*\s*(?:\w+|gMainRoutineWork\.next)\s*(==|!=)\s*\(s32\)\s*&\s*SceneId_(\w+)\s*\)*$")
+
+
+_SCENE_MACROS = {}  # scene_ids.h path -> (mtime, {SCENE_VALE: "Vale"})
+
+
+def _scene_macros(tbs):
+    """{SCENE_VALE: "Vale"} from scene_ids.h, whose `#define SCENE_VALE
+    ((s32)&SceneId_Vale)` getters test since 2026-11-17."""
+    path = os.path.join(os.path.dirname(tbs), "include", "scene_ids.h")
+    try:
+        stamp = os.stat(path).st_mtime_ns
+    except OSError:
+        return {}
+    cached = _SCENE_MACROS.get(path)
+    if not cached or cached[0] != stamp:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            text = re.sub(r"\\\s*\n", " ", f.read())  # long names wrap onto a second line
+            found = dict(re.findall(r"^#define\s+(SCENE_\w+)\s+\(\(s32\)&SceneId_(\w+)\)", text, re.M))
+        cached = _SCENE_MACROS[path] = (stamp, found)
+    return cached[1]
 
 
 def _matching(text, start, opening, closing):
@@ -137,6 +158,9 @@ def tables_for_scene(tbs, overlay, kind, scene_name):
         start = m.end() - 1
         body_end = _matching(text, start, "{", "}")
         body = _strip_comments(text[start:body_end])
+        macros = _scene_macros(tbs)
+        body = re.sub(r"\bSCENE_\w+\b", lambda m: f"(s32)&SceneId_{macros[m.group(0)]}" if m.group(0) in macros
+                      else m.group(0), body)
         out = []
         try:
             _walk(body, 1, len(body) - 1, scene_name or "", out)
