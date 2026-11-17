@@ -28,13 +28,14 @@ from .doors import _scene_files, _source_text, sources_generation
 from .getters import _decide, _matching, _scene_macros, _strip_comments
 from .sceneedit import scene_tables
 
-COPY = re.compile(r"\bMapGrid_(?:CopyCellAttributes|CopyCellAttributeRect|CopyCells|CopyCellPictureCellsRect)(?:Far)?"
+COPY = re.compile(r"\bMapGrid_(CopyCellAttributes|CopyCellAttributeRect|CopyCells|CopyCellPictureCellsRect)(?:Far)?"
                   r"\(\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*\)")
 # A top-level definition: a function, or data with an initializer.
 DEFINITION = re.compile(r"^(?!static\s+inline\b)[A-Za-z_][\w \t\*]*?\b(\w+)\s*(\([^;{}]*\)|\[[^\]]*\])?\s*(?:=\s*)?\{", re.M)
 IDENTIFIER = re.compile(r"\b[A-Za-z_]\w*\b")
 INLINE = re.compile(r"^static\s+inline\b[^;{]*?\b(\w+)\s*\([^;{}]*\)\s*\{", re.M)
 ROOM_KINDS = ("events", "placements")
+WHOLE = {"CopyCells", "CopyCellPictureCellsRect"}  # copies the picture as well
 
 
 def _definitions(text):
@@ -102,8 +103,9 @@ def _statement_span(text, pos):
 
 
 def room_changes(tbs, overlay, scene_name):
-    """[(sourceX, sourceY, width, height, toX, toY)] of the cell copies the
-    room's code can make, in the order its source has them (grid cells)."""
+    """[(sourceX, sourceY, width, height, toX, toY, whole)] of the cell copies
+    the room's code can make, in the order its source has them (grid cells);
+    whole: the picture is copied too."""
     key = ("cell changes", tbs, scene_name, sources_generation(tbs))
     if key in overlay.memo:
         return overlay.memo[key]
@@ -135,6 +137,24 @@ def room_changes(tbs, overlay, scene_name):
                 queue.append(word)
     changes = []
     for _, body in order:
-        changes += [tuple(int(v) for v in m.groups()) for m in COPY.finditer(body)]
+        changes += [(*(int(v) for v in m.groups()[1:]), m.group(1) in WHOLE) for m in COPY.finditer(body)]
+    changes = _through_saves(changes)
     overlay.memo[key] = changes
     return changes
+
+
+def _through_saves(changes):
+    """Copies read from a spare part of the map another copy saved cells to
+    read those cells instead. Rooms save part of themselves off to the side
+    and copy it back later; the walking check reads every source from the
+    map as saved, where the spare part is still blank, so restoring would
+    otherwise open what it closes."""
+    saved = {(c[4], c[5], c[2], c[3]): c for c in changes}  # destination rect -> the copy filling it
+    out = []
+    for c in changes:
+        sx, sy, w, h, dx, dy, whole = c
+        filler = saved.get((sx, sy, w, h))
+        if filler is not None and filler is not c:
+            sx, sy = filler[0], filler[1]
+        out.append((sx, sy, w, h, dx, dy, whole))
+    return out

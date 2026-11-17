@@ -313,7 +313,21 @@ class Names:
             ],
             "characters": self.characters,
             "free_chest_flags": self.free_chest_flags,
+            "terrain": self._terrain_tables(),
         }
+
+    def _terrain_tables(self):
+        """The two tables some square shapes read (walk.height_at), for the
+        Height panel's picture: {"lerp": the rounded square's weights,
+        "index": which sample each pixel of a slanted edge takes}. None when
+        the checkout's tables can't be read; the picture then shows those
+        shapes flat."""
+        from .walk import _tables
+        try:
+            lerp, index = _tables(self.root)
+        except (OSError, ValueError):
+            return None
+        return {"lerp": lerp, "index": index}
 
     # ---- images from the player's checkout -----------------------------------
 

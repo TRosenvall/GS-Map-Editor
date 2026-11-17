@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 7c8f172afe81 -->
+<!-- translated from README.md @ ac654f1932c2 -->
 # GS Map Editor
 
 [English](README.md) · **Español** · [Deutsch](README.de.md) · [Français](README.fr.md) · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -193,7 +193,7 @@ Las herramientas Cofre, Puertas y Eventos ponen ellas mismas los códigos especi
 
 ## Altura: lo alto que está el suelo
 
-Pulsa **Altura** (H). Arriba del panel creas el tipo de casilla que quieres pintar: elige **Plana**, **Rampa**, **Escalones** (media casilla a un nivel y media al siguiente) o **Diagonal** (dos niveles divididos de esquina a esquina, como en el borde de un acantilado), luego con las flechas la dirección en que sube y luego sus niveles. Un pequeño dibujo muestra la casilla desde arriba, y una línea dice si el grupo puede cruzarla caminando. Sirve cualquier nivel, no solo los que ya tiene el lugar: una altura que el lugar aún no tiene se añade al guardar. Un lugar admite hasta 256 alturas distintas; algunos lugares comparten un mismo conjunto (el de la pantalla de título, por ejemplo) y entonces comparten también ese límite. Haz ⌥-clic en una casilla del mapa para copiar su altura exacta, incluidas las curvas y con forma que los botones no hacen. Debajo, **Niveles de este lugar** cuenta las casillas de cada nivel, con el azul más oscuro para el más alto; en el mapa, un azul más oscuro significa suelo más alto, y el suelo más bajo no tiene azul, así que un puerto o una playa al pie del mapa no muestra ninguno. **Avanzado** también muestra todas las alturas de la tabla del lugar.
+Pulsa **Altura** (H). Arriba del panel creas el tipo de casilla que quieres pintar: elige **Plana**, **Rampa**, **Escalones** (media casilla a un nivel y media al siguiente), **Diagonal** (dos niveles divididos de esquina a esquina, como en el borde de un acantilado), **Redondo** (un círculo que llena la casilla a un nivel, con las esquinas a otro, como un tocón, un montículo o un hoyo) o **Borde inclinado** (una pieza de esquina cortada en un ángulo suave, para bordes que van en diagonal), luego con las flechas la dirección en que sube o qué esquina, y luego sus niveles. Un pequeño dibujo muestra la casilla desde arriba, y una línea dice si el grupo puede cruzarla caminando. Sirve cualquier nivel, no solo los que ya tiene el lugar: una altura que el lugar aún no tiene se añade al guardar. Un lugar admite hasta 256 alturas distintas; algunos lugares comparten un mismo conjunto (el de la pantalla de título, por ejemplo) y entonces comparten también ese límite. Haz ⌥-clic en una casilla del mapa para copiar su altura exacta, incluidas las pocas con forma que los botones no hacen. Debajo, **Niveles de este lugar** cuenta las casillas de cada nivel, con el azul más oscuro para el más alto; en el mapa, un azul más oscuro significa suelo más alto, y el suelo más bajo no tiene azul, así que un puerto o una playa al pie del mapa no muestra ninguno. **Avanzado** también muestra todas las alturas de la tabla del lugar.
 
 Las alturas se cuentan en niveles, la unidad propia del juego (un nivel son 8 píxeles, media casilla). La altura afecta a por dónde se camina además de a cómo se ve. Las personas están a la altura del suelo que pisan, y el grupo puede subir o bajar un nivel cada vez: dos niveles o más actúan como una pared. Las rampas unen niveles, y una casilla de rampa puede subir dos, así que las escaleras y las laderas son rampas puestas una tras otra. Los escalones suben igual: un nivel por mitad. Para hacer una escalera, elige **Rampa** o **Escalones**, marca **Escalera** y arrastra en la dirección en que sube: cada casilla sigue subiendo desde la anterior.
 
@@ -232,13 +232,13 @@ No todo sitio que parece libre es un buen lugar para que alguien esté. Marca **
 | Color | Significa |
 |---|---|
 | Verde | El grupo puede acercarse caminando y hablar con ella. |
-| Turquesa | El grupo llega ahí cuando la Psinergía o la historia abren el paso, con los propios eventos del lugar. |
+| Morado | El grupo llega ahí cuando la Psinergía o la historia abren el paso, con los propios eventos del lugar. |
 | Amarillo | El grupo no puede pisar esa casilla, pero puede hablarle desde al lado, como a un tendero detrás de un mostrador. |
 | Azul | Hielo por el que se desliza el grupo, como en Imil. Alguien ahí estorba al deslizarse. |
 | Naranja | Una puerta, salida o sitio de paso: alguien ahí estorbaría. |
 | Rojo | El grupo no puede acercarse lo suficiente caminando para hablar. |
 
-Se calcula con las propias reglas de movimiento del juego, empezando en cada punto donde el grupo llega al lugar: puedes subir o bajar un nivel cada vez, las paredes te detienen y puedes hablar con alguien a dos casillas o menos. También se siguen los cambios que hacen los propios eventos del lugar, como una puerta que abre la Psinergía o un puente que baja la historia: lo que abren se ve en turquesa. Algunos cambios dependen de dónde hace algo el jugador, como empujar un pilar, y no se pueden calcular de antemano, así que lo que abren sigue viéndose en rojo.
+Se calcula con las propias reglas de movimiento del juego, empezando en cada punto donde el grupo llega al lugar: puedes subir o bajar un nivel cada vez, las paredes te detienen y puedes hablar con alguien a dos casillas o menos. También se siguen los cambios que hacen los propios eventos del lugar, como una puerta que abre la Psinergía o un puente que baja la historia: lo que abren se ve en morado. Algunos cambios dependen de dónde hace algo el jugador, como empujar un pilar, y no se pueden calcular de antemano, así que lo que abren sigue viéndose en rojo.
 
 Cuando un sitio tiene un problema, el editor dice cuál es con palabras sencillas, por ejemplo "el suelo aquí está 4 niveles más alto que el camino más cercano", o que estar ahí dejaría al grupo sin acceso a una puerta. Luego ofrece una solución:
 

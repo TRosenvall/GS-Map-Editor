@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 7c8f172afe81 -->
+<!-- translated from README.md @ ac654f1932c2 -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · **Deutsch** · [Français](README.fr.md) · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -193,7 +193,7 @@ Die Werkzeuge Truhe, Türen und Ereignisse setzen die besonderen Codes, die sie 
 
 ## Höhe: wie hoch der Boden ist
 
-Drück auf **Höhe** (H). Oben im Bereich stellst du die Art Feld zusammen, die du malen willst: Wähl **Flach**, **Rampe**, **Stufen** (ein halbes Feld auf einer Ebene, eines auf der nächsten) oder **Diagonal** (zwei Ebenen, von Ecke zu Ecke geteilt, wie am Rand einer Klippe), dann mit den Pfeilen die Richtung, in die es ansteigt, dann seine Ebenen. Ein kleines Bild zeigt das Feld von oben, und eine Zeile sagt, ob die Gruppe darüber laufen kann. Jede Ebene geht, nicht nur die, die der Ort schon hat: Eine Höhe, die der Ort noch nicht hat, wird beim Speichern hinzugefügt. Ein Ort kann bis zu 256 verschiedene Höhen haben; einige Orte teilen sich einen Satz (etwa den des Titelbildschirms) und damit auch diese Grenze. ⌥-klick auf ein Feld der Karte übernimmt seine Höhe genau, auch die gebogenen und geformten, die die Knöpfe nicht machen. Darunter zählt **Ebenen an diesem Ort** die Felder auf jeder Ebene, das dunkelste Blau für die höchste; auf der Karte bedeutet dunkleres Blau höheren Boden, und der niedrigste Boden hat gar kein Blau, ein Hafen oder Strand ganz unten zeigt also keins. **Erweitert** listet außerdem jede Höhe in der Tabelle des Ortes auf.
+Drück auf **Höhe** (H). Oben im Bereich stellst du die Art Feld zusammen, die du malen willst: Wähl **Flach**, **Rampe**, **Stufen** (ein halbes Feld auf einer Ebene, eines auf der nächsten), **Diagonal** (zwei Ebenen, von Ecke zu Ecke geteilt, wie am Rand einer Klippe), **Rund** (ein Kreis, der das Feld auf einer Ebene füllt, die Ecken auf einer anderen, wie ein Baumstumpf, ein Hügel oder eine Grube) oder **Schräge Kante** (ein Eckstück, in flachem Winkel abgeschnitten, für Kanten, die schräg verlaufen), dann mit den Pfeilen die Richtung, in die es ansteigt, oder welche Ecke, dann seine Ebenen. Ein kleines Bild zeigt das Feld von oben, und eine Zeile sagt, ob die Gruppe darüber laufen kann. Jede Ebene geht, nicht nur die, die der Ort schon hat: Eine Höhe, die der Ort noch nicht hat, wird beim Speichern hinzugefügt. Ein Ort kann bis zu 256 verschiedene Höhen haben; einige Orte teilen sich einen Satz (etwa den des Titelbildschirms) und damit auch diese Grenze. ⌥-klick auf ein Feld der Karte übernimmt seine Höhe genau, auch die wenigen geformten, die die Knöpfe nicht machen. Darunter zählt **Ebenen an diesem Ort** die Felder auf jeder Ebene, das dunkelste Blau für die höchste; auf der Karte bedeutet dunkleres Blau höheren Boden, und der niedrigste Boden hat gar kein Blau, ein Hafen oder Strand ganz unten zeigt also keins. **Erweitert** listet außerdem jede Höhe in der Tabelle des Ortes auf.
 
 Höhen werden in Ebenen gezählt, der eigenen Einheit des Spiels (eine Ebene sind 8 Pixel, ein halbes Feld). Die Höhe beeinflusst nicht nur das Aussehen, sondern auch das Laufen. Personen stehen auf der Höhe des Bodens unter ihnen, und die Gruppe kann immer nur eine Ebene hinauf- oder hinabgehen: Zwei Ebenen oder mehr wirken wie eine Wand. Rampen verbinden Ebenen, und ein Feld Rampe schafft zwei, also sind Treppen und Hänge aneinandergereihte Rampen. Stufen steigen genauso: eine Ebene pro Hälfte. Für eine Treppe wähl **Rampe** oder **Stufen**, kreuz **Treppe** an und zieh in Steigrichtung: Jedes Feld steigt vom letzten weiter.
 
@@ -232,13 +232,13 @@ Nicht jede Stelle, die frei aussieht, ist ein guter Platz für eine Person. Setz
 | Farbe | Bedeutet |
 |---|---|
 | Grün | Die Gruppe kann hingehen und mit der Person reden. |
-| Türkis | Die Gruppe kommt dorthin, sobald Psynergie oder die Story den Weg öffnet, durch die Ereignisse des Orts selbst. |
+| Lila | Die Gruppe kommt dorthin, sobald Psynergie oder die Story den Weg öffnet, durch die Ereignisse des Orts selbst. |
 | Gelb | Die Gruppe kann dieses Feld nicht betreten, aber von daneben mit der Person reden, wie mit einem Verkäufer hinter einer Theke. |
 | Blau | Eis, über das die Gruppe rutscht, wie in Imil. Wer dort steht, ist beim Rutschen im Weg. |
 | Orange | Eine Tür, ein Ausgang oder eine Trittstelle: Eine Person dort wäre im Weg. |
 | Rot | Die Gruppe kommt zu Fuß nicht nah genug heran, um zu reden. |
 
-Das wird aus den Laufregeln des Spiels selbst ermittelt, ausgehend von jedem Punkt, an dem die Gruppe an diesem Ort ankommt: Man kann immer eine Ebene hinauf- oder hinabsteigen, Wände halten einen auf, und man kann mit jemandem reden, der höchstens zwei Felder entfernt ist. Änderungen, die die Ereignisse des Orts selbst vornehmen, etwa eine Tür, die Psynergie öffnet, oder eine Brücke, die die Story herablässt, werden mitverfolgt: Was sie öffnen, erscheint türkis. Einige Änderungen hängen davon ab, wo der Spieler etwas tut, etwa eine Säule schiebt, und lassen sich nicht vorher ermitteln; was diese öffnen, erscheint weiter rot.
+Das wird aus den Laufregeln des Spiels selbst ermittelt, ausgehend von jedem Punkt, an dem die Gruppe an diesem Ort ankommt: Man kann immer eine Ebene hinauf- oder hinabsteigen, Wände halten einen auf, und man kann mit jemandem reden, der höchstens zwei Felder entfernt ist. Änderungen, die die Ereignisse des Orts selbst vornehmen, etwa eine Tür, die Psynergie öffnet, oder eine Brücke, die die Story herablässt, werden mitverfolgt: Was sie öffnen, erscheint lila. Einige Änderungen hängen davon ab, wo der Spieler etwas tut, etwa eine Säule schiebt, und lassen sich nicht vorher ermitteln; was diese öffnen, erscheint weiter rot.
 
 Wenn eine Stelle ein Problem hat, sagt der Editor in einfachen Worten, welches, zum Beispiel „der Boden hier ist 4 Ebenen höher als der nächste Weg“, oder dass eine Person dort die Gruppe von einer Tür abschneiden würde. Dann bietet er einen Ausweg an:
 

@@ -20,8 +20,9 @@ game's own rules (alchemy's games/tbs/src/field):
 The party is followed from every arrival point of the scene. Cells the room's
 own code changes as it plays (a door Psynergy opens, a bridge the story lowers;
 scene_cells.py) are followed too: a step counts if it can be taken on the map
-as saved or with those changes made, and what only the changes open is told
-apart ("later"). People are not obstacles, except the one being checked.
+as saved or with those changes made, except out of a door or event cell on
+the changed map (its script runs there), and what only the changes open is
+told apart ("later"). People are not obstacles, except the one being checked.
 """
 
 import collections
@@ -174,6 +175,7 @@ class Walk:
         self.x0, self.z0 = info.bounds[0] * 8, info.bounds[1] * 8
         self.w, self.h = info.size
         self.col = [row[:] for row in project.load_grid(info, "collision").cells]
+        self.blocks = project.resolve_placeholders(project.load_grid(info, "metatile").cells)
         self.shp = [row[:] for row in project.load_grid(info, "shape").cells]
         for e in edits or ():
             grid = {"collision": self.col, "shape": self.shp}.get(e.get("plane"))
@@ -222,6 +224,13 @@ class Walk:
         heights = self._heights[v] = [height_at(row, px, pz, self.lerp, self.index)
                                       for pz in range(16) for px in range(16)]
         return heights
+
+    def _blank(self, blocks):
+        """A test of map pixel (x, z): does its cell show nothing (block 0)?"""
+        def blank(x, z):
+            gx, gz = self.grid_cell(x, z)
+            return blocks[gz][gx] & 0xFFF == 0
+        return blank
 
     def ground_px(self, x, z):
         return self.ground(x, z) / FIXED
@@ -314,32 +323,52 @@ class Walk:
 
     def _build(self):
         nodes, edges, slide_ends = self._graph()
-        self.before_edges = edges
-        if self.changes:
-            # The moves on the changed map join the saved map's: each step is
-            # one the party can take before or after the changes.
-            col, shp = self.col, self.shp
-            self.col, self.shp = _changed(col, self.changes), _changed(shp, self.changes)
-            try:
-                _, after, after_ends = self._graph()
-            finally:
-                self.col, self.shp = col, shp
-            edges = {n: list(dict.fromkeys([*edges.get(n, ()), *after.get(n, ())])) for n in {*edges, *after}}
-            slide_ends = slide_ends | after_ends
         self.nodes, self.edges, self.slide_ends = nodes, edges, slide_ends
         self.starts = []
         for e in self.entrances:
             if self.inside(e["x"], e["z"]):
                 self.starts.append((e, self._node(e["x"], e["z"])))
-        self.reach = self.flood()
-        if self.changes:
-            edges, self.edges = self.edges, self.before_edges
+        self.reach = self.before_reach = self.flood()
+        if not self.changes:
+            return
+        # On the changed map: from where the saved map already reaches, a
+        # step of either map counts; beyond that the party is only ever on
+        # the changed map, so only its steps do. A copy counts only once the
+        # party can reach its destination or the square beside it: rooms also
+        # copy cells to spare ground off to the side and back (to save and
+        # restore a part), and that ground is never walked. As copies open
+        # ground, the ones it reaches count in turn. Two more rules keep the
+        # walk to ground the game lets the party walk:
+        # - A door or event the party steps on runs its script there (it
+        #   leaves, falls, is moved): the walk ends on such a cell. Copies
+        #   often fill a path with one.
+        # - It doesn't go onto a cell that shows nothing (block 0): the empty
+        #   space around a room's parts is often level floor.
+        stops = {e["trigger"] for e in self.events if e["kind"] in ("exit", "touch")} - self.slide
+        before, applied = self.before_reach, []
+        for _ in range(len(self.changes)):
+            near = {(self.ox + dx + (x - self.x0) // 16, self.oz + dz + (z - self.z0) // 16)
+                    for x, z in self.reach for dx in (-1, 0, 1) for dz in (-1, 0, 1)}
+            more = [c for c in self.changes if c not in applied and any(
+                ((c[4] + i) % 128, (c[5] + j) % 128) in near or (c[4] + i, c[5] + j) in near
+                for j in range(c[3]) for i in range(c[2]))]
+            if not more:
+                break
+            applied += more
+            col, shp = self.col, self.shp
+            self.col, self.shp = _changed(col, applied), _changed(shp, applied)
+            blank = self._blank(_changed(self.blocks, [c for c in applied if c[6:7] == (True,)]))
             try:
-                self.before_reach = self.flood()
+                _, after, after_ends = self._graph()
+                after = {n: [] if self.behavior(*n) in stops or blank(*n) else [mv for mv in moves if not blank(*mv[0])]
+                         for n, moves in after.items()}
             finally:
-                self.edges = edges
-        else:
-            self.before_reach = self.reach
+                self.col, self.shp = col, shp
+            self.edges = {n: list(dict.fromkeys([*edges.get(n, ()), *after.get(n, ())])) if n in before
+                          else after.get(n, []) for n in {*edges, *after}}
+            self.slide_ends = slide_ends | after_ends
+            self.reach = self.flood()
+        self.applied = applied
 
     def _graph(self):
         """(nodes, edges, slide ends) of the map's cells as they stand now."""
@@ -686,7 +715,7 @@ class Walk:
 def _changed(grid, changes):
     """A copy of a 128x128 grid plane with every cell copy made, in order."""
     out = [row[:] for row in grid]
-    for sx, sy, w, h, dx, dy in changes:
+    for sx, sy, w, h, dx, dy, *_ in changes:
         for j in range(h):
             for i in range(w):
                 if 0 <= sx + i < 128 and 0 <= sy + j < 128 and 0 <= dx + i < 128 and 0 <= dy + j < 128:

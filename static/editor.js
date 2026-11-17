@@ -192,11 +192,22 @@ const HB_ROWS = {  // pattern -> direction -> [kind, which sample is low first]
   steps: { right: [8, true], left: [8, false], down: [9, true], up: [9, false] },
   diagonal: { se: [3, true], nw: [3, false], sw: [4, true], ne: [4, false] },
 };
+// A slanted edge (kinds 12 and 13, gTerrain_SampleIndexTable): two shallow
+// slants cut a corner piece off the top and bottom of the square; kind 13 is
+// kind 12 mirrored. Its rows: corner -> [kind, the corner's sample].
+const HB_SLANT = { ne: [12, 1], se: [12, 3], nw: [13, 1], sw: [13, 3] };
+const HB_ROUND = 7;  // a circle filling the square at one level, the corners at another
 const HB_FLAT = new Set([0, 14, 15]);
 const lvSigned = v => (v > 127 ? v - 256 : v);
 function hbRow(hb, lift = 0) {
   const lo = hb.low + lift, hi = hb.high + lift;
   if (hb.pattern === 'flat') return [0, lo, 0, 0];
+  if (hb.pattern === 'round') return [HB_ROUND, lo, hi, 0];  // edge, middle
+  if (hb.pattern === 'slant') {  // the corner piece at `high`, the rest at `low`
+    const [kind, at] = HB_SLANT[hb.dir], row = [kind, lo, lo, lo];
+    row[at] = hi;
+    return row;
+  }
   const [kind, lowFirst] = HB_ROWS[hb.pattern][hb.dir];
   return lowFirst ? [kind, lo, hi, 0] : [kind, hi, lo, 0];
 }
@@ -204,6 +215,12 @@ function hbRow(hb, lift = 0) {
 function hbFromRow(r) {
   const k = r[0] & 15, a = lvSigned(r[1]), b = lvSigned(r[2]);
   if (HB_FLAT.has(k)) return { pattern: 'flat', dir: 'right', low: a, high: a + 2 };
+  if (k === HB_ROUND) return { pattern: 'round', dir: 'right', low: a, high: b };
+  const c = lvSigned(r[3] ?? 0);
+  for (const [dir, [kind, at]] of Object.entries(HB_SLANT)) {
+    const rest = at === 1 ? [b, c] : [a, b];  // the two samples that aren't the corner
+    if (kind === k && rest[0] === rest[1]) return { pattern: 'slant', dir, low: rest[0], high: at === 1 ? a : c };
+  }
   for (const [pattern, dirs] of Object.entries(HB_ROWS))
     for (const [dir, [kind, lowFirst]] of Object.entries(dirs))
       if (kind === k && (lowFirst ? a <= b : a > b)) return { pattern, dir, low: Math.min(a, b), high: Math.max(a, b) };
@@ -247,6 +264,10 @@ function describeShape(r) {
   if (k === 9) return T('Steps, top half level {a}, bottom half level {b}', { a, b });
   if (k === 3) return T('Diagonal, top-left level {a}, bottom-right level {b}', { a, b });
   if (k === 4) return T('Diagonal, top-right level {a}, bottom-left level {b}', { a, b });
+  if (k === HB_ROUND) return T('Round, edge level {a}, middle level {b}', { a, b });
+  const hb = hbFromRow(r);
+  if (hb.pattern === 'slant') return T('Slanted edge, {corner} corner level {b}, the rest level {a}',
+    { corner: { ne: T('top-right'), se: T('bottom-right'), nw: T('top-left'), sw: T('bottom-left') }[hb.dir], a: hb.low, b: hb.high });
   const ls = (k === 7 ? r.slice(1, 3) : r.slice(1, 4)).map(lvSigned);
   return T('Shaped, levels {a} to {b}', { a: Math.min(...ls), b: Math.max(...ls) });
 }
@@ -260,6 +281,9 @@ function shapeLevelAt(r, x, y) {
   if (k === 9) return y < 8 ? a : b;
   if (k === 3) return x + y === 15 ? Math.max(a, b) : x + y < 15 ? a : b;
   if (k === 4) return y - x === 0 ? Math.max(a, b) : y < x ? a : b;
+  const tables = S.names?.terrain;
+  if (k === HB_ROUND && tables) return a + (b - a) * tables.lerp[x + y * 16];
+  if ((k === 12 || k === 13) && tables) return lvSigned(r[1 + tables.index[k === 12 ? x + y * 16 : y * 16 - x + 15]] ?? 0);
   return HB_FLAT.has(k) ? a : Math.max(a, b);
 }
 // Whether the party can cross a square of this type: one level a step, and
@@ -288,7 +312,8 @@ function setHeightBrush(change) {
   Object.assign(hb, change, { exact: null });
   if (hb.pattern === 'copied') hb.pattern = 'flat';
   if (hb.pattern === 'diagonal' && !HB_ROWS.diagonal[hb.dir]) hb.dir = 'se';
-  if (hb.pattern !== 'diagonal' && hb.pattern !== 'flat' && !HB_ROWS.ramp[hb.dir]) hb.dir = 'right';
+  if (hb.pattern === 'slant' && !HB_SLANT[hb.dir]) hb.dir = 'se';
+  if ((hb.pattern === 'ramp' || hb.pattern === 'steps') && !HB_ROWS.ramp[hb.dir]) hb.dir = 'right';
   hb.low = Math.max(-128, Math.min(127, Math.round(hb.low) || 0));
   hb.high = Math.max(-128, Math.min(127, Math.round(hb.high) || 0));
   const v = shapeIndex(hbRow(hb));
@@ -324,13 +349,21 @@ function buildHeightPanel() {
   const shade = heightShade(m);
   const choice = (group, value, label, title) =>
     `<button data-${group}="${value}" title="${esc(title || '')}" class="${hb[group] === value ? 'on' : ''}">${label}</button>`;
-  const PATTERNS = [['flat', T('Flat')], ['ramp', T('Ramp')], ['steps', T('Steps')], ['diagonal', T('Diagonal')]];
+  const PATTERNS = [['flat', T('Flat')], ['ramp', T('Ramp')], ['steps', T('Steps')], ['diagonal', T('Diagonal')],
+    ['round', T('Round'), T('A circle filling the square at one level, the corners at another: a stump, a mound or a pit')],
+    ['slant', T('Slanted edge'), T('A corner cut off at a shallow angle, for edges that run at a slant')]];
   const DIRS = hb.pattern === 'diagonal'
     ? [['se', '↘', T('High corner bottom-right')], ['sw', '↙', T('High corner bottom-left')], ['ne', '↗', T('High corner top-right')], ['nw', '↖', T('High corner top-left')]]
+    : hb.pattern === 'slant'
+    ? [['se', '◢', T('Corner piece bottom-right')], ['sw', '◣', T('Corner piece bottom-left')], ['ne', '◥', T('Corner piece top-right')], ['nw', '◤', T('Corner piece top-left')]]
     : [['right', '→', T('Rising to the right')], ['left', '←', T('Rising to the left')], ['down', '↓', T('Rising downwards')], ['up', '↑', T('Rising upwards')]];
   const num = (key, value) => `<input type="number" data-level="${key}" value="${value}" min="-128" max="127" step="1">`;
   const levels = hb.pattern === 'flat' || hb.pattern === 'copied'
     ? `<label>${T('Level')} ${num('low', hb.low)}</label>`
+    : hb.pattern === 'round'
+    ? `<label>${T('Edge level')} ${num('low', hb.low)}</label> <label>${T('middle')} ${num('high', hb.high)}</label>`
+    : hb.pattern === 'slant'
+    ? `<label>${T('Level')} ${num('low', hb.low)}</label> <label>${T('corner')} ${num('high', hb.high)}</label>`
     : `<label>${T('From level')} ${num('low', hb.low)}</label> <label>${T('to')} ${num('high', hb.high)}</label>`;
   const row = isNaN(current) ? null : m.shapes[current];
   Object.assign(S, { hbTable: m.shapes, hbValue: current, hbContent: row && row.slice() });
@@ -339,8 +372,8 @@ function buildHeightPanel() {
   const canStairs = ['ramp', 'steps'].includes(hb.pattern) && hb.exact == null;
   const html = [
     `<div class="note">${T('Pick a square type, then paint, or ⌥-click the map to copy one. The party can walk up or down one level at a time; two levels or more is a wall. Ramps join levels: one square of ramp can climb two.')} ${T('On the map, darker blue is higher ground; the lowest ground here has none.')}</div>`,
-    `<div class="hb-row">${PATTERNS.map(([v, t]) => choice('pattern', v, esc(t))).join('')}</div>`,
-    hb.pattern === 'flat' || hb.pattern === 'copied' ? '' : `<div class="hb-row">${DIRS.map(([v, a, t]) => choice('dir', v, a, t)).join('')}</div>`,
+    `<div class="hb-row">${PATTERNS.map(([v, t, tip]) => choice('pattern', v, esc(t), tip)).join('')}</div>`,
+    ['flat', 'copied', 'round'].includes(hb.pattern) ? '' : `<div class="hb-row">${DIRS.map(([v, a, t]) => choice('dir', v, a, t)).join('')}</div>`,
     hb.pattern === 'copied' ? `<div class="note">${esc(T('Copied from the map: {what}', { what: describeShape(row) }))}</div>` : `<div class="hb-row">${levels}</div>`,
     `<div class="hb-row"><canvas id="hbPreview" width="48" height="48"></canvas><div>
        <div>${esc(row ? describeShape(row) : T('Pick a square type'))}${S.advanced && row ? ` [${hex(current)}]` : ''}</div>
@@ -1713,7 +1746,7 @@ function evClick(e, x, y) {
 const WK = { cells: null, size: null, key: null, timer: null };
 const STAND = {
   good: ['rgba(80,200,120,0.38)', T('The party can walk up and talk')],
-  later: ['rgba(60,170,200,0.40)', T('The party gets here once Psynergy or the story opens the way')],
+  later: ['rgba(175,95,235,0.48)', T('The party gets here once Psynergy or the story opens the way')],
   talk: ['rgba(230,200,60,0.40)', T('Can be talked to from nearby (behind a counter, on a ledge)')],
   slide: ['rgba(70,140,255,0.50)', T('Ice the party slides across: keep people off it')],
   trigger: ['rgba(255,140,40,0.55)', T('A door, exit or step spot: keep it clear')],

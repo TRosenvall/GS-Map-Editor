@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 7c8f172afe81 -->
+<!-- translated from README.md @ ac654f1932c2 -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · [Deutsch](README.de.md) · **Français** · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -193,7 +193,7 @@ Les outils Coffre, Portes et Événements placent eux-mêmes les codes spéciaux
 
 ## Hauteur : la hauteur du sol
 
-Appuyez sur **Hauteur** (H). En haut du panneau, vous composez le type de case à peindre : choisissez **Plat**, **Rampe**, **Marches** (une demi-case à un niveau, l'autre au suivant) ou **Diagonale** (deux niveaux partagés d'un coin à l'autre, comme au bord d'une falaise), puis avec les flèches le sens de la montée, puis ses niveaux. Une petite image montre la case vue de dessus, et une ligne dit si le groupe peut la traverser à pied. N'importe quel niveau convient, pas seulement ceux que le lieu a déjà : une hauteur que le lieu n'a pas encore est ajoutée à l'enregistrement. Un lieu peut avoir jusqu'à 256 hauteurs différentes ; quelques lieux partagent un même ensemble (celui de l'écran titre, par exemple) et partagent alors aussi cette limite. ⌥-cliquez sur une case de la carte pour copier sa hauteur exacte, y compris les courbes et les formes que les boutons ne font pas. En dessous, **Niveaux de ce lieu** compte les cases de chaque niveau, le bleu le plus foncé pour le plus haut ; sur la carte, un bleu plus foncé signifie un sol plus haut, et le sol le plus bas n'a pas de bleu du tout : un port ou une plage en bas de la carte n'en montre donc pas. **Avancé** liste aussi toutes les hauteurs de la table du lieu.
+Appuyez sur **Hauteur** (H). En haut du panneau, vous composez le type de case à peindre : choisissez **Plat**, **Rampe**, **Marches** (une demi-case à un niveau, l'autre au suivant), **Diagonale** (deux niveaux partagés d'un coin à l'autre, comme au bord d'une falaise), **Rond** (un cercle qui remplit la case à un niveau, les coins à un autre, comme une souche, une butte ou un trou) ou **Bord en biais** (un coin coupé selon un angle faible, pour les bords qui vont en biais), puis avec les flèches le sens de la montée ou le coin, puis ses niveaux. Une petite image montre la case vue de dessus, et une ligne dit si le groupe peut la traverser à pied. N'importe quel niveau convient, pas seulement ceux que le lieu a déjà : une hauteur que le lieu n'a pas encore est ajoutée à l'enregistrement. Un lieu peut avoir jusqu'à 256 hauteurs différentes ; quelques lieux partagent un même ensemble (celui de l'écran titre, par exemple) et partagent alors aussi cette limite. ⌥-cliquez sur une case de la carte pour copier sa hauteur exacte, y compris les quelques formes que les boutons ne font pas. En dessous, **Niveaux de ce lieu** compte les cases de chaque niveau, le bleu le plus foncé pour le plus haut ; sur la carte, un bleu plus foncé signifie un sol plus haut, et le sol le plus bas n'a pas de bleu du tout : un port ou une plage en bas de la carte n'en montre donc pas. **Avancé** liste aussi toutes les hauteurs de la table du lieu.
 
 Les hauteurs se comptent en niveaux, l'unité propre au jeu (un niveau fait 8 pixels, une demi-case). La hauteur influe sur la marche autant que sur l'apparence. Les personnages se tiennent à la hauteur du sol sur lequel ils sont, et le groupe peut monter ou descendre d'un niveau à la fois : deux niveaux ou plus agissent comme un mur. Les rampes relient les niveaux, et une case de rampe peut en gravir deux : escaliers et pentes sont des rampes mises bout à bout. Les marches montent de même : un niveau par moitié. Pour poser un escalier, choisissez **Rampe** ou **Marches**, cochez **Escalier** et faites glisser dans le sens de la montée : chaque case monte à partir de la précédente.
 
@@ -232,13 +232,13 @@ Tous les emplacements qui semblent dégagés ne conviennent pas pour y placer qu
 | Couleur | Signification |
 |---|---|
 | Vert | Le groupe peut s'approcher et lui parler. |
-| Turquoise | Le groupe y arrive une fois que la Psynergie ou l'histoire ouvre le passage, par les événements du lieu lui-même. |
+| Violet | Le groupe y arrive une fois que la Psynergie ou l'histoire ouvre le passage, par les événements du lieu lui-même. |
 | Jaune | Le groupe ne peut pas marcher sur cette case, mais peut lui parler depuis à côté, comme un marchand derrière un comptoir. |
 | Bleu | De la glace sur laquelle le groupe glisse, comme à Imil. Quelqu'un placé là gêne la glissade. |
 | Orange | Une porte, une sortie ou une case de passage : quelqu'un placé là gênerait. |
 | Rouge | Le groupe ne peut pas s'approcher assez en marchant pour parler. |
 
-C'est calculé à partir des propres règles de déplacement du jeu, en partant de chaque point où le groupe arrive dans le lieu : on peut monter ou descendre d'un niveau à la fois, les murs arrêtent, et on peut parler à quelqu'un jusqu'à deux cases de distance. Les changements que font les événements du lieu lui-même, comme une porte que la Psynergie ouvre ou un pont que l'histoire abaisse, sont suivis aussi : ce qu'ils ouvrent apparaît en turquoise. Quelques changements dépendent de l'endroit où le joueur agit, comme pousser un pilier, et ne peuvent pas être calculés d'avance : ce qu'ils ouvrent apparaît encore en rouge.
+C'est calculé à partir des propres règles de déplacement du jeu, en partant de chaque point où le groupe arrive dans le lieu : on peut monter ou descendre d'un niveau à la fois, les murs arrêtent, et on peut parler à quelqu'un jusqu'à deux cases de distance. Les changements que font les événements du lieu lui-même, comme une porte que la Psynergie ouvre ou un pont que l'histoire abaisse, sont suivis aussi : ce qu'ils ouvrent apparaît en violet. Quelques changements dépendent de l'endroit où le joueur agit, comme pousser un pilier, et ne peuvent pas être calculés d'avance : ce qu'ils ouvrent apparaît encore en rouge.
 
 Quand un emplacement pose problème, l'éditeur dit lequel avec des mots simples, par exemple « le sol ici est 4 niveaux plus haut que le chemin le plus proche », ou que se tenir là couperait le groupe d'une porte. Puis il propose une solution :
 

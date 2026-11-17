@@ -440,10 +440,14 @@ if {"BabiLighthouseEntry", "BabiLighthouseStoneDoor"} <= set(babi):
     ov = cell_scenes.overlay(babi["BabiLighthouseEntry"]["overlay"])
     entry = scene_cells.room_changes(cell_project.tbs, ov, "BabiLighthouseEntry")
     stone = scene_cells.room_changes(cell_project.tbs, ov, "BabiLighthouseStoneDoor")
+    entry, stone = [c[:6] for c in entry], [c[:6] for c in stone]
     check("a room follows its own triggers to the cells they change",
           (82, 7, 1, 2, 18, 7) in entry and (81, 14, 4, 1, 17, 14) in stone, (entry, stone))
     check("and not the copies of the other rooms its code serves", (82, 7, 1, 2, 18, 7) not in stone, stone)
-venus = next((s for s in cell_scenes.scenes if s["name"] == "VenusLighthouseThirdFloor"), None)
+check("saving a part to spare ground and copying it back changes nothing",
+      scene_cells._through_saves([(23, 34, 13, 3, 0, 34, False), (0, 34, 13, 3, 23, 34, False), (81, 14, 4, 1, 17, 14, False)])
+      == [(0, 34, 13, 3, 0, 34, False), (23, 34, 13, 3, 23, 34, False), (81, 14, 4, 1, 17, 14, False)])
+venus = next((s for s in cell_scenes.scenes if s["name"] == "AlpineCrossing"), None)
 if venus:
     vmap = next(m for m in cell_project.maps.values()
                 if venus["layered_row"] in {r["row"] for r in [m.resources] + m.alternates if r})
@@ -452,9 +456,14 @@ if venus:
     vent = DoorEditor(cell_project, cell_scenes, vn).entrances(venus["id"])
     vch = scene_cells.room_changes(cell_project.tbs, cell_scenes.overlay(venus["overlay"]), venus["name"])
     plain, opened = walkmod.Walk(cell_project, vmap, vev, vent), walkmod.Walk(cell_project, vmap, vev, vent, changes=vch)
+    lost = [w for w in (plain, opened) if any(not w.target_reached(c, h, w.reach, w.standing()) for _, c, h in w.targets())]
     check("what Psynergy or the story opens shows as reached later, not cut off",
           "later" in opened.cells() and plain.reach <= opened.reach and opened.before_reach == plain.reach
-          and opened.cells().count("cut") < plain.cells().count("cut"))
+          and opened.cells().count("cut") < plain.cells().count("cut") and lost == [plain])
+    # A room's empty surroundings are often level floor: what a copy opens
+    # stops where the map shows nothing, and at a door or event's square.
+    blank = opened._blank(opened.blocks)
+    check("and never reaches ground that shows nothing", not any(blank(*pt) for pt in opened.reach - opened.before_reach))
 
 print("FAILED" if failed else "all ok")
 sys.exit(1 if failed else 0)

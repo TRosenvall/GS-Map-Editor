@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 7c8f172afe81 -->
+<!-- translated from README.md @ ac654f1932c2 -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · [Deutsch](README.de.md) · [Français](README.fr.md) · **Italiano** · [日本語](README.ja.md)
@@ -193,7 +193,7 @@ Gli strumenti Forziere, Porte ed Eventi impostano da soli i codici speciali di c
 
 ## Altezza: quanto è alto il terreno
 
-Premi **Altezza** (H). In cima al pannello componi il tipo di casella da dipingere: scegli **Piana**, **Rampa**, **Gradini** (mezza casella a un livello, mezza al successivo) o **Diagonale** (due livelli divisi da angolo ad angolo, come sul bordo di una scogliera), poi con le frecce la direzione in cui sale, poi i suoi livelli. Una piccola immagine mostra la casella dall'alto, e una riga dice se il gruppo può attraversarla a piedi. Va bene qualsiasi livello, non solo quelli che il luogo ha già: un'altezza che il luogo non ha ancora viene aggiunta quando salvi. Un luogo può avere fino a 256 altezze diverse; alcuni luoghi condividono lo stesso insieme (quello della schermata del titolo, per esempio) e allora condividono anche questo limite. ⌥-clic su una casella della mappa per copiarne l'altezza esatta, comprese quelle curve e sagomate che i pulsanti non fanno. Sotto, **Livelli di questo luogo** conta le caselle di ogni livello, il blu più scuro per il più alto; sulla mappa, un blu più scuro indica un terreno più alto, e il terreno più basso non ha blu, quindi un porto o una spiaggia in fondo alla mappa non ne mostra. **Avanzate** elenca anche tutte le altezze della tabella del luogo.
+Premi **Altezza** (H). In cima al pannello componi il tipo di casella da dipingere: scegli **Piana**, **Rampa**, **Gradini** (mezza casella a un livello, mezza al successivo), **Diagonale** (due livelli divisi da angolo ad angolo, come sul bordo di una scogliera), **Rotondo** (un cerchio che riempie la casella a un livello, gli angoli a un altro, come un ceppo, un rialzo o una buca) o **Bordo inclinato** (un angolo tagliato con un'inclinazione lieve, per bordi che corrono di sbieco), poi con le frecce la direzione in cui sale o quale angolo, poi i suoi livelli. Una piccola immagine mostra la casella dall'alto, e una riga dice se il gruppo può attraversarla a piedi. Va bene qualsiasi livello, non solo quelli che il luogo ha già: un'altezza che il luogo non ha ancora viene aggiunta quando salvi. Un luogo può avere fino a 256 altezze diverse; alcuni luoghi condividono lo stesso insieme (quello della schermata del titolo, per esempio) e allora condividono anche questo limite. ⌥-clic su una casella della mappa per copiarne l'altezza esatta, comprese le poche sagomate che i pulsanti non fanno. Sotto, **Livelli di questo luogo** conta le caselle di ogni livello, il blu più scuro per il più alto; sulla mappa, un blu più scuro indica un terreno più alto, e il terreno più basso non ha blu, quindi un porto o una spiaggia in fondo alla mappa non ne mostra. **Avanzate** elenca anche tutte le altezze della tabella del luogo.
 
 Le altezze si contano in livelli, l'unità propria del gioco (un livello è 8 pixel, mezza casella). L'altezza influisce sul camminare oltre che sull'aspetto. Le persone stanno all'altezza del terreno su cui si trovano, e il gruppo può salire o scendere di un livello alla volta: due livelli o più fanno da muro. Le rampe collegano i livelli, e una casella di rampa può salirne due, quindi scale e pendii sono rampe messe una dopo l'altra. I gradini salgono allo stesso modo: un livello per metà. Per posare una scala, scegli **Rampa** o **Gradini**, spunta **Scala** e trascina nella direzione della salita: ogni casella sale dalla precedente.
 
@@ -232,13 +232,13 @@ Non ogni punto che sembra libero è un buon posto per una persona. Spunta **Dove
 | Colore | Significa |
 |---|---|
 | Verde | Il gruppo può avvicinarsi e parlarci. |
-| Turchese | Il gruppo ci arriva quando la Psicoenergia o la storia aprono la strada, con gli eventi del luogo stesso. |
+| Viola | Il gruppo ci arriva quando la Psicoenergia o la storia aprono la strada, con gli eventi del luogo stesso. |
 | Giallo | Il gruppo non può salire su quella casella, ma può parlarci da accanto, come con un negoziante dietro un bancone. |
 | Blu | Ghiaccio su cui il gruppo scivola, come a Imil. Qualcuno fermo lì intralcia la scivolata. |
 | Arancione | Una porta, un'uscita o un punto di passaggio: qualcuno lì sarebbe d'intralcio. |
 | Rosso | Il gruppo non riesce ad avvicinarsi abbastanza camminando per parlarci. |
 
-Viene calcolato con le regole di movimento del gioco stesso, partendo da ogni punto in cui il gruppo arriva nel luogo: puoi salire o scendere di un livello alla volta, i muri ti fermano, e puoi parlare con qualcuno entro due caselle. Vengono seguiti anche i cambiamenti fatti dagli eventi del luogo stesso, come una porta aperta con la Psicoenergia o un ponte abbassato dalla storia: ciò che aprono appare in turchese. Alcuni cambiamenti dipendono da dove il giocatore fa qualcosa, come spingere un pilastro, e non si possono calcolare in anticipo, quindi ciò che aprono appare ancora in rosso.
+Viene calcolato con le regole di movimento del gioco stesso, partendo da ogni punto in cui il gruppo arriva nel luogo: puoi salire o scendere di un livello alla volta, i muri ti fermano, e puoi parlare con qualcuno entro due caselle. Vengono seguiti anche i cambiamenti fatti dagli eventi del luogo stesso, come una porta aperta con la Psicoenergia o un ponte abbassato dalla storia: ciò che aprono appare in viola. Alcuni cambiamenti dipendono da dove il giocatore fa qualcosa, come spingere un pilastro, e non si possono calcolare in anticipo, quindi ciò che aprono appare ancora in rosso.
 
 Quando un punto ha un problema, l'editor dice qual è a parole semplici, per esempio "il terreno qui è 4 livelli più alto del percorso più vicino", oppure che stare lì taglierebbe fuori il gruppo da una porta. Poi offre una soluzione:
 
