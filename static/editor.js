@@ -493,16 +493,43 @@ function drawGroundOverlays(ctx) {
   const colours = new Map(), shades = new Map();
   const colourOf = v => { if (!colours.has(v)) colours.set(v, collisionColor(v)); return colours.get(v); };
   const shadeOf = v => { if (!shades.has(v)) shades.set(v, shade(v)); return shades.get(v); };
-  for (const [, x, y, gx, gy] of cells) {
-    if (col) { const c = colourOf(m.grids.collision?.[gy]?.[gx]); if (c) { ctx.fillStyle = c; ctx.fillRect(x * s, y * s, s, s); } }
+  for (const [h, x, y, gx, gy] of cells) {
+    const v = m.grids.shape?.[gy]?.[gx], spans = groundSpans(m.shapes?.[v]), gy0 = (y + h / 16) * s;
+    const cover = c => { ctx.fillStyle = c; for (const [x0, x1, t, b] of spans) ctx.fillRect(x * s + x0 * z, gy0 + t * z, (x1 - x0) * z, (b - t) * z); };
+    if (col) { const c = colourOf(m.grids.collision?.[gy]?.[gx]); if (c) cover(c); }
     if (sh) {
-      const v = m.grids.shape?.[gy]?.[gx], c = shadeOf(v);
+      const c = shadeOf(v);
       if (c) {
-        ctx.fillStyle = c; ctx.fillRect(x * s, y * s, s, s);
+        cover(c);
         if (z >= 2 && S.advanced) { ctx.fillStyle = '#fff'; ctx.fillText(hex(v), x * s + s / 2, y * s + s / 2); }
       }
     }
   }
+}
+
+// Where a square's ground shows on screen, as [x0, x1, top, bottom] in pixels
+// from the square's unraised corner: each pixel column runs from its highest
+// point to its lowest. A ramp or steps climbing a square's height inside one
+// square fill two squares of screen, as in the game; one raised square would
+// leave every other row of a staircase bare.
+const groundSpanMemo = new Map();
+function groundSpans(r) {
+  if (!r) return [[0, 16, 0, 16]];
+  const key = r.join(',');
+  if (groundSpanMemo.has(key)) return groundSpanMemo.get(key);
+  const spans = [];
+  for (let px = 0; px < 16; px++) {
+    let t = Infinity, b = -Infinity;
+    for (let py = 0; py < 16; py++) {
+      const lift = 8 * shapeLevelAt(r, px, py);
+      t = Math.min(t, py - lift); b = Math.max(b, py + 1 - lift);
+    }
+    t = Math.floor(t); b = Math.ceil(b);
+    const last = spans[spans.length - 1];
+    if (last && last[2] === t && last[3] === b) last[1] = px + 1; else spans.push([px, px + 1, t, b]);
+  }
+  groundSpanMemo.set(key, spans);
+  return spans;
 }
 
 function ctxSetup(ctx) {
