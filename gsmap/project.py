@@ -80,6 +80,8 @@ def _kept_lines(text, defined):
     EDITION_INTERNATIONAL; any other .if (e.g. inside a macro body) keeps
     both branches, which is harmless because macro bodies are not parsed.
     """
+    if ".if" not in text:  # most files: every line is kept
+        return list(enumerate(text.split("\n")))
     out, stack = [], []
     for number, line in enumerate(text.split("\n")):
         s = line.strip()
@@ -107,6 +109,22 @@ def _kept_lines(text, defined):
         if all(t[0] for t in stack):
             out.append((number, line))
     return out
+
+
+ASSEMBLY = (".s", ".S", ".inc")  # map.inc since 2026-11-17
+
+
+def _assembly_files(top):
+    """The assembly files under top, hidden folders and files skipped: one
+    walk of the tree, in the order three recursive globs listed them."""
+    found = {ext: [] for ext in ASSEMBLY}
+    for folder, dirs, names in os.walk(top):
+        dirs[:] = [d for d in dirs if not d.startswith(".")]
+        for name in names:
+            ext = os.path.splitext(name)[1]
+            if ext in found and not name.startswith("."):
+                found[ext].append(os.path.join(folder, name))
+    return [path for ext in ASSEMBLY for path in found[ext]]
 
 
 _KEPT = {}  # map.s path -> ((mtime, size), its English edition's lines); a map is opened often
@@ -272,10 +290,7 @@ class Project:
         another set's sheet.
         """
         games = os.path.join(self.root, "games")
-        files = glob.glob(os.path.join(self.tbs, "**/*.s"), recursive=True)
-        files += glob.glob(os.path.join(self.tbs, "**/*.S"), recursive=True)
-        files += glob.glob(os.path.join(self.tbs, "**/*.inc"), recursive=True)  # map.inc since 2026-11-17
-        for path in files:
+        for path in _assembly_files(self.tbs):
             text = open(path, encoding="utf-8", errors="replace").read()
             if "Tileset_" not in text:
                 continue

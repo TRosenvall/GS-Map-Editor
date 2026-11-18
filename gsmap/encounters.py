@@ -189,19 +189,20 @@ class Encounters:
         except OSError:
             return []
         # The flag is a number, or (since 2026-11-17) its name in flags.h.
-        from .names import read_flag_names
-        flags = {name: n for n, name in read_flag_names(self.root).items()}
-        flags.update(re.findall(r"^#define\s+(FLAG_\w+)\s+(0[xX][0-9a-fA-F]+|\d+)\s*(?:$|/)",
-                                _read_or_empty(self.root, layout.FLAG_NAMES), re.M))
+        flags = None
 
         def flag(token):
+            nonlocal flags
             try:
                 return int(token, 0)
             except ValueError:
-                if token not in flags:
-                    raise ValueError(tr("A place's battle rule uses a story flag the editor can't find: {name}.", name=token))
-                value = flags[token]
-                return value if isinstance(value, int) else int(value, 0)
+                pass
+            if flags is None:
+                flags = dict(re.findall(r"^#define\s+(FLAG_\w+)\s+(0[xX][0-9a-fA-F]+|\d+)\s*(?:$|/)",
+                                        _read_or_empty(self.root, layout.FLAG_NAMES), re.M))
+            if token not in flags:
+                raise ValueError(tr("A place's battle rule uses a story flag the editor can't find: {name}.", name=token))
+            return int(flags[token], 0)
 
         out = []
         for m in re.finditer(r"^\s*encounter_rule\s+(\w+),\s*(-?\w+),\s*(-?\w+),\s*(\d+),\s*(\d+)", text, re.M):
