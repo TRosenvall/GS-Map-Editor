@@ -66,12 +66,14 @@ def _known(root, sha):
 
 
 def _older(root, head, pin):
-    return _git(root, "merge-base", "--is-ancestor", head, pin, check=False).returncode == 0
+    """True when head is an ancestor of pin, False when not, None when pin
+    isn't here yet (merge-base answers 128)."""
+    code = _git(root, "merge-base", "--is-ancestor", head, pin, check=False).returncode
+    return {0: True, 1: False}.get(code)
 
 
-def _busy(root):
+def _busy(git_dir):
     """A merge, cherry-pick or rebase someone left unfinished."""
-    git_dir = _out(root, "rev-parse", "--absolute-git-dir")
     return any(os.path.exists(os.path.join(git_dir, n))
                for n in ("MERGE_HEAD", "CHERRY_PICK_HEAD", "REVERT_HEAD", "rebase-merge", "rebase-apply"))
 
@@ -80,18 +82,22 @@ def offer(root):
     """{"from", "to"} (short commits) when this copy can be brought to the
     pinned version; None when it's there already or isn't the editor's to move."""
     try:
-        if not root or _git(root, "rev-parse", "--git-dir", check=False).returncode != 0:
+        if not root:
             return None
-        head = _out(root, "rev-parse", "HEAD")
-        if head == ALCHEMY_PIN or _git(root, "symbolic-ref", "-q", "HEAD", check=False).returncode == 0:
+        # The git folder, the commit, and "HEAD" when no branch is checked out.
+        p = _git(root, "rev-parse", "--absolute-git-dir", "HEAD", "--symbolic-full-name", "HEAD", check=False)
+        if p.returncode != 0:
+            return None
+        git_dir, head, branch = p.stdout.split("\n")[:3]
+        if head == ALCHEMY_PIN or branch != "HEAD":
             return None
         url = _out(root, "remote", "get-url", "origin", check=False).rstrip("/")
-        if url.removesuffix(".git") != ALCHEMY_URL or _busy(root):
+        if url.removesuffix(".git") != ALCHEMY_URL or _busy(git_dir):
             return None
         # Once the pinned commit is here, whether it's newer is known; before
         # the first fetch it isn't, and the update finds out (and stops
         # harmlessly) if this copy is already past it.
-        if _known(root, ALCHEMY_PIN) and not _older(root, head, ALCHEMY_PIN):
+        if _older(root, head, ALCHEMY_PIN) is False:
             return None
         return {"from": head[:10], "to": ALCHEMY_PIN[:10]}
     except (OSError, subprocess.CalledProcessError):
@@ -109,19 +115,29 @@ class Update:
     """The update as a background job, with the setup jobs' status()."""
 
     def __init__(self, root, on_done=None):
+        """on_done: called when the job ends having changed files (moved to
+        the new version, or there and back), so what was read can be dropped."""
         self.root, self.on_done = root, on_done
         self.name = tr("Updating the game source")
         self.log, self.done, self.ok, self.error, self.result = [], False, None, None, None
+        self.dropped = 0  # log lines let go of; status()'s `since` counts them
+        self.moved = self.cleared = self.bootstrapped = False
+        self.lock = threading.Lock()
         threading.Thread(target=self._run, daemon=True).start()
 
     def say(self, line):
-        self.log.append(line)
-        if len(self.log) > 4000:
-            del self.log[:1000]
+        with self.lock:
+            self.log.append(line)
+            if len(self.log) > 4000:
+                del self.log[:1000]
+                self.dropped += 1000
 
     def status(self, since=0):
+        with self.lock:
+            log = self.log[max(0, since - self.dropped):]
+            end = self.dropped + len(self.log)
         return {"name": self.name, "done": self.done, "ok": self.ok, "error": self.error, "result": self.result,
-                "log": self.log[since:], "next": len(self.log)}
+                "log": log, "next": end}
 
     # ---- the steps ------------------------------------------------------------
 
@@ -140,15 +156,13 @@ class Update:
         except Exception as e:  # noqa: BLE001  nothing has changed yet: just say so
             return self._finish(False, tr("Couldn't start the update ({detail}). Nothing was changed.",
                                           detail=f"{type(e).__name__}: {e}"))
-        moved = False
         try:
             self._fetch()
-            moved = True
             self._move()
             self._rebuild()
         except Exception as e:  # noqa: BLE001  whatever it was, the copy goes back as it was
             reason = str(e) if isinstance(e, Stop) else f"{type(e).__name__}: {e}"
-            if moved:
+            if self.moved:
                 self.say(tr("Putting your copy back as it was…"))
                 try:
                     self._put_back()
@@ -165,9 +179,12 @@ class Update:
     def _finish(self, ok, error):
         if error:
             self.say(error)
+        if self.moved and self.on_done:
+            try:
+                self.on_done()
+            except Exception as e:  # noqa: BLE001  the outcome stands; the editor reads afresh when reopened
+                self.say(f"{type(e).__name__}: {e}")
         self.ok, self.error, self.done = ok, error, True
-        if ok and self.on_done:
-            self.on_done()
 
     def _run_cmd(self, cmd, cwd=None):
         """A long command, its output in the log; raises on failure."""
@@ -222,6 +239,8 @@ class Update:
         from .project import Markers, Project
         root, out = self.root, {}
         changed = set(_out(root, "diff", "--name-only", "HEAD").split("\n"))
+        if not any(os.path.basename(rel) in layout.MAP_FILES for rel in changed):
+            return out
         project = Project(root)
         for info in project.maps.values():
             rel = os.path.relpath(info.path, root)
@@ -267,12 +286,14 @@ class Update:
 
     def _move(self):
         root = self.root
-        # Every file the player has is in the saved commit (checked here, file
-        # by file), so the working tree can be made the old version's.
+        # Every file the player has is in the saved commit (checked here), so
+        # the working tree can be made the old version's.
+        saved = set(_out(root, "ls-tree", "-r", "-z", "--name-only", self.saved).split("\0"))
         for rel in _out(root, "ls-files", "--others", "--exclude-standard", "-z").split("\0"):
-            if rel and _git(root, "cat-file", "-e", f"{self.saved}:{rel}", check=False).returncode != 0:
+            if rel and rel not in saved:
                 raise Stop(tr("{file} couldn't be saved in the backup.", file=rel))
         self.say(tr("Moving to the new version…"))
+        self.moved = True  # from here on, a stop puts the copy back
         _git(root, "reset", "-q", "--hard")
         _git(root, "clean", "-fdq")
         _git(root, "checkout", "-q", "--detach", ALCHEMY_PIN)
@@ -303,13 +324,11 @@ class Update:
             # overlays still say where they are; generate() matches renamed ones.
             generate(root, Scenes(root), Overrides(root))
         # Build state from the old version that would confuse the new one.
-        for path in glob.glob(os.path.join(root, "out", "*", "deps.mk")) + glob.glob(os.path.join(root, "out", "*", "objects.mk")):
-            os.remove(path)
-        shutil.rmtree(os.path.join(root, "tools", "out", "obj"), ignore_errors=True)
-        for path in glob.glob(os.path.join(root, "tools", "out", "ags-*")):
-            os.remove(path)
+        self.cleared = True
+        self._clear_build_state()
         if self._compilers(ALCHEMY_PIN) != self.old_compilers:
             self.say(tr("The new version has new compilers: building them (several minutes)…"))
+            self.bootstrapped = True
             self._run_cmd(["make", "bootstrap"])
         self.say(tr("Building the game with your mod…"))
         self._run_cmd(["make", "-j4", "tbs-en"])
@@ -330,14 +349,20 @@ class Update:
         self._run_cmd(GIT_LIMITS + ["-C", root, "submodule", "update", "--init", "--recursive", "alchemy-gcc"])
         if self.gcc_head:  # where the player's compiler source was, if not where the old version says
             _git(os.path.join(root, "alchemy-gcc"), "checkout", "-q", "--detach", self.gcc_head, check=False)
+        # Only what the update built for the new version needs building again.
+        if self.cleared:
+            self._clear_build_state()
+        if self.bootstrapped:
+            self._run_cmd(["make", "bootstrap"])
+        self._run_cmd(["make", "-j4", "tbs-en"])
+
+    def _clear_build_state(self):
+        root = self.root
         for path in glob.glob(os.path.join(root, "out", "*", "deps.mk")) + glob.glob(os.path.join(root, "out", "*", "objects.mk")):
             os.remove(path)
         shutil.rmtree(os.path.join(root, "tools", "out", "obj"), ignore_errors=True)
         for path in glob.glob(os.path.join(root, "tools", "out", "ags-*")):
             os.remove(path)
-        if self._compilers(ALCHEMY_PIN) != self.old_compilers:
-            self._run_cmd(["make", "bootstrap"])
-        self._run_cmd(["make", "-j4", "tbs-en"])
 
     def _retire_history(self):
         """Undo history names files as the old version laid them out: undoing

@@ -145,6 +145,13 @@ def make_handler(project, token=None, local_only=True):
         state["conn"] = None
         cache.drop(lambda k: True)
 
+    def forget_update():
+        """The update changed files (moved them, or moved them and put them
+        back): what was read while it ran may be from either version."""
+        with write_lock:
+            forget_loaded()
+            state["scenes"] = None
+
     def warm_thumbs():
         """Draw the atlas thumbnails not yet on disk, one at a time in the
         background, so the atlas fills in quickly (and instantly next time)."""
@@ -734,7 +741,7 @@ def make_handler(project, token=None, local_only=True):
                     if export and not export["done"]:
                         return self.send_json({"error": tr("Wait for the export to finish first.")}, 409)
                     with write_lock:  # not halfway through a save
-                        state["update"] = update.Update(project.root)
+                        state["update"] = update.Update(project.root, on_done=forget_update)
                     return self.send_json({"ok": True})
                 if path == "/api/language":
                     try:
