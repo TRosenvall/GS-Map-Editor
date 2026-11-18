@@ -39,7 +39,7 @@ def placed_codes(rows, codes):
     Psynergy Stone: the only markers the game counts toward its 10
     (treasure_spots.c). A marker with no such event places nothing."""
     return {r["trigger"] for r in rows if r["control"] != EVENTS_END and r["trigger"] in codes
-            and (is_chest(r) or is_stone(r))}
+            and is_marker(r)}
 
 
 def is_chest(row):
@@ -48,6 +48,11 @@ def is_chest(row):
 
 def is_stone(row):
     return row["control"] & 0x1FF == STONE_CONTROL and row["value"] & 0xFFF00000 == FIND_STONE
+
+
+def is_marker(row):
+    """A chest or a Psynergy Stone: the rows the Chest tool owns."""
+    return is_chest(row) or is_stone(row)
 
 
 def control_for(value):
@@ -177,7 +182,7 @@ class ChestEditor(SceneEditor):
         for o, name, rs in self._event_tables(info, ov):
             changed = False
             for r in rs:
-                if r["trigger"] == code and (is_chest(r) or is_stone(r)):
+                if r["trigger"] == code and is_marker(r):
                     # A chest made a stone, or back, changes its kind too; the
                     # control's bits above the kind (a facing) are kept.
                     r["control"] = (r["control"] & ~0x1FF) | control_for(value)
@@ -196,7 +201,7 @@ class ChestEditor(SceneEditor):
         path, mt, i, code = self._find(info, x, z)
         ov = Overrides(p.root)
         for o, name, rs in self._event_tables(info, ov):
-            keep = [r for r in rs if not (r["trigger"] == code and (is_chest(r) or is_stone(r)))]
+            keep = [r for r in rs if not (r["trigger"] == code and is_marker(r))]
             if len(keep) == len(rs):
                 continue
             if keep == o.rows(name):

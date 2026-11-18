@@ -224,7 +224,7 @@ function hbFromRow(r) {
   for (const [pattern, dirs] of Object.entries(HB_ROWS))
     for (const [dir, [kind, lowFirst]] of Object.entries(dirs))
       if (kind === k && (lowFirst ? a <= b : a > b)) return { pattern, dir, low: Math.min(a, b), high: Math.max(a, b) };
-  const ls = (k === 7 ? r.slice(1, 3) : r.slice(1, 4)).map(lvSigned);  // as describeShape reads them
+  const ls = r.slice(1, 4).map(lvSigned);  // as describeShape reads them
   return { pattern: 'copied', dir: 'right', low: Math.min(...ls), high: Math.max(...ls) };
 }
 // The table row for a square type: the first identical one, else a new one
@@ -268,7 +268,7 @@ function describeShape(r) {
   const hb = hbFromRow(r);
   if (hb.pattern === 'slant') return T('Slanted edge, {corner} corner level {b}, the rest level {a}',
     { corner: { ne: T('top-right'), se: T('bottom-right'), nw: T('top-left'), sw: T('bottom-left') }[hb.dir], a: hb.low, b: hb.high });
-  const ls = (k === 7 ? r.slice(1, 3) : r.slice(1, 4)).map(lvSigned);
+  const ls = r.slice(1, 4).map(lvSigned);
   return T('Shaped, levels {a} to {b}', { a: Math.min(...ls), b: Math.max(...ls) });
 }
 // Height in levels at pixel (x, y) of a square, for the builder's picture
@@ -425,9 +425,12 @@ function buildHeightPanel() {
 // Height's blue grows with the ground's real height, from this place's lowest
 // ground (no blue) to its highest; the height numbers themselves are only table rows.
 function heightShade(m) {
-  const hs = (m.shapes || []).map(cellHeightPx), inUse = new Set((m.grids.shape || []).flat());
+  const hs = (m.shapes || []).map(cellHeightPx), inUse = new Set();
+  for (const row of m.grids.shape || []) for (const v of row) inUse.add(v);
   const used = [...inUse].map(v => hs[v] ?? 0), lo = used.length ? Math.min(...used) : 0, span = Math.max(...used) - lo || 1;
-  return v => { const f = ((hs[v] ?? lo) - lo) / span; return f > 0 ? `rgba(80,160,255,${(0.1 + 0.65 * f).toFixed(2)})` : null; };
+  const shade = v => { const f = ((hs[v] ?? lo) - lo) / span; return f > 0 ? `rgba(80,160,255,${(0.1 + 0.65 * f).toFixed(2)})` : null; };
+  shade.range = `${lo}:${span}`;  // what every square's blue depends on
+  return shade;
 }
 // Pixels to levels (8 px each), to a half-level where a ramp's middle falls between.
 function levelOf(px) { return Math.round(px / 4) / 2; }
@@ -478,30 +481,40 @@ function cellPainter() {
 
 // Walkability and height, each square drawn where the game shows its ground:
 // lower ground first, so raised squares sit on top.
-function drawGroundOverlays(ctx) {
+function drawGroundOverlays(ctx, cols = null) {  // cols: only these window columns
   const m = S.map, col = $('#ovCollision').checked, sh = $('#ovShape').checked;
   if (!col && !sh) return;
-  const z = +$('#zoom').value, s = 16 * z, l = layer(), cells = [];
-  const shade = heightShade(m);
+  const z = +$('#zoom').value, s = 16 * z, l = layer(), W = m.size[0], H = m.size[1];
+  const shade = heightShade(m), shapes = m.shapes || [], shapeGrid = m.grids.shape, colGrid = m.grids.collision;
+  if (!cols) S.shadeRange = shade.range;
   const ox = l.origin[0] + m.bounds[0] / 2, oy = l.origin[1] + m.bounds[1] / 2;  // as gridXY
-  for (let y = 0; y < m.size[1]; y++) for (let x = 0; x < m.size[0]; x++) {
-    const gx = (ox + x) % 128, gy = (oy + y) % 128, h = heightPx(l, gx, gy);
-    cells.push([h, x, y - h / 16, gx, gy]);
+  // Height and outline per shape row, worked out once per redraw, not per square.
+  const heights = shapes.map(cellHeightPx), spansOf = shapes.map(groundSpans), flat = groundSpans(null);
+  // Squares bucketed by height, lowest first; within a height, in reading order.
+  const buckets = new Map();
+  const xs = cols ? [...cols] : Array.from({ length: W }, (_, x) => x);
+  for (let y = 0; y < H; y++) for (const x of xs) {
+    const v = shapeGrid?.[(oy + y) % 128]?.[(ox + x) % 128], h = heights[v] ?? 0;
+    let b = buckets.get(h); if (!b) buckets.set(h, b = []);
+    b.push(y * W + x);
   }
-  cells.sort((a, b) => a[0] - b[0]);
   // A colour per value, worked out once per redraw.
   const colours = new Map(), shades = new Map();
   const colourOf = v => { if (!colours.has(v)) colours.set(v, collisionColor(v)); return colours.get(v); };
   const shadeOf = v => { if (!shades.has(v)) shades.set(v, shade(v)); return shades.get(v); };
-  for (const [h, x, y, gx, gy] of cells) {
-    const v = m.grids.shape?.[gy]?.[gx], spans = groundSpans(m.shapes?.[v]), gy0 = (y + h / 16) * s;
-    const cover = c => { ctx.fillStyle = c; for (const [x0, x1, t, b] of spans) ctx.fillRect(x * s + x0 * z, gy0 + t * z, (x1 - x0) * z, (b - t) * z); };
-    if (col) { const c = colourOf(m.grids.collision?.[gy]?.[gx]); if (c) cover(c); }
+  const label = z >= 2 && S.advanced;
+  for (const h of [...buckets.keys()].sort((p, q) => p - q)) for (const i of buckets.get(h)) {
+    const x = i % W, y = (i - x) / W, gx = (ox + x) % 128, gy = (oy + y) % 128;
+    const v = shapeGrid?.[gy]?.[gx], spans = spansOf[v] || flat, top = y * s, left = x * s;
+    if (col) {
+      const c = colourOf(colGrid?.[gy]?.[gx]);
+      if (c) { ctx.fillStyle = c; for (const [x0, x1, t, b] of spans) ctx.fillRect(left + x0 * z, top + t * z, (x1 - x0) * z, (b - t) * z); }
+    }
     if (sh) {
       const c = shadeOf(v);
       if (c) {
-        cover(c);
-        if (z >= 2 && S.advanced) { ctx.fillStyle = '#fff'; ctx.fillText(hex(v), x * s + s / 2, y * s + s / 2); }
+        ctx.fillStyle = c; for (const [x0, x1, t, b] of spans) ctx.fillRect(left + x0 * z, top + t * z, (x1 - x0) * z, (b - t) * z);
+        if (label) { ctx.fillStyle = '#fff'; ctx.fillText(hex(v), left + s / 2, top - h * z + s / 2); }
       }
     }
   }
@@ -511,13 +524,14 @@ function drawGroundOverlays(ctx) {
 // from the square's unraised corner: each pixel column runs from its highest
 // point to its lowest. A ramp or steps climbing a square's height inside one
 // square fill two squares of screen, as in the game; one raised square would
-// leave every other row of a staircase bare.
-const groundSpanMemo = new Map();
+// leave every other row of a staircase bare. Kept per row: rows are replaced,
+// never changed in place, when a height is edited.
+const FLAT_SPANS = [[0, 16, 0, 16]], groundSpanMemo = new WeakMap();
 function groundSpans(r) {
-  if (!r) return [[0, 16, 0, 16]];
-  const key = r.join(',');
-  if (groundSpanMemo.has(key)) return groundSpanMemo.get(key);
-  const spans = [];
+  if (!r) return FLAT_SPANS;
+  let spans = groundSpanMemo.get(r);
+  if (spans) return spans;
+  spans = [];
   for (let px = 0; px < 16; px++) {
     let t = Infinity, b = -Infinity;
     for (let py = 0; py < 16; py++) {
@@ -528,7 +542,7 @@ function groundSpans(r) {
     const last = spans[spans.length - 1];
     if (last && last[2] === t && last[3] === b) last[1] = px + 1; else spans.push([px, px + 1, t, b]);
   }
-  groundSpanMemo.set(key, spans);
+  groundSpanMemo.set(r, spans);
   return spans;
 }
 
@@ -559,16 +573,40 @@ function drawAll() {
   markPending(ctx); drawMarkers(ctx); drawDoors(ctx); drawEvents(ctx); drawPoints(ctx); drawCellMark(ctx);
 }
 
-// A whole redraw at most once a frame: dragging a brush with an overlay on
-// would otherwise redraw the map for every square it crosses.
-let redrawQueued = false;
-function drawAllSoon() {
-  if (redrawQueued) return;
-  redrawQueued = true;
-  requestAnimationFrame(() => { redrawQueued = false; drawAll(); });
+// Redraws window columns `cols` only, everything clipped to them. With an
+// overlay on, a changed square's raised ground and everything drawn over it
+// stays in its own column (heights lift squares up, never sideways), so a
+// brush stroke needn't redraw the rest of the map.
+function drawColumns(cols) {
+  const m = S.map; if (!m) return;
+  const z = +$('#zoom').value, s = 16 * z, h = m.size[1], cv = $('#cv'), ctx = cv.getContext('2d');
+  if (cv.width !== m.size[0] * s || cv.height !== h * s) return drawAll();
+  if ($('#ovShape').checked && heightShade(m).range !== S.shadeRange) return drawAll();  // a new lowest or highest ground
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.beginPath();
+  for (const x of cols) { ctx.rect(x * s, 0, s, h * s); ctx.clearRect(x * s, 0, s, h * s); }
+  ctx.clip();
+  ctxSetup(ctx);
+  const paint = cellPainter();
+  for (const x of cols) for (let y = 0; y < h; y++) paint(ctx, x, y);
+  drawGroundOverlays(ctx, cols); drawStand(ctx);
+  markPending(ctx); drawMarkers(ctx); drawDoors(ctx); drawEvents(ctx); drawPoints(ctx); drawCellMark(ctx);
+  ctx.restore();
 }
+
+// Redraws at most once a frame: dragging a brush with an overlay on would
+// otherwise redraw for every square it crosses. Queued: true for the whole
+// map, or the set of columns that changed.
+let redrawQueued = null;
+function queueRedraw(cols) {
+  const first = !redrawQueued;
+  if (cols && redrawQueued !== true) { redrawQueued ??= new Set(); for (const x of cols) redrawQueued.add(x); } else redrawQueued = true;
+  if (first) requestAnimationFrame(() => { const q = redrawQueued; redrawQueued = null; q === true ? drawAll() : drawColumns(q); });
+}
+function drawAllSoon() { queueRedraw(null); }
 function redrawCells(cells) {
-  if ($('#ovCollision').checked || $('#ovShape').checked || $('#ovStand').checked) return drawAllSoon();  // raised squares overlap other cells
+  if ($('#ovCollision').checked || $('#ovShape').checked || $('#ovStand').checked) return queueRedraw(cells.map(c => c[0]));  // raised squares overlap other rows
   const ctx = $('#cv').getContext('2d'); ctxSetup(ctx);
   const paint = cellPainter();
   for (const [x, y] of cells) paint(ctx, x, y);
@@ -2423,29 +2461,34 @@ $('#exGo').onclick = async () => {
   }
   if (r.error) return $('#exMsg').innerHTML = `<span class="err">${esc(r.error)}</span>`;
   $('#exGo').disabled = true; $('#exReveal').style.display = 'none'; exResult = null;
-  $('#exLog').style.display = 'block'; $('#exLog').textContent = '';
+  const s = await followJob('/api/export/status', $('#exLog'), $('#exMsg'),
+    T('Working… the first export also builds the unmodified game once, which takes a few minutes.'));
+  $('#exGo').disabled = false;
+  if (s.ok) {
+    exResult = s.result; $('#exReveal').style.display = '';
+    const file = `<b>${esc(s.result.patch.split('/').pop())}</b>`, size = (s.result.size / 1024).toFixed(1);
+    $('#exMsg').innerHTML = `<span class="ok">${s.result.ips_size
+      ? T('Saved {file} ({size} KB) and an .ips ({ips} MB) with a readme for players.', { file, size, ips: (s.result.ips_size / 1048576).toFixed(1) })
+      : T('Saved {file} ({size} KB) with a readme for players.', { file, size })}</span>`;
+  } else $('#exMsg').innerHTML = `<span class="err">${esc(s.error)}</span>`;
+};
+
+// Follows a background job (export, patcher, update) until it ends: its log
+// into logEl, `busy` in msgEl meanwhile. The job's last status, or api()'s own
+// {error} when the app stops answering (then done is undefined).
+async function followJob(url, logEl, msgEl, busy) {
+  logEl.style.display = 'block'; logEl.textContent = '';
   let since = 0;
   for (;;) {
-    const s = await api(`/api/export/status?since=${since}`);
-    // No answer at all (api()'s own {error}): the app went away, so stop asking.
-    if (s.done === undefined) { $('#exGo').disabled = false; $('#exMsg').innerHTML = `<span class="err">${esc(s.error)}</span>`; break; }
-    if (s.log?.length) { $('#exLog').textContent += s.log.join('\n') + '\n'; $('#exLog').scrollTop = $('#exLog').scrollHeight; }
+    const s = await api(`${url}?since=${since}`);
+    if (s.done === undefined) return s;
+    if (s.log?.length) { logEl.textContent += s.log.join('\n') + '\n'; logEl.scrollTop = logEl.scrollHeight; }
     since = s.next ?? since;
-    $('#exMsg').textContent = s.done ? '' : T('Working… the first export also builds the unmodified game once, which takes a few minutes.');
-    if (s.done) {
-      $('#exGo').disabled = false;
-      if (s.ok) {
-        exResult = s.result; $('#exReveal').style.display = '';
-        const file = `<b>${esc(s.result.patch.split('/').pop())}</b>`, size = (s.result.size / 1024).toFixed(1);
-        $('#exMsg').innerHTML = `<span class="ok">${s.result.ips_size
-          ? T('Saved {file} ({size} KB) and an .ips ({ips} MB) with a readme for players.', { file, size, ips: (s.result.ips_size / 1048576).toFixed(1) })
-          : T('Saved {file} ({size} KB) with a readme for players.', { file, size })}</span>`;
-      } else $('#exMsg').innerHTML = `<span class="err">${esc(s.error)}</span>`;
-      break;
-    }
+    msgEl.textContent = s.done ? '' : busy;
+    if (s.done) return s;
     await new Promise(r => setTimeout(r, 800));
   }
-};
+}
 
 // ---- updating the game source to the version this editor was tested with (gsmap/update.py)
 const UP = { offer: null };
@@ -2470,26 +2513,17 @@ $('#upGo').onclick = async () => {
 };
 async function followUpdate() {
   $('#upGo').disabled = true; $('#upClose').disabled = true;
-  $('#upLog').style.display = 'block'; $('#upLog').textContent = '';
-  let since = 0;
-  for (;;) {
-    const s = await api(`/api/update/status?since=${since}`);
-    if (s.done === undefined) { $('#upMsg').innerHTML = `<span class="err">${esc(s.error)}</span>`; break; }
-    if (s.log?.length) { $('#upLog').textContent += s.log.join('\n') + '\n'; $('#upLog').scrollTop = $('#upLog').scrollHeight; }
-    since = s.next ?? since;
-    $('#upMsg').textContent = s.done ? '' : T('Updating… you can leave this open. Editing waits until it finishes.');
-    if (s.done) {
-      $('#upClose').disabled = false; $('#upClose').textContent = T('Close');
-      if (s.ok) {
-        $('#updateBtn').style.display = 'none';
-        $('#upMsg').innerHTML = `<span class="ok">${T('Updated to {to}. Quit the app and open it again to keep editing. Undo starts afresh, since the old history names files as the old version had them.', { to: esc(s.result.to) })}</span>`;
-      } else {
-        $('#upGo').disabled = false;
-        $('#upMsg').innerHTML = `<span class="err">${esc(s.error)}</span>`;
-      }
-      break;
-    }
-    await new Promise(res => setTimeout(res, 800));
+  const s = await followJob('/api/update/status', $('#upLog'), $('#upMsg'),
+    T('Updating… you can leave this open. Editing waits until it finishes.'));
+  $('#upClose').disabled = false;  // also when the app stopped answering: the dialog must still close
+  if (s.done === undefined) return $('#upMsg').innerHTML = `<span class="err">${esc(s.error)}</span>`;
+  $('#upClose').textContent = T('Close');
+  if (s.ok) {
+    $('#updateBtn').style.display = 'none';
+    $('#upMsg').innerHTML = `<span class="ok">${T('Updated to {to}. Quit the app and open it again to keep editing. Undo starts afresh, since the old history names files as the old version had them.', { to: esc(s.result.to) })}</span>`;
+  } else {
+    $('#upGo').disabled = false;
+    $('#upMsg').innerHTML = `<span class="err">${esc(s.error)}</span>`;
   }
 }
 
@@ -2517,31 +2551,20 @@ $('#ptGo').onclick = async () => {
   const r = await api('/api/patcher', { patch: PT.patch, name: PT.name, rom: own ? PT.rom : null });
   if (r.error) return $('#ptMsg').innerHTML = `<span class="err">${esc(r.error)}</span>`;
   $('#ptGo').disabled = true; $('#ptPlay').style.display = $('#ptReveal').style.display = 'none';
-  $('#ptLog').style.display = 'block'; $('#ptLog').textContent = '';
-  let since = 0;
-  for (;;) {
-    const s = await api(`/api/export/status?since=${since}`);
-    if (s.done === undefined) { $('#ptGo').disabled = false; $('#ptMsg').innerHTML = `<span class="err">${esc(s.error)}</span>`; break; }  // as in Export
-    if (s.log?.length) { $('#ptLog').textContent += s.log.join('\n') + '\n'; $('#ptLog').scrollTop = $('#ptLog').scrollHeight; }
-    since = s.next ?? since;
-    $('#ptMsg').textContent = s.done ? '' : (own ? T('Patching…') : T('Patching… the first time also builds the unmodified game, a few minutes.'));
-    if (s.done) {
-      $('#ptGo').disabled = false;
-      if (s.ok) {
-        PT.result = s.result;
-        // The patch's own notes (name: …, author: …), with the editor's words for the ones it writes.
-        const aboutLabel = { name: T('Name'), author: T('Author'), description: T('Description'), for: T('For') };
-        const about = (s.result.about || '').split('\n').filter(Boolean).map(l => esc(l).replace(/^(\w+): /, (m, k) => `<b>${({}).hasOwnProperty.call(aboutLabel, k) ? aboutLabel[k] : k[0].toUpperCase() + k.slice(1)}:</b> `)).join('<br>');
-        const pv = { base: esc(s.result.base), format: esc(s.result.format.toUpperCase()), file: esc(s.result.game.split('/').pop()) };
-        $('#ptMsg').innerHTML = `<span class="ok">${s.result.format === 'ips' ? T('Patched {base} with an {format} patch: saved {file}.', pv) : T('Patched {base} with a {format} patch: saved {file}.', pv)}</span>` +
-          (about ? `<div class="note" style="margin-top:6px">${about}</div>` : '') +
-          s.result.notes.map(n => `<div class="warn" style="margin-top:6px">${esc(n)}</div>`).join('');
-        $('#ptPlay').style.display = $('#ptReveal').style.display = '';
-      } else $('#ptMsg').innerHTML = `<span class="err">${esc(s.error)}</span>`;
-      break;
-    }
-    await new Promise(res => setTimeout(res, 700));
-  }
+  const s = await followJob('/api/export/status', $('#ptLog'), $('#ptMsg'),
+    own ? T('Patching…') : T('Patching… the first time also builds the unmodified game, a few minutes.'));
+  $('#ptGo').disabled = false;
+  if (s.ok) {
+    PT.result = s.result;
+    // The patch's own notes (name: …, author: …), with the editor's words for the ones it writes.
+    const aboutLabel = { name: T('Name'), author: T('Author'), description: T('Description'), for: T('For') };
+    const about = (s.result.about || '').split('\n').filter(Boolean).map(l => esc(l).replace(/^(\w+): /, (m, k) => `<b>${({}).hasOwnProperty.call(aboutLabel, k) ? aboutLabel[k] : k[0].toUpperCase() + k.slice(1)}:</b> `)).join('<br>');
+    const pv = { base: esc(s.result.base), format: esc(s.result.format.toUpperCase()), file: esc(s.result.game.split('/').pop()) };
+    $('#ptMsg').innerHTML = `<span class="ok">${s.result.format === 'ips' ? T('Patched {base} with an {format} patch: saved {file}.', pv) : T('Patched {base} with a {format} patch: saved {file}.', pv)}</span>` +
+      (about ? `<div class="note" style="margin-top:6px">${about}</div>` : '') +
+      s.result.notes.map(n => `<div class="warn" style="margin-top:6px">${esc(n)}</div>`).join('');
+    $('#ptPlay').style.display = $('#ptReveal').style.display = '';
+  } else $('#ptMsg').innerHTML = `<span class="err">${esc(s.error)}</span>`;
 };
 
 // ---- checks: what your changes would break, in plain words ------------------------
