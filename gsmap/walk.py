@@ -347,11 +347,10 @@ class Walk:
         stops = {e["trigger"] for e in self.events if e["kind"] in ("exit", "touch")} - self.slide
         before, applied = self.before_reach, []
         for _ in range(len(self.changes)):
-            near = {(self.ox + dx + (x - self.x0) // 16, self.oz + dz + (z - self.z0) // 16)
-                    for x, z in self.reach for dx in (-1, 0, 1) for dz in (-1, 0, 1)}
+            reached = {self.grid_cell(x, z) for x, z in self.reach}
+            near = {((gx + dx) % 128, (gz + dz) % 128) for gx, gz in reached for dx in (-1, 0, 1) for dz in (-1, 0, 1)}
             more = [c for c in self.changes if c not in applied and any(
-                ((c[4] + i) % 128, (c[5] + j) % 128) in near or (c[4] + i, c[5] + j) in near
-                for j in range(c[3]) for i in range(c[2]))]
+                ((c[4] + i) % 128, (c[5] + j) % 128) in near for j in range(c[3]) for i in range(c[2]))]
             if not more:
                 break
             applied += more
@@ -359,7 +358,7 @@ class Walk:
             self.col, self.shp = _changed(col, applied), _changed(shp, applied)
             blank = self._blank(_changed(self.blocks, [c for c in applied if c[6:7] == (True,)]))
             try:
-                _, after, after_ends = self._graph()
+                _, after, after_ends = self._graph(base=(edges, col, shp))
                 after = {n: [] if self.behavior(*n) in stops or blank(*n) else [mv for mv in moves if not blank(*mv[0])]
                          for n, moves in after.items()}
             finally:
@@ -370,8 +369,10 @@ class Walk:
             self.reach = self.flood()
         self.applied = applied
 
-    def _graph(self):
-        """(nodes, edges, slide ends) of the map's cells as they stand now."""
+    def _graph(self, base=None):
+        """(nodes, edges, slide ends) of the map's cells as they stand now.
+        base: (edges, collision, shapes) of a graph made from other cells,
+        when only the moves near the cells that differ need working out."""
         # The moves depend only on the cells, heights and slides, which several
         # scenes of a map share and most saves (an event, a door) leave alone:
         # a graph made from the same ones is reused. Shared: treat it as read-only.
@@ -385,19 +386,42 @@ class Walk:
         if hit is None:
             nodes = [(self.x0 + i * GRID, self.z0 + j * GRID)
                      for j in range(self.h * 16 // GRID) for i in range(self.w * 16 // GRID)]
-            edges, slide_ends = {}, set()
-            for n in nodes:
-                if self.behavior(*n) == WALL:
-                    continue
-                moves = self._moves(*n)
-                edges[n] = moves
-                slide_ends.update(m for m, k in moves if k == "slide")
+            if base is not None:
+                edges = self._patched(nodes, *base)
+                slide_ends = {m for moves in edges.values() for m, k in moves if k == "slide"}
+            else:
+                edges, slide_ends = {}, set()
+                for n in nodes:
+                    if self.behavior(*n) == WALL:
+                        continue
+                    moves = self._moves(*n)
+                    edges[n] = moves
+                    slide_ends.update(m for m, k in moves if k == "slide")
             hit = (nodes, edges, slide_ends)
             with _GRAPHS_LOCK:
                 _GRAPHS[key] = hit
                 while len(_GRAPHS) > GRAPHS_KEPT:
                     _GRAPHS.popitem(last=False)
         return hit
+
+    def _patched(self, nodes, edges, col, shp):
+        """edges, made from cells col and shp, with the moves redone wherever
+        the current cells could change them. A point's moves read cells at
+        most three cells away (a step's probes, a jump), except along its own
+        row and column, which hops, climbs and slides follow any distance."""
+        changed = [(gx, gz) for gz in range(128) for gx in range(128)
+                   if self.col[gz][gx] != col[gz][gx] or self.shp[gz][gx] != shp[gz][gx]]
+        cols = {(gx + d) % 128 for gx, _ in changed for d in range(-3, 4)}
+        rows = {(gz + d) % 128 for _, gz in changed for d in range(-3, 4)}
+        out = dict(edges)
+        for n in nodes:
+            gx, gz = self.grid_cell(*n)
+            if gx in cols or gz in rows:
+                if self.behavior(*n) == WALL:
+                    out.pop(n, None)
+                else:
+                    out[n] = self._moves(*n)
+        return out
 
     def _near(self, x, z, reach):
         """Lattice points within `reach` pixels of (x, z): every point the

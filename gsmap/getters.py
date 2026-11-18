@@ -46,16 +46,22 @@ def _scene_macros(tbs):
     return cached[1]
 
 
+_BRACKETS = {}
+
+
 def _matching(text, start, opening, closing):
     """Index just past the bracket matching text[start]."""
+    pattern = _BRACKETS.get(opening + closing)
+    if pattern is None:
+        pattern = _BRACKETS[opening + closing] = re.compile("[" + re.escape(opening + closing) + "]")
     depth = 0
-    for i in range(start, len(text)):
-        if text[i] == opening:
+    for m in pattern.finditer(text, start):  # only the brackets, not every character
+        if m.group() == opening:
             depth += 1
-        elif text[i] == closing:
+        else:
             depth -= 1
             if depth == 0:
-                return i + 1
+                return m.end()
     raise ValueError("unbalanced source")
 
 

@@ -115,9 +115,14 @@ def room_changes(tbs, overlay, scene_name):
         return re.sub(r"\bSCENE_\w+\b", lambda m: f"(s32)&SceneId_{macros[m.group(0)]}"
                       if m.group(0) in macros else m.group(0), text)
 
-    defs = {}
-    for path in _scene_files(tbs, overlay.tables):
-        defs.update(_definitions(scene_ids(_strip_comments(_source_text(path)))))
+    # The overlay's definitions are the same for every room it serves.
+    defs_key = ("definitions", tbs, sources_generation(tbs))
+    defs = overlay.memo.get(defs_key)
+    if defs is None:
+        defs = {}
+        for path in _scene_files(tbs, overlay.tables):
+            defs.update(_definitions(scene_ids(_strip_comments(_source_text(path)))))
+        overlay.memo[defs_key] = defs
     roots = []
     for kind in ROOM_KINDS:
         found = scene_tables(tbs, overlay, kind, scene_name)
