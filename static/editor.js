@@ -34,6 +34,7 @@ async function init() {
   S.names.sceneById = Object.fromEntries(S.names.scenes.map(i => [i.id, i]));
   S.advanced = load('advanced', false); $('#advanced').checked = S.advanced;
   $('#ovStand').checked = load('ovStand', false);
+  S.flat = $('#ovFlat').checked = load('ovFlat', false);
   document.body.classList.toggle('advanced', S.advanced);
   buildBrushes();
   S.maps = await api('/api/maps');
@@ -480,16 +481,22 @@ function cellPainter() {
 }
 
 // Walkability and height, each square drawn where the game shows its ground:
-// lower ground first, so raised squares sit on top.
+// lower ground first, so raised squares sit on top. Where raised ground covers
+// ground two levels or more below it (a bridge over a path, a cliff top over
+// the floor behind it), the covered part is striped: a click there reaches
+// the higher square, and Flat view reaches the lower one.
 function drawGroundOverlays(ctx, cols = null) {  // cols: only these window columns
   const m = S.map, col = $('#ovCollision').checked, sh = $('#ovShape').checked;
-  if (!col && !sh) return;
+  if (!col && !sh) return [];
   const z = +$('#zoom').value, s = 16 * z, l = layer(), W = m.size[0], H = m.size[1];
   const shade = heightShade(m), shapes = m.shapes || [], shapeGrid = m.grids.shape, colGrid = m.grids.collision;
   if (!cols) S.shadeRange = shade.range;
   const ox = l.origin[0] + m.bounds[0] / 2, oy = l.origin[1] + m.bounds[1] / 2;  // as gridXY
   // Height and outline per shape row, worked out once per redraw, not per square.
-  const heights = shapes.map(cellHeightPx), spansOf = shapes.map(groundSpans), flat = groundSpans(null);
+  // Flat view draws every square unraised, where its ground is stored.
+  const flat = groundSpans(null);
+  const heights = S.flat ? [] : shapes.map(cellHeightPx), spansOf = S.flat ? [] : shapes.map(groundSpans);
+  const drawn = new Map(), hidden = [];  // per column, the ground drawn so far; the covered parts
   // Squares bucketed by height, lowest first; within a height, in reading order.
   const buckets = new Map();
   const xs = cols ? [...cols] : Array.from({ length: W }, (_, x) => x);
@@ -506,6 +513,15 @@ function drawGroundOverlays(ctx, cols = null) {  // cols: only these window colu
   for (const h of [...buckets.keys()].sort((p, q) => p - q)) for (const i of buckets.get(h)) {
     const x = i % W, y = (i - x) / W, gx = (ox + x) % 128, gy = (oy + y) % 128;
     const v = shapeGrid?.[gy]?.[gx], spans = spansOf[v] || flat, top = y * s, left = x * s;
+    if (!S.flat) {
+      let below = drawn.get(x); if (!below) drawn.set(x, below = []);
+      for (const [x0, x1, t, b] of spans) for (const o of below) {
+        if (spans.lo - o.hi < 16) continue;  // under two levels: steps and ramps overlap by design
+        const ax = Math.max(x0, o.x0), bx = Math.min(x1, o.x1), at = Math.max(y * 16 + t, o.t), bt = Math.min(y * 16 + b, o.b);
+        if (ax < bx && at < bt) hidden.push([x * 16 + ax, at, bx - ax, bt - at]);
+      }
+      for (const [x0, x1, t, b] of spans) below.push({ x0, x1, t: y * 16 + t, b: y * 16 + b, hi: spans.hi });
+    }
     if (col) {
       const c = colourOf(colGrid?.[gy]?.[gx]);
       if (c) { ctx.fillStyle = c; for (const [x0, x1, t, b] of spans) ctx.fillRect(left + x0 * z, top + t * z, (x1 - x0) * z, (b - t) * z); }
@@ -518,6 +534,29 @@ function drawGroundOverlays(ctx, cols = null) {  // cols: only these window colu
       }
     }
   }
+  return hidden;
+}
+// The covered parts drawGroundOverlays found, as [x, y, w, h] in unzoomed pixels:
+// drawn last, so the people overlay's colours don't bury them.
+function drawHidden(ctx, hidden) {
+  if (!hidden.length) return;
+  const z = +$('#zoom').value;
+  ctx.fillStyle = hiddenStripes(ctx, z);
+  for (const [x, y, w, h] of hidden) ctx.fillRect(x * z, y * z, w * z, h * z);
+}
+// Red diagonal stripes for ground hidden under higher ground: striped, so they
+// don't read as the solid red of walls and hazard ground.
+let stripeCache = null;
+function hiddenStripes(ctx, z) {
+  if (stripeCache?.z === z) return stripeCache.pattern;
+  const n = 6 * z, c = document.createElement('canvas'), g = c.getContext('2d');
+  c.width = c.height = n;
+  g.strokeStyle = 'rgba(255,40,60,0.9)'; g.lineWidth = 1.5 * z;
+  g.beginPath();
+  for (const d of [-n, 0, n]) { g.moveTo(d, n); g.lineTo(d + n, 0); }
+  g.stroke();
+  stripeCache = { z, pattern: ctx.createPattern(c, 'repeat') };
+  return stripeCache.pattern;
 }
 
 // Where a square's ground shows on screen, as [x0, x1, top, bottom] in pixels
@@ -526,17 +565,19 @@ function drawGroundOverlays(ctx, cols = null) {  // cols: only these window colu
 // square fill two squares of screen, as in the game; one raised square would
 // leave every other row of a staircase bare. Kept per row: rows are replaced,
 // never changed in place, when a height is edited.
-const FLAT_SPANS = [[0, 16, 0, 16]], groundSpanMemo = new WeakMap();
+// The spans also carry the square's lowest and highest ground in pixels (lo, hi).
+const FLAT_SPANS = Object.assign([[0, 16, 0, 16]], { lo: 0, hi: 0 }), groundSpanMemo = new WeakMap();
 function groundSpans(r) {
   if (!r) return FLAT_SPANS;
   let spans = groundSpanMemo.get(r);
   if (spans) return spans;
-  spans = [];
+  spans = Object.assign([], { lo: Infinity, hi: -Infinity });
   for (let px = 0; px < 16; px++) {
     let t = Infinity, b = -Infinity;
     for (let py = 0; py < 16; py++) {
       const lift = 8 * shapeLevelAt(r, px, py);
       t = Math.min(t, py - lift); b = Math.max(b, py + 1 - lift);
+      spans.lo = Math.min(spans.lo, lift); spans.hi = Math.max(spans.hi, lift);
     }
     t = Math.floor(t); b = Math.ceil(b);
     const last = spans[spans.length - 1];
@@ -569,7 +610,7 @@ function drawAll() {
   ctxSetup(ctx);
   const paint = cellPainter();
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) paint(ctx, x, y);
-  drawGroundOverlays(ctx); drawStand(ctx);
+  const hidden = drawGroundOverlays(ctx); drawStand(ctx); drawHidden(ctx, hidden);
   markPending(ctx); drawMarkers(ctx); drawDoors(ctx); drawEvents(ctx); drawPoints(ctx); drawCellMark(ctx);
 }
 
@@ -590,7 +631,7 @@ function drawColumns(cols) {
   ctxSetup(ctx);
   const paint = cellPainter();
   for (const x of cols) for (let y = 0; y < h; y++) paint(ctx, x, y);
-  drawGroundOverlays(ctx, cols); drawStand(ctx);
+  const hidden = drawGroundOverlays(ctx, cols); drawStand(ctx); drawHidden(ctx, hidden);
   markPending(ctx); drawMarkers(ctx); drawDoors(ctx); drawEvents(ctx); drawPoints(ctx); drawCellMark(ctx);
   ctx.restore();
 }
@@ -624,9 +665,12 @@ function windowXY(l, gx, gy) {
 // The game stores collision, height, doors, chests and people at their ground
 // position and draws them raised by the ground's height (field/terrain.c: a
 // cell's shape row holds a kind and samples in 8-px units). These convert.
-function heightPx(l, gx, gy) {
+function groundHeightPx(gx, gy) {
   return cellHeightPx(S.map.shapes?.[S.map.grids.shape?.[gy]?.[gx]]);
 }
+// How far the square is drawn raised: none in Flat view, where everything
+// shows where its ground is stored.
+function heightPx(l, gx, gy) { return S.flat ? 0 : groundHeightPx(gx, gy); }
 // Window position (cells, possibly fractional) where ground cell (gx, gy) shows.
 function groundXY(l, gx, gy) {
   const w = windowXY(l, gx, gy); if (!w) return null;
@@ -1072,9 +1116,9 @@ $('#cv').addEventListener('mousemove', e => {
   status(S.advanced
     ? T('cell {cell} (ground {ground}) · blocks {blocks} · {what} · height {height} ({px} px) on L{layer}', {
       cell: `<b>${x},${y}</b>`, ground: `${gx},${gy}`, blocks: parts.join(' '), what,
-      height: `<b>${hex(m.grids.shape?.[gy]?.[gx])}</b>`, px: heightPx(l, gx, gy), layer: l.index })
+      height: `<b>${hex(m.grids.shape?.[gy]?.[gx])}</b>`, px: groundHeightPx(gx, gy), layer: l.index })
     // The ground square: what doors, chests and Check name, even on raised ground.
-    : T('{what} · level {n} · cell {cell}', { what, n: levelOf(heightPx(l, gx, gy)), cell: `${gx},${gy}` }));
+    : T('{what} · level {n} · cell {cell}', { what, n: levelOf(groundHeightPx(gx, gy)), cell: `${gx},${gy}` }));
 });
 
 // ---- scenes and their tables ---------------------------------------------------
@@ -2747,6 +2791,7 @@ $('#editLayer').onchange = () => { drawPalette(); drawAll(); };
 $('#filter').oninput = renderList;
 $('#zoom').onchange = () => { save('zoom', $('#zoom').value); drawAll(); };
 for (const id of ['#ovCollision', '#ovShape', '#ovGrid']) $(id).onchange = drawAll;
+$('#ovFlat').onchange = () => { S.flat = $('#ovFlat').checked; save('ovFlat', S.flat); drawAll(); };
 $('#ovStand').onchange = () => { save('ovStand', $('#ovStand').checked); WK.key = null; loadStand(); drawAll(); };
 window.addEventListener('keydown', e => {
   const dialog = openDialog();

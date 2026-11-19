@@ -1171,5 +1171,7 @@
  "…and {n} more": "…y {n} más",
  "← Back to {place}": "← Volver a {place}",
  "← Places": "← Lugares",
- "▶ Play": "▶ Jugar"
+ "▶ Play": "▶ Jugar",
+ "Flat view": "Vista plana",
+ "Show every square where its ground really is, not raised by its height. Nothing overlaps, so you can reach ground hidden under a bridge or a cliff top. The pictures stay where they are.": "Muestra cada casilla donde está realmente su suelo, sin elevarla por su altura. Nada se superpone, así que puedes llegar al suelo oculto bajo un puente o lo alto de un acantilado. Las imágenes se quedan donde están."
 }

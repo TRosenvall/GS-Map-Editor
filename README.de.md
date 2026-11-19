@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 8b907e56b51b -->
+<!-- translated from README.md @ 3a996dc33086 -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · **Deutsch** · [Français](README.fr.md) · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -158,6 +158,7 @@ Drück auf **Ansicht** (V), um dich umzusehen, ohne etwas zu ändern.
 - **Zoom:** 1× bis 4×.
 - **Ebenen:** Jeder Ort hat bis zu drei, genannt **Boden**, **Mitte** und **Oben**. Du kannst jede einzeln ausblenden. Setz das Häkchen bei **Erweitert** für Schieberegler, mit denen du sie ausblendest.
 - **Overlays:** Setz das Häkchen bei **Begehbarkeit**, bei **Höhe**, um die Bodenhöhe zu sehen, oder bei **Raster**, um die Felder zu sehen.
+- **Verdeckter Boden:** Erhöhter Boden wird weiter oben auf dem Bildschirm gezeichnet, deshalb kann eine Brücke oder eine Klippe Boden verdecken, der zwei Ebenen oder mehr tiefer liegt. Mit **Begehbarkeit** oder **Höhe** markieren rote Streifen diese Stellen, und ein Klick dort trifft das höhere Feld. Setz das Häkchen bei **Flache Ansicht**, um jedes Feld dort zu zeichnen, wo sein Boden wirklich liegt, ohne es anzuheben. Dann überlappt nichts, und du erreichst den Boden darunter. Die Bilder bleiben, wo sie sind.
 - **Truhen** sind immer auf der Karte zu sehen. Türen, Personen und Ereignisse erscheinen, wenn du ihre Werkzeuge benutzt.
 
 ## Malen: wie der Boden aussieht

@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 8b907e56b51b -->
+<!-- translated from README.md @ 3a996dc33086 -->
 # GS Map Editor
 
 [English](README.md) · **Español** · [Deutsch](README.de.md) · [Français](README.fr.md) · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -158,6 +158,7 @@ Pulsa **Ver** (V) para mirar sin cambiar nada.
 - **Zoom:** de 1× a 4×.
 - **Capas:** cada lugar tiene hasta tres, llamadas **Suelo**, **Medio** y **Superior**. Puedes ocultar cada una. Marca **Avanzado** para tener controles deslizantes que las atenúan.
 - **Superposiciones:** marca **Zonas de paso**, **Altura** para ver la altura del suelo, o **Cuadrícula** para ver las casillas.
+- **Suelo oculto:** el suelo elevado se dibuja más arriba en la pantalla, así que un puente o lo alto de un acantilado puede tapar suelo que está dos niveles o más por debajo. Con **Zonas de paso** o **Altura** marcadas, unas rayas rojas señalan esos sitios, y un clic ahí alcanza la casilla más alta. Marca **Vista plana** para dibujar cada casilla donde está realmente su suelo, sin elevarla. Entonces nada se superpone y puedes llegar al suelo de debajo. Las imágenes se quedan donde están.
 - Los **cofres** siempre se ven en el mapa. Las puertas, las personas y los eventos se ven cuando usas sus herramientas.
 
 ## Pintar: cómo se ve el suelo

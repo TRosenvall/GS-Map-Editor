@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 8b907e56b51b -->
+<!-- translated from README.md @ 3a996dc33086 -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · [Deutsch](README.de.md) · [Français](README.fr.md) · **Italiano** · [日本語](README.ja.md)
@@ -158,6 +158,7 @@ Premi **Visualizza** (V) per guardare senza cambiare nulla.
 - **Zoom:** da 1× a 4×.
 - **Livelli:** ogni luogo ne ha fino a tre, chiamati **Terreno**, **Centrale** e **Superiore**. Puoi nascondere ciascuno. Spunta **Avanzate** per avere dei cursori che li sfumano.
 - **Sovrapposizioni:** spunta **Calpestabilità**, **Altezza** per vedere l'altezza del terreno, o **Griglia** per vedere le caselle.
+- **Terreno nascosto:** il terreno rialzato è disegnato più in alto sullo schermo, quindi un ponte o la cima di una scogliera può coprire terreno che sta due livelli o più sotto. Con **Calpestabilità** o **Altezza** spuntate, delle strisce rosse segnano quei punti, e un clic lì raggiunge la casella più alta. Spunta **Vista piatta** per disegnare ogni casella dove si trova davvero il suo terreno, senza alzarla. Così niente si sovrappone e raggiungi il terreno sotto. Le immagini restano dove sono.
 - I **forzieri** si vedono sempre sulla mappa. Porte, persone ed eventi si vedono quando usi i loro strumenti.
 
 ## Dipingi: com'è il terreno

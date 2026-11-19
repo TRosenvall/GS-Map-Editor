@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 8b907e56b51b -->
+<!-- translated from README.md @ 3a996dc33086 -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · [Deutsch](README.de.md) · **Français** · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -158,6 +158,7 @@ Appuyez sur **Regarder** (V) pour regarder sans rien modifier.
 - **Zoom :** de 1× à 4×.
 - **Calques :** chaque lieu en a jusqu'à trois, appelés **Sol**, **Milieu** et **Au-dessus**. Vous pouvez masquer chacun d'eux. Cochez **Avancé** pour avoir des curseurs qui les estompent.
 - **Superpositions :** cochez **Praticabilité**, **Hauteur** pour voir la hauteur du sol, ou **Grille** pour voir les cases.
+- **Sol caché :** le sol surélevé est dessiné plus haut à l'écran, donc un pont ou le haut d'une falaise peut couvrir un sol situé deux niveaux ou plus en dessous. Avec **Praticabilité** ou **Hauteur** cochée, des rayures rouges marquent ces endroits, et un clic à cet endroit atteint la case la plus haute. Cochez **Vue à plat** pour dessiner chaque case là où se trouve vraiment son sol, sans la surélever. Rien ne se chevauche alors, et vous pouvez atteindre le sol en dessous. Les images restent à leur place.
 - Les **coffres** sont toujours visibles sur la carte. Les portes, les personnages et les événements apparaissent quand vous utilisez leurs outils.
 
 ## Peindre : l'apparence du sol

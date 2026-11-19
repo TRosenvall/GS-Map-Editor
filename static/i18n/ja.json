@@ -1171,5 +1171,7 @@
  "…and {n} more": "…ほか {n} 件",
  "← Back to {place}": "← {place} に戻る",
  "← Places": "← 場所",
- "▶ Play": "▶ プレイ"
+ "▶ Play": "▶ プレイ",
+ "Flat view": "平面表示",
+ "Show every square where its ground really is, not raised by its height. Nothing overlaps, so you can reach ground hidden under a bridge or a cliff top. The pictures stay where they are.": "各マスを高さで持ち上げず、地面が実際にある位置に表示します。重なりがなくなるので、橋や崖の上に隠れた地面にも届きます。絵はそのままの位置です。"
 }
