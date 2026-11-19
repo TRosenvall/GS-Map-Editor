@@ -496,12 +496,14 @@ function drawGroundOverlays(ctx, cols = null) {  // cols: only these window colu
   // Flat view draws every square unraised, where its ground is stored.
   const flat = groundSpans(null);
   const heights = S.flat ? [] : shapes.map(cellHeightPx), spansOf = S.flat ? [] : shapes.map(groundSpans);
-  const drawn = new Map(), hidden = [];  // per column, the ground drawn so far; the covered parts
+  let groundLo = Infinity, groundHi = -Infinity;  // lowest and highest ground in the columns drawn
   // Squares bucketed by height, lowest first; within a height, in reading order.
   const buckets = new Map();
   const xs = cols ? [...cols] : Array.from({ length: W }, (_, x) => x);
   for (let y = 0; y < H; y++) for (const x of xs) {
-    const v = shapeGrid?.[(oy + y) % 128]?.[(ox + x) % 128], h = heights[v] ?? 0;
+    const v = shapeGrid?.[(oy + y) % 128]?.[(ox + x) % 128], h = heights[v] ?? 0, sp = spansOf[v] || flat;
+    if (sp.lo < groundLo) groundLo = sp.lo;
+    if (sp.hi > groundHi) groundHi = sp.hi;
     let b = buckets.get(h); if (!b) buckets.set(h, b = []);
     b.push(y * W + x);
   }
@@ -513,15 +515,6 @@ function drawGroundOverlays(ctx, cols = null) {  // cols: only these window colu
   for (const h of [...buckets.keys()].sort((p, q) => p - q)) for (const i of buckets.get(h)) {
     const x = i % W, y = (i - x) / W, gx = (ox + x) % 128, gy = (oy + y) % 128;
     const v = shapeGrid?.[gy]?.[gx], spans = spansOf[v] || flat, top = y * s, left = x * s;
-    if (!S.flat) {
-      let below = drawn.get(x); if (!below) drawn.set(x, below = []);
-      for (const [x0, x1, t, b] of spans) for (const o of below) {
-        if (spans.lo - o.hi < 16) continue;  // under two levels: steps and ramps overlap by design
-        const ax = Math.max(x0, o.x0), bx = Math.min(x1, o.x1), at = Math.max(y * 16 + t, o.t), bt = Math.min(y * 16 + b, o.b);
-        if (ax < bx && at < bt) hidden.push([x * 16 + ax, at, bx - ax, bt - at]);
-      }
-      for (const [x0, x1, t, b] of spans) below.push({ x0, x1, t: y * 16 + t, b: y * 16 + b, hi: spans.hi });
-    }
     if (col) {
       const c = colourOf(colGrid?.[gy]?.[gx]);
       if (c) { ctx.fillStyle = c; for (const [x0, x1, t, b] of spans) ctx.fillRect(left + x0 * z, top + t * z, (x1 - x0) * z, (b - t) * z); }
@@ -534,7 +527,60 @@ function drawGroundOverlays(ctx, cols = null) {  // cols: only these window colu
       }
     }
   }
+  // Covered ground: none in Flat view, nor where all the ground is within two levels.
+  const hidden = [];
+  if (!S.flat && groundHi - groundLo >= 16)
+    for (const x of xs) hiddenInColumn(x, H, v => groundRuns(shapes[v]), y => shapeGrid?.[(oy + y) % 128]?.[(ox + x) % 128], hidden);
   return hidden;
+}
+// The screen pixels of window column x where two ground points two levels or
+// more apart are drawn, pushed to `out` as [x, y, w, h] in unzoomed pixels.
+// Tested point by point, not square by square, so a square holding a cliff
+// (half at one level, half two below) counts too, and steps and ramps, whose
+// neighbouring points are less than two levels apart, never do. A column's
+// ground only ever lands in its own column, so this matches a column redraw.
+// Squares are paired first by their height range and where they show on
+// screen, which rules out almost every pair; only pairs that could overlap
+// two levels apart are compared run by run.
+function hiddenInColumn(x, H, runsOf, shapeAt, out) {
+  const sq = [];
+  let lo = Infinity, hi = -Infinity;
+  for (let y = 0; y < H; y++) {
+    const runs = runsOf(shapeAt(y));
+    sq.push({ runs, top: y * 16 + runs.top, bottom: y * 16 + runs.bottom, y16: y * 16 });
+    if (runs.lo < lo) lo = runs.lo;
+    if (runs.hi > hi) hi = runs.hi;
+  }
+  if (hi - lo < 16) return;  // this column's ground is all within two levels
+  const rows = 16 * H, marks = Array.from({ length: 16 }, () => []);
+  sq.sort((p, q) => p.top - q.top);
+  for (let i = 0; i < sq.length; i++) {
+    const A = sq[i];
+    for (let j = i; j < sq.length && sq[j].top < A.bottom; j++) {
+      const B = sq[j];
+      if (A.runs.hi - B.runs.lo < 16 && B.runs.hi - A.runs.lo < 16) continue;
+      for (let px = 0; px < 16; px++) for (const [at, ab, al] of A.runs[px]) for (const [bt, bb, bl] of B.runs[px]) {
+        if (Math.abs(al - bl) < 16) continue;
+        const top = Math.max(0, A.y16 + at, B.y16 + bt), bottom = Math.min(rows, A.y16 + ab, B.y16 + bb);
+        if (top < bottom) marks[px].push([top, bottom]);
+      }
+    }
+  }
+  // Each pixel column's covered rows as one list of runs, joined across pixel
+  // columns where they agree.
+  let prev = [];
+  for (let px = 0; px < 16; px++) {
+    const merged = [], now = [];
+    for (const [a, b] of marks[px].sort((p, q) => p[0] - q[0])) {
+      const last = merged[merged.length - 1];
+      if (last && a <= last[1]) last[1] = Math.max(last[1], b); else merged.push([a, b]);
+    }
+    for (const [a, b] of merged) {
+      const same = prev.find(r => r[1] === a && r[3] === b - a);
+      if (same) { same[2]++; now.push(same); } else { const r = [x * 16 + px, a, 1, b - a]; out.push(r); now.push(r); }
+    }
+    prev = now;
+  }
 }
 // The covered parts drawGroundOverlays found, as [x, y, w, h] in unzoomed pixels:
 // drawn last, so the people overlay's colours don't bury them.
@@ -566,6 +612,41 @@ function hiddenStripes(ctx, z) {
 // leave every other row of a staircase bare. Kept per row: rows are replaced,
 // never changed in place, when a height is edited.
 // The spans also carry the square's lowest and highest ground in pixels (lo, hi).
+// groundRuns gives the same ground point by point, for hiddenInColumn: per
+// pixel column, runs of [top, bottom, lift], a run's points at one lift
+// (whole pixels), and on a ramp each point stretched to meet the one before so
+// a steep ramp leaves no gaps (a cliff's face is no ground, so it isn't).
+// The runs also carry their lowest and highest lift and their screen top and bottom.
+function setRunBounds(runs) {
+  runs.lo = runs.top = Infinity; runs.hi = runs.bottom = -Infinity;
+  for (const col of runs) for (const [t, b, lift] of col) {
+    runs.lo = Math.min(runs.lo, lift); runs.hi = Math.max(runs.hi, lift);
+    runs.top = Math.min(runs.top, t); runs.bottom = Math.max(runs.bottom, b);
+  }
+  return runs;
+}
+const FLAT_RUNS = setRunBounds(Array.from({ length: 16 }, () => [[0, 16, 0]])), groundRunMemo = new WeakMap();
+function groundRuns(r) {
+  if (!r) return FLAT_RUNS;
+  let runs = groundRunMemo.get(r);
+  if (runs) return runs;
+  runs = [];
+  for (let px = 0; px < 16; px++) {
+    const col = []; runs.push(col);
+    let run = null, prevT = 0, prevB = 0, prevLift = null;
+    for (let py = 0; py < 16; py++) {
+      const lift = Math.round(8 * shapeLevelAt(r, px, py));
+      let t = py - lift, b = py + 1 - lift;
+      if (prevLift != null && Math.abs(lift - prevLift) < 8) { if (t > prevB) t = prevB; if (b < prevT) b = prevT; }  // a ramp, not a cliff's face
+      if (run && run[2] === lift && t <= run[1] && b >= run[0]) { run[0] = Math.min(run[0], t); run[1] = Math.max(run[1], b); }
+      else col.push(run = [t, b, lift]);
+      prevT = t; prevB = b; prevLift = lift;
+    }
+  }
+  setRunBounds(runs);
+  groundRunMemo.set(r, runs);
+  return runs;
+}
 const FLAT_SPANS = Object.assign([[0, 16, 0, 16]], { lo: 0, hi: 0 }), groundSpanMemo = new WeakMap();
 function groundSpans(r) {
   if (!r) return FLAT_SPANS;
