@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 3a996dc33086 -->
+<!-- translated from README.md @ b823c8f5bf62 -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · [Deutsch](README.de.md) · [Français](README.fr.md) · **Italiano** · [日本語](README.ja.md)
@@ -158,7 +158,7 @@ Premi **Visualizza** (V) per guardare senza cambiare nulla.
 - **Zoom:** da 1× a 4×.
 - **Livelli:** ogni luogo ne ha fino a tre, chiamati **Terreno**, **Centrale** e **Superiore**. Puoi nascondere ciascuno. Spunta **Avanzate** per avere dei cursori che li sfumano.
 - **Sovrapposizioni:** spunta **Calpestabilità**, **Altezza** per vedere l'altezza del terreno, o **Griglia** per vedere le caselle.
-- **Terreno nascosto:** il terreno rialzato è disegnato più in alto sullo schermo, quindi un ponte o la cima di una scogliera può coprire terreno che sta due livelli o più sotto. Con **Calpestabilità** o **Altezza** spuntate, delle strisce rosse segnano quei punti, e un clic lì raggiunge la casella più alta. Spunta **Vista piatta** per disegnare ogni casella dove si trova davvero il suo terreno, senza alzarla. Così niente si sovrappone e raggiungi il terreno sotto. Le immagini restano dove sono.
+- **Terreno nascosto e percorsi che si incrociano:** il terreno rialzato è disegnato più in alto sullo schermo, quindi la cima di una scogliera può coprire il terreno dietro. Spunta **Vista piatta** per disegnare ogni casella dove si trova davvero il suo terreno, senza alzarla, e raggiungere così il terreno sotto. Le immagini restano dove sono. Alcuni luoghi hanno anche un secondo percorso sopra il primo, come un ponte sopra una fossa. **Calpestabilità** e **Altezza** mostrano i due percorsi insieme, e delle strisce rosse segnano dove si incrociano. Un clic su un punto a righe cambia il percorso in alto, o l'ultimo scelto lì se lo imposti in **Dove i percorsi si incrociano**. Maiusc-clic cambia l'altro.
 - I **forzieri** si vedono sempre sulla mappa. Porte, persone ed eventi si vedono quando usi i loro strumenti.
 
 ## Dipingi: com'è il terreno

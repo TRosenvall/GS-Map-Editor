@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 3a996dc33086 -->
+<!-- translated from README.md @ b823c8f5bf62 -->
 # GS Map Editor
 
 [English](README.md) · **Español** · [Deutsch](README.de.md) · [Français](README.fr.md) · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -158,7 +158,7 @@ Pulsa **Ver** (V) para mirar sin cambiar nada.
 - **Zoom:** de 1× a 4×.
 - **Capas:** cada lugar tiene hasta tres, llamadas **Suelo**, **Medio** y **Superior**. Puedes ocultar cada una. Marca **Avanzado** para tener controles deslizantes que las atenúan.
 - **Superposiciones:** marca **Zonas de paso**, **Altura** para ver la altura del suelo, o **Cuadrícula** para ver las casillas.
-- **Suelo oculto:** el suelo elevado se dibuja más arriba en la pantalla, así que un puente o lo alto de un acantilado puede tapar suelo que está dos niveles o más por debajo. Con **Zonas de paso** o **Altura** marcadas, unas rayas rojas señalan esos sitios, y un clic ahí alcanza la casilla más alta. Marca **Vista plana** para dibujar cada casilla donde está realmente su suelo, sin elevarla. Entonces nada se superpone y puedes llegar al suelo de debajo. Las imágenes se quedan donde están.
+- **Suelo oculto y caminos que se cruzan:** el suelo elevado se dibuja más arriba en la pantalla, así que lo alto de un acantilado puede tapar el suelo de detrás. Marca **Vista plana** para dibujar cada casilla donde está realmente su suelo, sin elevarla, y así llegar al suelo de debajo. Las imágenes se quedan donde están. Algunos lugares tienen además un segundo camino sobre el primero, como un puente sobre un foso. **Zonas de paso** y **Altura** muestran los dos caminos juntos, y unas rayas rojas señalan dónde se cruzan. Un clic en un sitio a rayas cambia el camino de arriba, o el último que elegiste ahí si lo indicas en **Donde se cruzan caminos**. Mayús-clic cambia el otro.
 - Los **cofres** siempre se ven en el mapa. Las puertas, las personas y los eventos se ven cuando usas sus herramientas.
 
 ## Pintar: cómo se ve el suelo

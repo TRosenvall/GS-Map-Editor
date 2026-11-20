@@ -35,6 +35,7 @@ async function init() {
   S.advanced = load('advanced', false); $('#advanced').checked = S.advanced;
   $('#ovStand').checked = load('ovStand', false);
   S.flat = $('#ovFlat').checked = load('ovFlat', false);
+  $('#crossPick').value = load('crossPick', 'upper') === 'last' ? 'last' : 'upper';
   document.body.classList.toggle('advanced', S.advanced);
   buildBrushes();
   S.maps = await api('/api/maps');
@@ -480,40 +481,83 @@ function cellPainter() {
   };
 }
 
-// Walkability and height, each square drawn where the game shows its ground:
-// lower ground first, so raised squares sit on top. Where raised ground covers
-// ground two levels or more below it (a bridge over a path, a cliff top over
-// the floor behind it), the covered part is striped: a click there reaches
-// the higher square, and Flat view reaches the lower one.
+// ---- walking sheets ----------------------------------------------------------
+// A place's ground can lie on more than one sheet of the grid: the Ground
+// layer's window, and the window of each layer a square's layer marker moves
+// the party onto (block bits 13..12 hold that layer + 1, read from the window
+// the party is on: field/actor_camera.c). Fuchin Falls Cave's bridge over the
+// spikes is the Middle layer's sheet. The editor shows the sheets as one
+// ground; a secondary sheet's square counts only where it holds a height or a
+// walkability value, since the rest of its window is never walked.
+let sheetMemo = null;
+function groundSheets() {
+  const m = S.map; if (!m) return [];
+  if (sheetMemo?.map === m) return sheetMemo.sheets;
+  const W = m.size[0], H = m.size[1], targets = new Set();
+  for (const l of m.layers) {
+    const ox = l.origin[0] + m.bounds[0] / 2, oy = l.origin[1] + m.bounds[1] / 2;
+    for (let y = 0; y < H; y++) {
+      const row = m.blocks?.[(oy + y) % 128]; if (!row) continue;
+      for (let x = 0; x < W; x++) { const k = (row[(ox + x) % 128] >> 12) & 3; if (k > 1) targets.add(k - 1); }
+    }
+  }
+  const sheet = (l, main) => ({ l, main, ox: l.origin[0] + m.bounds[0] / 2, oy: l.origin[1] + m.bounds[1] / 2 });
+  const sheets = [sheet(m.layers[0], true)];
+  for (const k of [...targets].sort()) {
+    const l = m.layers[k];
+    if (l && (l.origin[0] !== m.layers[0].origin[0] || l.origin[1] !== m.layers[0].origin[1])) sheets.push(sheet(l, false));
+  }
+  sheetMemo = { map: m, sheets };
+  return sheets;
+}
+// Whether grid cell (gx, gy) of sheet `sh` is ground: always on the main sheet.
+function sheetGround(sh, gx, gy) {
+  const g = S.map.grids;
+  return sh.main || !!(g.shape?.[gy]?.[gx] || g.collision?.[gy]?.[gx]);
+}
+// The sheet whose window shows grid cell (gx, gy), the main one first.
+function sheetOf(gx, gy) {
+  for (const sh of groundSheets()) if (windowXY(sh.l, gx, gy)) return sh;
+  return groundSheets()[0];
+}
+
+// Walkability and height, each square of every sheet drawn where the game shows
+// its ground: lower ground first, so raised squares sit on top. Where two
+// sheets' ground shows on the same spot (a bridge and the floor under it), the
+// spot is striped: two paths cross there, and the "Where paths cross" option
+// says which one a click changes.
 function drawGroundOverlays(ctx, cols = null) {  // cols: only these window columns
   const m = S.map, col = $('#ovCollision').checked, sh = $('#ovShape').checked;
   if (!col && !sh) return [];
-  const z = +$('#zoom').value, s = 16 * z, l = layer(), W = m.size[0], H = m.size[1];
+  const z = +$('#zoom').value, s = 16 * z, W = m.size[0], H = m.size[1];
   const shade = heightShade(m), shapes = m.shapes || [], shapeGrid = m.grids.shape, colGrid = m.grids.collision;
   if (!cols) S.shadeRange = shade.range;
-  const ox = l.origin[0] + m.bounds[0] / 2, oy = l.origin[1] + m.bounds[1] / 2;  // as gridXY
+  const sheets = groundSheets();
   // Height and outline per shape row, worked out once per redraw, not per square.
   // Flat view draws every square unraised, where its ground is stored.
   const flat = groundSpans(null);
   const heights = S.flat ? [] : shapes.map(cellHeightPx), spansOf = S.flat ? [] : shapes.map(groundSpans);
-  let groundLo = Infinity, groundHi = -Infinity;  // lowest and highest ground in the columns drawn
-  // Squares bucketed by height, lowest first; within a height, in reading order.
+  // Squares bucketed by height, lowest first; within a height, by sheet, then
+  // in reading order. Each is (sheet << 16) | (y * W + x): a window holds at
+  // most 128 by 128 squares.
   const buckets = new Map();
   const xs = cols ? [...cols] : Array.from({ length: W }, (_, x) => x);
-  for (let y = 0; y < H; y++) for (const x of xs) {
-    const v = shapeGrid?.[(oy + y) % 128]?.[(ox + x) % 128], h = heights[v] ?? 0, sp = spansOf[v] || flat;
-    if (sp.lo < groundLo) groundLo = sp.lo;
-    if (sp.hi > groundHi) groundHi = sp.hi;
-    let b = buckets.get(h); if (!b) buckets.set(h, b = []);
-    b.push(y * W + x);
-  }
+  sheets.forEach((g, si) => {
+    for (let y = 0; y < H; y++) for (const x of xs) {
+      const gx = (g.ox + x) % 128, gy = (g.oy + y) % 128;
+      if (!sheetGround(g, gx, gy)) continue;
+      const h = heights[shapeGrid?.[gy]?.[gx]] ?? 0;
+      let b = buckets.get(h); if (!b) buckets.set(h, b = []);
+      b.push((si << 16) | (y * W + x));
+    }
+  });
   // A colour per value, worked out once per redraw.
   const colours = new Map(), shades = new Map();
   const colourOf = v => { if (!colours.has(v)) colours.set(v, collisionColor(v)); return colours.get(v); };
   const shadeOf = v => { if (!shades.has(v)) shades.set(v, shade(v)); return shades.get(v); };
   const label = z >= 2 && S.advanced;
-  for (const h of [...buckets.keys()].sort((p, q) => p - q)) for (const i of buckets.get(h)) {
-    const x = i % W, y = (i - x) / W, gx = (ox + x) % 128, gy = (oy + y) % 128;
+  for (const h of [...buckets.keys()].sort((p, q) => p - q)) for (const e of buckets.get(h)) {
+    const g = sheets[e >> 16], i = e & 0xffff, x = i % W, y = (i - x) / W, gx = (g.ox + x) % 128, gy = (g.oy + y) % 128;
     const v = shapeGrid?.[gy]?.[gx], spans = spansOf[v] || flat, top = y * s, left = x * s;
     if (col) {
       const c = colourOf(colGrid?.[gy]?.[gx]);
@@ -527,73 +571,43 @@ function drawGroundOverlays(ctx, cols = null) {  // cols: only these window colu
       }
     }
   }
-  // Covered ground: none in Flat view, nor where all the ground is within two levels.
-  const hidden = [];
-  if (!S.flat && groundHi - groundLo >= 16)
-    for (const x of xs) hiddenInColumn(x, H, v => groundRuns(shapes[v]), y => shapeGrid?.[(oy + y) % 128]?.[(ox + x) % 128], hidden);
-  return hidden;
+  const crossings = [];
+  if (sheets.length > 1) for (const x of xs) crossingsInColumn(x, H, sheets, v => spansOf[v] || flat, crossings);
+  return crossings;
 }
-// The screen pixels of window column x where two ground points two levels or
-// more apart are drawn, pushed to `out` as [x, y, w, h] in unzoomed pixels.
-// Tested point by point, not square by square, so a square holding a cliff
-// (half at one level, half two below) counts too, and steps and ramps, whose
-// neighbouring points are less than two levels apart, never do. A column's
+// The screen pixels of window column x where squares of two different sheets
+// both show, pushed to `out` as [x, y, w, h] in unzoomed pixels. A column's
 // ground only ever lands in its own column, so this matches a column redraw.
-// Squares are paired first by their height range and where they show on
-// screen, which rules out almost every pair; only pairs that could overlap
-// two levels apart are compared run by run.
-function hiddenInColumn(x, H, runsOf, shapeAt, out) {
-  const sq = [];
-  let lo = Infinity, hi = -Infinity;
-  for (let y = 0; y < H; y++) {
-    const runs = runsOf(shapeAt(y));
-    sq.push({ runs, top: y * 16 + runs.top, bottom: y * 16 + runs.bottom, y16: y * 16 });
-    if (runs.lo < lo) lo = runs.lo;
-    if (runs.hi > hi) hi = runs.hi;
-  }
-  if (hi - lo < 16) return;  // this column's ground is all within two levels
-  const rows = 16 * H, marks = Array.from({ length: 16 }, () => []);
-  sq.sort((p, q) => p.top - q.top);
-  for (let i = 0; i < sq.length; i++) {
-    const A = sq[i];
-    for (let j = i; j < sq.length && sq[j].top < A.bottom; j++) {
-      const B = sq[j];
-      if (A.runs.hi - B.runs.lo < 16 && B.runs.hi - A.runs.lo < 16) continue;
-      for (let px = 0; px < 16; px++) for (const [at, ab, al] of A.runs[px]) for (const [bt, bb, bl] of B.runs[px]) {
-        if (Math.abs(al - bl) < 16) continue;
-        const top = Math.max(0, A.y16 + at, B.y16 + bt), bottom = Math.min(rows, A.y16 + ab, B.y16 + bb);
-        if (top < bottom) marks[px].push([top, bottom]);
-      }
+function crossingsInColumn(x, H, sheets, spansOf, out) {
+  const g = S.map.grids.shape, rows = 16 * H;
+  const squares = sheets.map(sh => {
+    const list = [];
+    for (let y = 0; y < H; y++) {
+      const gx = (sh.ox + x) % 128, gy = (sh.oy + y) % 128;
+      if (sheetGround(sh, gx, gy)) list.push({ y16: y * 16, spans: spansOf(g?.[gy]?.[gx]) });
     }
-  }
-  // Each pixel column's covered rows as one list of runs, joined across pixel
-  // columns where they agree.
-  let prev = [];
-  for (let px = 0; px < 16; px++) {
-    const merged = [], now = [];
-    for (const [a, b] of marks[px].sort((p, q) => p[0] - q[0])) {
-      const last = merged[merged.length - 1];
-      if (last && a <= last[1]) last[1] = Math.max(last[1], b); else merged.push([a, b]);
+    return list;
+  });
+  for (let b = 1; b < sheets.length; b++) for (const B of squares[b]) for (let a = 0; a < b; a++) for (const A of squares[a]) {
+    for (const [ax0, ax1, at, ab] of A.spans) for (const [bx0, bx1, bt, bb] of B.spans) {
+      const x0 = Math.max(ax0, bx0), x1 = Math.min(ax1, bx1);
+      const top = Math.max(0, A.y16 + at, B.y16 + bt), bottom = Math.min(rows, A.y16 + ab, B.y16 + bb);
+      if (x0 < x1 && top < bottom) out.push([x * 16 + x0, top, x1 - x0, bottom - top]);
     }
-    for (const [a, b] of merged) {
-      const same = prev.find(r => r[1] === a && r[3] === b - a);
-      if (same) { same[2]++; now.push(same); } else { const r = [x * 16 + px, a, 1, b - a]; out.push(r); now.push(r); }
-    }
-    prev = now;
   }
 }
-// The covered parts drawGroundOverlays found, as [x, y, w, h] in unzoomed pixels:
+// The crossings drawGroundOverlays found, as [x, y, w, h] in unzoomed pixels:
 // drawn last, so the people overlay's colours don't bury them.
-function drawHidden(ctx, hidden) {
-  if (!hidden.length) return;
+function drawCrossings(ctx, crossings) {
+  if (!crossings.length) return;
   const z = +$('#zoom').value;
-  ctx.fillStyle = hiddenStripes(ctx, z);
-  for (const [x, y, w, h] of hidden) ctx.fillRect(x * z, y * z, w * z, h * z);
+  ctx.fillStyle = crossingStripes(ctx, z);
+  for (const [x, y, w, h] of crossings) ctx.fillRect(x * z, y * z, w * z, h * z);
 }
-// Red diagonal stripes for ground hidden under higher ground: striped, so they
-// don't read as the solid red of walls and hazard ground.
+// Red diagonal stripes where paths cross: striped, so they don't read as the
+// solid red of walls and hazard ground.
 let stripeCache = null;
-function hiddenStripes(ctx, z) {
+function crossingStripes(ctx, z) {
   if (stripeCache?.z === z) return stripeCache.pattern;
   const n = 6 * z, c = document.createElement('canvas'), g = c.getContext('2d');
   c.width = c.height = n;
@@ -611,54 +625,17 @@ function hiddenStripes(ctx, z) {
 // square fill two squares of screen, as in the game; one raised square would
 // leave every other row of a staircase bare. Kept per row: rows are replaced,
 // never changed in place, when a height is edited.
-// The spans also carry the square's lowest and highest ground in pixels (lo, hi).
-// groundRuns gives the same ground point by point, for hiddenInColumn: per
-// pixel column, runs of [top, bottom, lift], a run's points at one lift
-// (whole pixels), and on a ramp each point stretched to meet the one before so
-// a steep ramp leaves no gaps (a cliff's face is no ground, so it isn't).
-// The runs also carry their lowest and highest lift and their screen top and bottom.
-function setRunBounds(runs) {
-  runs.lo = runs.top = Infinity; runs.hi = runs.bottom = -Infinity;
-  for (const col of runs) for (const [t, b, lift] of col) {
-    runs.lo = Math.min(runs.lo, lift); runs.hi = Math.max(runs.hi, lift);
-    runs.top = Math.min(runs.top, t); runs.bottom = Math.max(runs.bottom, b);
-  }
-  return runs;
-}
-const FLAT_RUNS = setRunBounds(Array.from({ length: 16 }, () => [[0, 16, 0]])), groundRunMemo = new WeakMap();
-function groundRuns(r) {
-  if (!r) return FLAT_RUNS;
-  let runs = groundRunMemo.get(r);
-  if (runs) return runs;
-  runs = [];
-  for (let px = 0; px < 16; px++) {
-    const col = []; runs.push(col);
-    let run = null, prevT = 0, prevB = 0, prevLift = null;
-    for (let py = 0; py < 16; py++) {
-      const lift = Math.round(8 * shapeLevelAt(r, px, py));
-      let t = py - lift, b = py + 1 - lift;
-      if (prevLift != null && Math.abs(lift - prevLift) < 8) { if (t > prevB) t = prevB; if (b < prevT) b = prevT; }  // a ramp, not a cliff's face
-      if (run && run[2] === lift && t <= run[1] && b >= run[0]) { run[0] = Math.min(run[0], t); run[1] = Math.max(run[1], b); }
-      else col.push(run = [t, b, lift]);
-      prevT = t; prevB = b; prevLift = lift;
-    }
-  }
-  setRunBounds(runs);
-  groundRunMemo.set(r, runs);
-  return runs;
-}
-const FLAT_SPANS = Object.assign([[0, 16, 0, 16]], { lo: 0, hi: 0 }), groundSpanMemo = new WeakMap();
+const FLAT_SPANS = [[0, 16, 0, 16]], groundSpanMemo = new WeakMap();
 function groundSpans(r) {
   if (!r) return FLAT_SPANS;
   let spans = groundSpanMemo.get(r);
   if (spans) return spans;
-  spans = Object.assign([], { lo: Infinity, hi: -Infinity });
+  spans = [];
   for (let px = 0; px < 16; px++) {
     let t = Infinity, b = -Infinity;
     for (let py = 0; py < 16; py++) {
       const lift = 8 * shapeLevelAt(r, px, py);
       t = Math.min(t, py - lift); b = Math.max(b, py + 1 - lift);
-      spans.lo = Math.min(spans.lo, lift); spans.hi = Math.max(spans.hi, lift);
     }
     t = Math.floor(t); b = Math.ceil(b);
     const last = spans[spans.length - 1];
@@ -691,7 +668,9 @@ function drawAll() {
   ctxSetup(ctx);
   const paint = cellPainter();
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) paint(ctx, x, y);
-  const hidden = drawGroundOverlays(ctx); drawStand(ctx); drawHidden(ctx, hidden);
+  sheetMemo = null;  // a block's layer marker may have changed
+  $('#crossWrap').style.display = groundSheets().length > 1 ? '' : 'none';
+  const crossings = drawGroundOverlays(ctx); drawStand(ctx); drawCrossings(ctx, crossings);
   markPending(ctx); drawMarkers(ctx); drawDoors(ctx); drawEvents(ctx); drawPoints(ctx); drawCellMark(ctx);
 }
 
@@ -712,7 +691,7 @@ function drawColumns(cols) {
   ctxSetup(ctx);
   const paint = cellPainter();
   for (const x of cols) for (let y = 0; y < h; y++) paint(ctx, x, y);
-  const hidden = drawGroundOverlays(ctx, cols); drawStand(ctx); drawHidden(ctx, hidden);
+  const crossings = drawGroundOverlays(ctx, cols); drawStand(ctx); drawCrossings(ctx, crossings);
   markPending(ctx); drawMarkers(ctx); drawDoors(ctx); drawEvents(ctx); drawPoints(ctx); drawCellMark(ctx);
   ctx.restore();
 }
@@ -769,6 +748,44 @@ function groundAt(l, px, py) {
   }
   return best ? [best.gx, best.gy] : (row >= 0 && row < m.size[1] ? gridXY(l, wx, row) : null);
 }
+// The ground squares drawn at window pixel (px, py), at most one per sheet
+// (groundAt's), as { gx, gy, si }: the really higher first and, at one height,
+// the secondary sheet's, so a bridge is the upper path in Flat view too.
+// Without any, the main sheet's square at that window cell.
+function groundsAt(px, py) {
+  const m = S.map, wx = Math.floor(px / 16), row = Math.floor(py / 16), out = [];
+  if (wx < 0 || wx >= m.size[0]) return out;
+  groundSheets().forEach((sh, si) => {
+    let best = null;
+    for (let wy = Math.max(0, row - 16); wy < m.size[1] && wy <= row + 72; wy++) {
+      const [gx, gy] = gridXY(sh.l, wx, wy);
+      if (!sheetGround(sh, gx, gy)) continue;
+      const h = heightPx(sh.l, gx, gy), top = wy * 16 - h;
+      if (py >= top && py < top + 16 && (!best || h > best.h)) best = { gx, gy, si, h, real: groundHeightPx(gx, gy) };
+    }
+    if (best) out.push(best);
+  });
+  if (!out.length && row >= 0 && row < m.size[1]) { const [gx, gy] = gridXY(m.layers[0], wx, row); out.push({ gx, gy, si: 0, real: 0 }); }
+  return out.sort((a, b) => b.real - a.real || b.si - a.si);
+}
+// The square a ground tool changes at window pixel (px, py), or null. Where
+// paths cross, the "Where paths cross" option picks the upper path or the one
+// picked there last; Shift picks the other. A click (remember) keeps its pick
+// for the next click on the same crossing.
+function pickGround(px, py, shift = false, remember = false) {
+  const all = groundsAt(px, py);
+  if (all.length < 2) return all[0] || null;
+  const key = all.map(c => c.gx + ',' + c.gy).join('|'), last = $('#crossPick').value === 'last';
+  let i = last && S.crossPick?.key === key ? S.crossPick.i : 0;
+  if (shift) i = (i + 1) % all.length;
+  if (remember && last) S.crossPick = { key, i };
+  return { ...all[i], crossing: all.length };
+}
+// pickGround as [gx, gy], else the main sheet's square at window cell (x, y).
+function pickCell(x, y, shift = false, remember = false) {
+  const g = S.mouse && pickGround(S.mouse[0], S.mouse[1], shift, remember);
+  return g ? [g.gx, g.gy] : gridXY(S.map.layers[0], x, y);
+}
 // Window pixels of a thing at map pixels (x, z) on the ground, as drawn.
 function entityXY(x, z) {
   const m = S.map, l = m.layers[0], wx = x - m.bounds[0] * 8, wz = z - m.bounds[1] * 8;
@@ -796,9 +813,9 @@ async function saveFirst() {
 function dirtyCount() { return S.pending.size + S.markerMoves.size + S.tableEdits.size; }
 
 function drawMarkers(ctx) {
-  const m = S.map, z = +$('#zoom').value, s = 16 * z, l = layer();
+  const m = S.map, z = +$('#zoom').value, s = 16 * z;
   for (const mk of m.markers || []) {
-    const w = groundXY(l, mk.x, mk.z); if (!w) continue;
+    const w = groundXY(sheetOf(mk.x, mk.z).l, mk.x, mk.z); if (!w) continue;
     const moved = S.markerMoves.has(mk.index);
     ctx.lineWidth = S.tool === 'chest' ? 2 : 1;
     ctx.strokeStyle = moved ? '#7ee787' : '#e0b84a';
@@ -813,18 +830,20 @@ function drawMarkers(ctx) {
     else if (z >= 2 && S.advanced) { ctx.fillStyle = moved ? '#7ee787' : '#e0b84a'; ctx.fillText(hex(mk.id), w[0] * s + s / 2, w[1] * s + s / 2); }
   }
   if (S.tool === 'chest' && S.chestAt) {
-    const w = groundXY(l, S.chestAt.x, S.chestAt.z);
+    const w = groundXY(sheetOf(S.chestAt.x, S.chestAt.z).l, S.chestAt.x, S.chestAt.z);
     if (w) { ctx.lineWidth = 2; ctx.setLineDash([4, 3]); ctx.strokeStyle = '#58a6ff'; ctx.strokeRect(w[0] * s + 1, w[1] * s + 1, s - 2, s - 2); ctx.setLineDash([]); }
   }
   ctx.lineWidth = 1;
 }
 
-// Outline unsaved cells that fall inside the edit layer's window.
+// Outline unsaved cells: blocks inside the edit layer's window, ground where
+// its sheet shows it.
 function markPending(ctx) {
   const z = +$('#zoom').value, s = 16 * z, l = layer();
   ctx.strokeStyle = 'rgba(224,184,74,0.9)';
   for (const key of S.pending.keys()) {
-    const parts = key.split(':'), w = parts[0] === 'block' ? windowXY(l, +parts[1], +parts[2]) : groundXY(l, +parts[1], +parts[2]);
+    const parts = key.split(':'), gx = +parts[1], gy = +parts[2];
+    const w = parts[0] === 'block' ? windowXY(l, gx, gy) : groundXY(sheetOf(gx, gy).l, gx, gy);
     if (w) ctx.strokeRect(w[0] * s + .5, w[1] * s + .5, s - 1, s - 1);
   }
 }
@@ -886,9 +905,12 @@ function trackPending(key, before, value) {
 
 // The grid square a paint stroke touches at window cell (x, y): blocks are drawn
 // where they are; walkability and height belong to the ground under the cursor.
+// A stroke stays on the sheet it started on (S.strokeSheet).
 function strokeCell(x, y) {
-  const l = layer();
-  return S.tool === 'block' || !S.mouse ? gridXY(l, x, y) : (groundAt(l, S.mouse[0], S.mouse[1]) || gridXY(l, x, y));
+  if (S.tool === 'block') return gridXY(layer(), x, y);
+  const sheets = groundSheets(), si = sheets[S.strokeSheet] ? S.strokeSheet : 0;
+  const g = S.mouse && groundsAt(S.mouse[0], S.mouse[1]).find(c => c.si === si);
+  return g ? [g.gx, g.gy] : gridXY(sheets[si].l, x, y);
 }
 // Grid squares from a to b, both included, in a line (no gaps when the mouse moves fast).
 function cellsBetween(a, b) {
@@ -980,9 +1002,10 @@ function fillAt(x, y) {
     write = (gx, gy) => { if (!(tool === 'collision' && m.markers?.some(k => k.x === gx && k.z === gy))) setValue(tool, gx, gy, value); };
   }
   // The grid cells this place shows (at most 128 by 128: windows wrap), so the fill is bounded.
-  const shown = new Set();
-  for (let wy = 0; wy < m.size[1]; wy++) for (let wx = 0; wx < m.size[0]; wx++) shown.add(gridXY(l, wx, wy).join(','));
-  const [sx, sy] = tool === 'block' || !S.mouse ? gridXY(l, x, y) : (groundAt(l, S.mouse[0], S.mouse[1]) || gridXY(l, x, y));
+  // Walkability and height fill within the sheet of the square clicked.
+  const [sx, sy] = tool === 'block' ? gridXY(l, x, y) : pickCell(x, y, S.shift, true);
+  const within = tool === 'block' ? l : sheetOf(sx, sy).l, shown = new Set();
+  for (let wy = 0; wy < m.size[1]; wy++) for (let wx = 0; wx < m.size[0]; wx++) shown.add(gridXY(within, wx, wy).join(','));
   const from = read(sx, sy);
   if (from === value) return;
   const seen = new Set([`${sx},${sy}`]), queue = [[sx, sy]];
@@ -1003,7 +1026,7 @@ function fillAt(x, y) {
 function eyedrop(x, y) {
   const l = layer(), m = S.map;
   if (S.tool === 'collision' || S.tool === 'shape') {
-    const g = S.mouse && groundAt(l, S.mouse[0], S.mouse[1]) || gridXY(l, x, y);
+    const g = pickCell(x, y, S.shift);
     $('#value').value = hex(m.grids[S.tool]?.[g[1]]?.[g[0]] ?? 0);
     if (S.tool === 'shape') buildHeightPanel();
   }
@@ -1110,7 +1133,7 @@ let painting = false, lastCell = null;
 $('#cv').addEventListener('mousedown', e => {
   if (!S.map || S.saving) return;  // see doSave
   const [x, y] = cellFromEvent(e);
-  S.mouse = mousePx(e);
+  S.mouse = mousePx(e); S.shift = e.shiftKey;
   if (e.altKey) { eyedrop(x, y); return; }
   if (S.tool === 'view') return;
   if (S.tool === 'points') { startPointDrag(e); return; }
@@ -1118,13 +1141,15 @@ $('#cv').addEventListener('mousedown', e => {
   if (S.tool === 'doors') { const g = groundAt(S.map.layers[0], S.mouse[0], S.mouse[1]); if (g) doorSelect(g[0], g[1]); return; }
   if (S.tool === 'events') { evClick(e, x, y); return; }
   if (S.tool === 'chest') {
-    const [gx, gy] = groundAt(layer(), S.mouse[0], S.mouse[1]) || gridXY(layer(), x, y);
+    const [gx, gy] = pickCell(x, y, e.shiftKey, true);
     const mk = S.map.markers.find(mk => mk.x === gx && mk.z === gy);
     if (mk && S.map.markers_editable) S.drag = mk;  // a click without moving selects it
     else chestSelect(gx, gy, mk || null);
     return;
   }
   if ($('#fill').checked && ['block', 'collision', 'shape'].includes(S.tool)) { S.stroke = []; fillAt(x, y); finishStroke(); return; }
+  const start = S.tool !== 'block' && pickGround(S.mouse[0], S.mouse[1], e.shiftKey, true);
+  S.strokeSheet = start ? start.si : 0;
   painting = true; S.stroke = []; S.climbFrom = null; lastCell = `${x},${y}`; paintAt(x, y);
 });
 window.addEventListener('mouseup', e => {
@@ -1135,7 +1160,8 @@ window.addEventListener('mouseup', e => {
     const mk = S.drag; S.drag = null;
     const [x, y] = cellFromEvent(e), m = S.map;
     if (x < 0 || y < 0 || x >= m.size[0] || y >= m.size[1]) return;
-    const [mx, my] = mousePx(e), [gx, gy] = groundAt(layer(), mx, my) || gridXY(layer(), x, y);
+    S.mouse = mousePx(e);
+    const [gx, gy] = pickCell(x, y, e.shiftKey);
     if (gx === mk.x && gy === mk.z) return chestSelect(gx, gy, mk);
     if (m.markers.some(o => o !== mk && o.x === gx && o.z === gy)) return status(`<span class="err">${T("There's already a chest there.")}</span>`);
     const under = m.grids.collision?.[gy]?.[gx];
@@ -1153,7 +1179,7 @@ $('#cv').addEventListener('mousemove', e => {
   const m = S.map; if (!m) return;
   const [x, y] = cellFromEvent(e);
   S.mouse = mousePx(e);
-  const g0 = groundAt(layer(), S.mouse[0], S.mouse[1]);
+  const p0 = pickGround(S.mouse[0], S.mouse[1], e.shiftKey), g0 = p0 && [p0.gx, p0.gy];
   const key = S.tool === 'block' || !g0 ? `${x},${y}` : `${g0[0]},${g0[1]}`;
   if (painting && key !== lastCell && !S.saving) { lastCell = key; paintTo(x, y); }
   if (S.tool === 'stamp') stampMove(x, y);
@@ -1164,7 +1190,9 @@ $('#cv').addEventListener('mousemove', e => {
     return `L${l.index} <b>${hex(v & 0xfff)}</b>${(raw & 0xfff) === 0xfff ? '*' : ''}${v >> 12 ? '/' + hex(v >> 12) : ''}`;
   });
   // what the ground under the cursor does (raised ground is stored further down the grid)
-  const l = layer(), [gx, gy] = g0 || gridXY(l, x, y);
+  const l = layer(), [gx, gy] = g0 || gridXY(m.layers[0], x, y);
+  // On a bridge, and where paths cross, how to reach the other one.
+  const where = (p0?.si ? ' · ' + T('on a bridge') : '') + (p0?.crossing ? ' · ' + T('paths cross here: Shift-click for the other') : '');
   const col = m.grids.collision?.[gy]?.[gx], mk = (m.markers || []).find(k => k.x === gx && k.z === gy);
   const what = mk ? `<b>${esc((S.legend[String(mk.id)] || [T('Chest')])[0])}</b>` : `<b>${esc(collisionName(col))}</b>`;
   // Over a person in Move people: who it is and, once their lines are loaded, what they say.
@@ -1197,9 +1225,9 @@ $('#cv').addEventListener('mousemove', e => {
   status(S.advanced
     ? T('cell {cell} (ground {ground}) · blocks {blocks} · {what} · height {height} ({px} px) on L{layer}', {
       cell: `<b>${x},${y}</b>`, ground: `${gx},${gy}`, blocks: parts.join(' '), what,
-      height: `<b>${hex(m.grids.shape?.[gy]?.[gx])}</b>`, px: groundHeightPx(gx, gy), layer: l.index })
+      height: `<b>${hex(m.grids.shape?.[gy]?.[gx])}</b>`, px: groundHeightPx(gx, gy), layer: l.index }) + where
     // The ground square: what doors, chests and Check name, even on raised ground.
-    : T('{what} · level {n} · cell {cell}', { what, n: levelOf(groundHeightPx(gx, gy)), cell: `${gx},${gy}` }));
+    : T('{what} · level {n} · cell {cell}', { what, n: levelOf(groundHeightPx(gx, gy)), cell: `${gx},${gy}` }) + where);
 });
 
 // ---- scenes and their tables ---------------------------------------------------
@@ -2873,6 +2901,7 @@ $('#filter').oninput = renderList;
 $('#zoom').onchange = () => { save('zoom', $('#zoom').value); drawAll(); };
 for (const id of ['#ovCollision', '#ovShape', '#ovGrid']) $(id).onchange = drawAll;
 $('#ovFlat').onchange = () => { S.flat = $('#ovFlat').checked; save('ovFlat', S.flat); drawAll(); };
+$('#crossPick').onchange = () => { save('crossPick', $('#crossPick').value); S.crossPick = null; };
 $('#ovStand').onchange = () => { save('ovStand', $('#ovStand').checked); WK.key = null; loadStand(); drawAll(); };
 window.addEventListener('keydown', e => {
   const dialog = openDialog();

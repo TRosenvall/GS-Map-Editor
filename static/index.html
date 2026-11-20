@@ -196,6 +196,7 @@
     <label><input type="checkbox" id="ovCollision"> Walkability</label>
     <label><input type="checkbox" id="ovShape"> Height</label>
     <label title="Show every square where its ground really is, not raised by its height. Nothing overlaps, so you can reach ground hidden under a bridge or a cliff top. The pictures stay where they are."><input type="checkbox" id="ovFlat"> Flat view</label>
+    <label id="crossWrap" style="display:none" title="Some places have a second path over the first, like a bridge. Where the two cross (striped), this picks which one a click changes. Shift-click changes the other one.">Where paths cross, change <select id="crossPick"><option value="upper">the upper path</option><option value="last">the one picked last</option></select></label>
     <label><input type="checkbox" id="ovGrid"> Grid</label>
     <label title="Where a person can stand, worked out from the game's walking rules"><input type="checkbox" id="ovStand"> Where people can stand</label>
   </div>

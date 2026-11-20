@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 3a996dc33086 -->
+<!-- translated from README.md @ b823c8f5bf62 -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · [Deutsch](README.de.md) · **Français** · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -158,7 +158,7 @@ Appuyez sur **Regarder** (V) pour regarder sans rien modifier.
 - **Zoom :** de 1× à 4×.
 - **Calques :** chaque lieu en a jusqu'à trois, appelés **Sol**, **Milieu** et **Au-dessus**. Vous pouvez masquer chacun d'eux. Cochez **Avancé** pour avoir des curseurs qui les estompent.
 - **Superpositions :** cochez **Praticabilité**, **Hauteur** pour voir la hauteur du sol, ou **Grille** pour voir les cases.
-- **Sol caché :** le sol surélevé est dessiné plus haut à l'écran, donc un pont ou le haut d'une falaise peut couvrir un sol situé deux niveaux ou plus en dessous. Avec **Praticabilité** ou **Hauteur** cochée, des rayures rouges marquent ces endroits, et un clic à cet endroit atteint la case la plus haute. Cochez **Vue à plat** pour dessiner chaque case là où se trouve vraiment son sol, sans la surélever. Rien ne se chevauche alors, et vous pouvez atteindre le sol en dessous. Les images restent à leur place.
+- **Sol caché et chemins qui se croisent :** le sol surélevé est dessiné plus haut à l'écran, donc le haut d'une falaise peut couvrir le sol derrière. Cochez **Vue à plat** pour dessiner chaque case là où se trouve vraiment son sol, sans la surélever, et atteindre ainsi le sol en dessous. Les images restent à leur place. Quelques lieux ont aussi un second chemin au-dessus du premier, comme un pont au-dessus d'une fosse. **Praticabilité** et **Hauteur** montrent les deux chemins ensemble, et des rayures rouges marquent leurs croisements. Un clic sur un endroit rayé modifie le chemin du haut, ou le dernier choisi à cet endroit si vous le réglez dans **Où des chemins se croisent**. Maj-clic modifie l'autre.
 - Les **coffres** sont toujours visibles sur la carte. Les portes, les personnages et les événements apparaissent quand vous utilisez leurs outils.
 
 ## Peindre : l'apparence du sol

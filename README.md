@@ -155,7 +155,7 @@ Press **View** (V) to look without changing anything.
 - **Zoom:** 1× to 4×.
 - **Layers:** each place has up to three, called **Ground**, **Middle** and **Overhead**. You can hide each one. Tick **Advanced** for sliders that fade them.
 - **Overlays:** tick **Walkability**, **Height** to see ground height, or **Grid** to see the squares.
-- **Hidden ground:** raised ground is drawn further up the screen, so a bridge or a cliff top can cover ground two levels or more below it. With **Walkability** or **Height** ticked, red stripes mark those spots, and a click there reaches the higher square. Tick **Flat view** to draw every square where its ground really is, without raising it. Nothing overlaps then, so you can reach the ground underneath. The pictures stay where they are.
+- **Hidden ground and crossing paths:** raised ground is drawn further up the screen, so a cliff top can cover the ground behind it. Tick **Flat view** to draw every square where its ground really is, without raising it, so you can reach the ground underneath. The pictures stay where they are. A few places also have a second path over the first, such as a bridge over a pit. **Walkability** and **Height** show both paths together, and red stripes mark where they cross. A click on a striped spot changes the upper path, or the one you picked there last if you choose that under **Where paths cross**. Shift-click changes the other one.
 - **Chests** always show on the map. Doors, people and events show when you use their tools.
 
 ## Paint: what the ground looks like
