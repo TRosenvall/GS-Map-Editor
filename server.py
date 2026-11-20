@@ -33,6 +33,7 @@ from gsmap.names import Names
 from gsmap.project import Project
 from gsmap.scenes import Scenes
 from gsmap.scene_cells import room_changes
+from gsmap.sceneedit import scene_tables
 from gsmap.chests import ChestEditor
 from gsmap.doors import DoorEditor
 from gsmap.checks import Checker
@@ -288,10 +289,21 @@ def make_handler(project, token=None, local_only=True):
         out = []
         for sc in scenes().for_rows(rows):
             o = scenes().overlay(sc["overlay"])
+            # One overlay can serve several rooms (Fuchin Falls Cave's six):
+            # only the tables this room's getters return; every one when that
+            # can't be told.
+            only = {}
+            for k in {t["kind"] for t in o.tables.values()} & o.getters.keys():
+                try:
+                    only[k] = scene_tables(project.tbs, o, k, sc["name"])
+                except ValueError:  # a getter's source it can't read
+                    only[k] = None
             tables = []
             for name, t in sorted(o.tables.items(), key=lambda kv: (kv[1]["kind"], kv[0])):
                 if not t["editable"]:
                     continue  # named like a table, but its bytes aren't one
+                if only.get(t["kind"]) is not None and name not in only[t["kind"]]:
+                    continue  # another room's
                 over = ov.get(o.id, name)
                 tables.append({
                     "symbol": name, "kind": t["kind"], "editable": t["editable"],
