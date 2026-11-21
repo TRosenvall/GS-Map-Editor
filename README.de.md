@@ -1,4 +1,4 @@
-<!-- translated from README.md @ b823c8f5bf62 -->
+<!-- translated from README.md @ 1b7841614757 -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · **Deutsch** · [Français](README.fr.md) · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -158,7 +158,7 @@ Drück auf **Ansicht** (V), um dich umzusehen, ohne etwas zu ändern.
 - **Zoom:** 1× bis 4×.
 - **Ebenen:** Jeder Ort hat bis zu drei, genannt **Boden**, **Mitte** und **Oben**. Du kannst jede einzeln ausblenden. Setz das Häkchen bei **Erweitert** für Schieberegler, mit denen du sie ausblendest.
 - **Overlays:** Setz das Häkchen bei **Begehbarkeit**, bei **Höhe**, um die Bodenhöhe zu sehen, oder bei **Raster**, um die Felder zu sehen.
-- **Verdeckter Boden und sich kreuzende Wege:** Erhöhter Boden wird weiter oben auf dem Bildschirm gezeichnet, deshalb kann eine Klippe den Boden dahinter verdecken. Setz das Häkchen bei **Flache Ansicht**, um jedes Feld dort zu zeichnen, wo sein Boden wirklich liegt, ohne es anzuheben, so erreichst du den Boden darunter. Die Bilder bleiben, wo sie sind. Einige Orte haben außerdem einen zweiten Weg über dem ersten, etwa eine Brücke über eine Grube. **Begehbarkeit** und **Höhe** zeigen beide Wege zusammen, und rote Streifen markieren, wo sie sich kreuzen. Ein Klick auf eine gestreifte Stelle ändert den oberen Weg, oder den dort zuletzt gewählten, wenn du das bei **Wo Wege sich kreuzen** einstellst. Umschalt-Klick ändert den anderen.
+- **Verdeckter Boden und sich kreuzende Wege:** Erhöhter Boden wird weiter oben auf dem Bildschirm gezeichnet, deshalb kann eine Klippe den Boden dahinter verdecken. Setz das Häkchen bei **Flache Ansicht**, um jedes Feld dort zu zeichnen, wo sein Boden wirklich liegt, ohne es anzuheben, so erreichst du den Boden darunter. Die Bilder bleiben, wo sie sind. Einige Orte haben außerdem einen zweiten Weg über dem ersten, etwa eine Brücke über eine Grube. **Begehbarkeit** und **Höhe** zeigen beide Wege zusammen, und rote Streifen markieren, wo sie sich kreuzen. Ein Klick auf eine gestreifte Stelle ändert den oberen Weg, oder den dort zuletzt gewählten, wenn du das bei **Wo Wege sich kreuzen** einstellst. Umschalt-Klick ändert den anderen. **Wo Personen stehen können** folgt der Gruppe auch auf eine Brücke. Um eine Brücke zu bauen, wähle **Begehbarkeit** oder **Höhe**, stell **Malen:** auf **eine Brücke darüber** und male ihre Felder mit einer Höhe. Wo die Brücke auf Boden etwa derselben Höhe trifft, legt der Editor den Weg hinauf und hinunter selbst an. Das Bild der Brücke malst du mit **Malen**. **Malen: nichts: eine Brücke entfernen** nimmt Felder wieder weg.
 - **Truhen** sind immer auf der Karte zu sehen. Türen, Personen und Ereignisse erscheinen, wenn du ihre Werkzeuge benutzt.
 
 ## Malen: wie der Boden aussieht

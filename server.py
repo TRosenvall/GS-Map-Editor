@@ -839,7 +839,7 @@ def make_handler(project, token=None, local_only=True):
                         return self.send_json({"error": tr("Can't work out where people can walk here: {why}", why=e)}, 409)
                     if not m.group(2):
                         return self.send_json({"size": [w.w, w.h], "cells": w.cells(), "slide": bool(w.slide),
-                                               "arrivals": len(w.starts)})
+                                               "arrivals": len(w.starts), "layers": w.layer_cells()})
                     x, z, actor = int(body["x"]), int(body["z"]), body.get("actor")
                     problems, notes = w.review(x, z, actor)
                     out = {"problems": problems, "notes": notes, "nearest": None, "level": None}

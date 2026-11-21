@@ -16,6 +16,10 @@ game's own rules (alchemy's games/tbs/src/field):
 - A step trigger whose script slides the leader (Imil's ice) is followed as
   Imil_RunIceSlide does: cell by cell until a wall, ground more than 8 pixels
   up, or another kind of cell.
+- A cell whose word carries a layer marker (bits 12-13, the layer + 1) moves
+  whoever stands on it onto that layer, whose window then gives the cells
+  under them (field_actor_camera.c): a bridge over a floor. Points on layer 0
+  are (x, z); points on another layer are (x, z, layer).
 
 The party is followed from every arrival point of the scene. Cells the room's
 own code changes as it plays (a door Psynergy opens, a bridge the story lowers;
@@ -160,27 +164,38 @@ def height_at(row, x, y, lerp, index):
 
 
 class Walk:
-    """The walking graph of one map for one scene, on layer 0 (the layer actor
-    placements stand on: Event_SpawnActorPlacements reads its height).
+    """The walking graph of one map for one scene, from layer 0 (the layer
+    actor placements stand on: Event_SpawnActorPlacements reads its height)
+    onto any layer its markers lead to.
 
     Positions are map pixels, as actor placements and entrances store them.
-    `edits` is a list of {plane, x, y, value} grid edits not yet saved, and
+    `edits` is a list of {plane, x, y, value} grid edits not yet saved (a
+    block edit counts for its layer marker), and
     `shapes` the heights made in the editor but not yet saved, as
     [kind, h0, h1, h2] after the table's own (shape edits name them by index).
     `changes` are the room's own cell copies (scene_cells.room_changes)."""
 
     def __init__(self, project, info, events, entrances, edits=(), shapes=(), changes=()):
         self.info = info
-        self.ox, self.oz = project.layer_origin(info, 0)
+        self.origins = [project.layer_origin(info, li) for li in range(len(info.layers))]
+        self.ox, self.oz = self.origins[0]
         self.x0, self.z0 = info.bounds[0] * 8, info.bounds[1] * 8
         self.w, self.h = info.size
         self.col = [row[:] for row in project.load_grid(info, "collision").cells]
         self.blocks = project.resolve_placeholders(project.load_grid(info, "metatile").cells)
         self.shp = [row[:] for row in project.load_grid(info, "shape").cells]
         for e in edits or ():
-            grid = {"collision": self.col, "shape": self.shp}.get(e.get("plane"))
+            grid = {"collision": self.col, "shape": self.shp, "block": self.blocks}.get(e.get("plane"))
             if grid is not None:
                 grid[int(e["y"])][int(e["x"])] = int(e["value"])
+        # {grid cell: layer} of every layer marker; one onto a layer whose
+        # window is layer 0's changes nothing that walking reads.
+        self.markers = {}
+        for gz, row in enumerate(self.blocks):
+            for gx, v in enumerate(row):
+                k = (v >> 12) & 3
+                if k and k - 1 < len(self.origins):
+                    self.markers[(gx, gz)] = k - 1 if self.origins[k - 1] != self.origins[0] else 0
         self.rows = [[v + 256 if v < 0 else v for v in r] for r in project.shape_rows(info)]
         if not isinstance(shapes or [], (list, tuple)):
             raise ValueError(f"new heights should be a list of rows, not {shapes!r}")
@@ -201,18 +216,20 @@ class Walk:
     def inside(self, x, z):
         return self.x0 <= x < self.x0 + self.w * 16 and self.z0 <= z < self.z0 + self.h * 16
 
-    def grid_cell(self, x, z):
-        """The 128x128 grid cell under map pixel (x, z) on layer 0."""
-        return (self.ox + int(x) // 16) % 128, (self.oz + int(z) // 16) % 128
+    def grid_cell(self, x, z, layer=0):
+        """The 128x128 grid cell under map pixel (x, z) on `layer`."""
+        ox, oz = self.origins[layer]
+        return (ox + int(x) // 16) % 128, (oz + int(z) // 16) % 128
 
-    def behavior(self, x, z):
-        gx, gz = self.grid_cell(x, z)
+    def behavior(self, x, z, layer=0):
+        gx, gz = self.grid_cell(x, z, layer)
         return self.col[gz][gx]
 
-    def ground(self, x, z):
-        """Ground height at map pixel (x, z), 16.16 pixels."""
+    def ground(self, x, z, layer=0):
+        """Ground height at map pixel (x, z) on `layer`, 16.16 pixels."""
+        gx, gz = self.grid_cell(x, z, layer)
         x, z = int(x), int(z)
-        v = self.shp[(self.oz + z // 16) % 128][(self.ox + x // 16) % 128]
+        v = self.shp[gz][gx]
         heights = self._heights.get(v)
         if heights is None:
             heights = self._shape_heights(v)
@@ -227,13 +244,19 @@ class Walk:
 
     def _blank(self, blocks):
         """A test of map pixel (x, z): does its cell show nothing (block 0)?"""
-        def blank(x, z):
-            gx, gz = self.grid_cell(x, z)
+        def blank(x, z, layer=0):
+            gx, gz = self.grid_cell(x, z, layer)
             return blocks[gz][gx] & 0xFFF == 0
         return blank
 
-    def ground_px(self, x, z):
-        return self.ground(x, z) / FIXED
+    def ground_px(self, x, z, layer=0):
+        return self.ground(x, z, layer) / FIXED
+
+    def _point(self, x, z, layer):
+        """The graph point for map pixel (x, z), reached on `layer`: a layer
+        marker under it moves the walker onto its layer."""
+        layer = self.markers.get(self.grid_cell(x, z, layer), layer)
+        return (x, z) if layer == 0 else (x, z, layer)
 
     # ---- the graph ------------------------------------------------------------------
 
@@ -241,19 +264,19 @@ class Walk:
         """The lattice point nearest map pixel (x, z)."""
         return (int(round((x - self.x0) / GRID)) * GRID + self.x0, int(round((z - self.z0) / GRID)) * GRID + self.z0)
 
-    def _clear(self, x, z, ground):
-        if not self.inside(x, z) or self.behavior(x, z) == WALL:
+    def _clear(self, x, z, ground, layer=0):
+        if not self.inside(x, z) or self.behavior(x, z, layer) == WALL:
             return False
-        d = self.ground(x, z) - ground
+        d = self.ground(x, z, layer) - ground
         return -STEP_DOWN <= d <= STEP_UP
 
-    def _step_ok(self, x, z, dx, dz):
+    def _step_ok(self, x, z, dx, dz, layer=0):
         # _clear for each probe, written out: this runs for every lattice point,
         # and (x, z) is always one, in whole pixels (see PROBE_STEPS).
-        g = self.ground(x, z)
+        g = self.ground(x, z, layer)
         x0, z0 = self.x0, self.z0
         x1, z1 = x0 + self.w * 16, z0 + self.h * 16
-        col, shp, ox, oz, heights = self.col, self.shp, self.ox, self.oz, self._heights
+        (ox, oz), col, shp, heights = self.origins[layer], self.col, self.shp, self._heights
         for ax, az in PROBE_STEPS[(dx, dz)]:
             px, pz = x + ax, z + az
             if not (x0 <= px < x1 and z0 <= pz < z1):
@@ -267,58 +290,61 @@ class Walk:
                 return False
         return True
 
-    def _slide_end(self, x, z, dx, dz):
+    def _slide_end(self, x, z, dx, dz, layer=0):
         """Where Imil_RunIceSlide leaves the leader who has just stepped onto
         the slide cell under (x, z) going (dx, dz): a cell centre."""
         cx, cz = (int(x) // 16) * 16 + 8, (int(z) // 16) * 16 + 8
-        start = self.behavior(cx, cz)
+        start = self.behavior(cx, cz, layer)
         passed = [(cx, cz)]
         while True:
             nx, nz = cx + 16 * dx, cz + 16 * dz
-            if (not self.inside(nx, nz) or self.behavior(nx, nz) == WALL
-                    or self.ground(nx, nz) - self.ground(cx, cz) > STEP_UP):
+            if (not self.inside(nx, nz) or self.behavior(nx, nz, layer) == WALL
+                    or self.ground(nx, nz, layer) - self.ground(cx, cz, layer) > STEP_UP):
                 return (cx, cz), passed
             cx, cz = nx, nz
             passed.append((cx, cz))
-            if self.behavior(cx, cz) != start:
+            if self.behavior(cx, cz, layer) != start:
                 return (cx, cz), passed
 
-    def _moves(self, x, z):
-        """[(to, kind)] from lattice point (x, z): kind is walk, slide, hop, climb or jump."""
+    def _moves(self, x, z, layer=0):
+        """[(to, kind)] from lattice point (x, z) on `layer`: kind is walk,
+        slide, hop, climb or jump, and `to` a graph point (_point)."""
         out = []
-        here = self.behavior(x, z)
+        L = layer
+        here = self.behavior(x, z, L)
+        at = lambda p, kind: out.append((self._point(*p, L), kind))
         for dx, dz in DIRS:
             tx, tz = x + GRID * dx, z + GRID * dz
-            ahead = self.behavior(tx, tz) if self.inside(tx, tz) else WALL
-            if self._step_ok(x, z, dx, dz):
-                if ahead in self.slide and self.grid_cell(tx, tz) != self.grid_cell(x, z):
-                    end, _ = self._slide_end(tx, tz, dx, dz)
-                    out.append((end, "slide"))
+            ahead = self.behavior(tx, tz, L) if self.inside(tx, tz) else WALL
+            if self._step_ok(x, z, dx, dz, L):
+                if ahead in self.slide and self.grid_cell(tx, tz, L) != self.grid_cell(x, z, L):
+                    end, _ = self._slide_end(tx, tz, dx, dz, L)
+                    at(end, "slide")
                 else:
-                    out.append(((tx, tz), "walk"))
+                    at((tx, tz), "walk")
                 continue
             # The field's own cells answer a push the probes refused.
             if (dx, dz) == SOUTH and LEDGE in (here, ahead):
-                g = self.ground(x, z)
+                g = self.ground(x, z, L)
                 for k in range(2, 10):
                     lx, lz = x, z + GRID * k
-                    if not self.inside(lx, lz) or self.behavior(lx, lz) == WALL:
+                    if not self.inside(lx, lz) or self.behavior(lx, lz, L) == WALL:
                         break
-                    if self.behavior(lx, lz) != LEDGE and self.ground(lx, lz) < g:
-                        out.append(((lx, lz), "hop"))
+                    if self.behavior(lx, lz, L) != LEDGE and self.ground(lx, lz, L) < g:
+                        at((lx, lz), "hop")
                         break
             if (dx, dz) in (NORTH, SOUTH) and CLIMB in (here, ahead):
                 for k in range(1, 40):
                     lx, lz = x, z + GRID * dz * k
-                    if not self.inside(lx, lz) or self.behavior(lx, lz) == WALL:
+                    if not self.inside(lx, lz) or self.behavior(lx, lz, L) == WALL:
                         break
-                    if self.behavior(lx, lz) != CLIMB and k > 1:
-                        out.append(((lx, lz), "climb"))
+                    if self.behavior(lx, lz, L) != CLIMB and k > 1:
+                        at((lx, lz), "climb")
                         break
             if ahead == GAP:
                 lx, lz = x + 32 * dx, z + 32 * dz
-                if self.inside(lx, lz) and self.behavior(lx, lz) != WALL:
-                    out.append(((lx, lz), "jump"))
+                if self.inside(lx, lz) and self.behavior(lx, lz, L) != WALL:
+                    at((lx, lz), "jump")
         return out
 
     def _build(self):
@@ -347,7 +373,7 @@ class Walk:
         stops = {e["trigger"] for e in self.events if e["kind"] in ("exit", "touch")} - self.slide
         before, applied = self.before_reach, []
         for _ in range(len(self.changes)):
-            reached = {self.grid_cell(x, z) for x, z in self.reach}
+            reached = {self.grid_cell(*n) for n in self.reach}
             near = {((gx + dx) % 128, (gz + dz) % 128) for gx, gz in reached for dx in (-1, 0, 1) for dz in (-1, 0, 1)}
             more = [c for c in self.changes if c not in applied and any(
                 ((c[4] + i) % 128, (c[5] + j) % 128) in near for j in range(c[3]) for i in range(c[2]))]
@@ -376,7 +402,7 @@ class Walk:
         # The moves depend only on the cells, heights and slides, which several
         # scenes of a map share and most saves (an event, a door) leave alone:
         # a graph made from the same ones is reused. Shared: treat it as read-only.
-        key = (self.ox, self.oz, self.x0, self.z0, self.w, self.h, frozenset(self.slide),
+        key = (tuple(self.origins), frozenset(self.markers.items()), self.x0, self.z0, self.w, self.h, frozenset(self.slide),
                tuple(map(tuple, self.rows)), tuple(map(tuple, self.col)), tuple(map(tuple, self.shp)),
                tuple(self.lerp), tuple(self.index))
         with _GRAPHS_LOCK:
@@ -389,6 +415,7 @@ class Walk:
             if base is not None:
                 edges = self._patched(nodes, *base)
                 slide_ends = {m for moves in edges.values() for m, k in moves if k == "slide"}
+                self._other_layers(edges, slide_ends)
             else:
                 edges, slide_ends = {}, set()
                 for n in nodes:
@@ -397,6 +424,7 @@ class Walk:
                     moves = self._moves(*n)
                     edges[n] = moves
                     slide_ends.update(m for m, k in moves if k == "slide")
+            self._other_layers(edges, slide_ends)
             hit = (nodes, edges, slide_ends)
             with _GRAPHS_LOCK:
                 _GRAPHS[key] = hit
@@ -414,14 +442,59 @@ class Walk:
         cols = {(gx + d) % 128 for gx, _ in changed for d in range(-3, 4)}
         rows = {(gz + d) % 128 for _, gz in changed for d in range(-3, 4)}
         out = dict(edges)
-        for n in nodes:
+        for n in [*nodes, *(n for n in edges if len(n) == 3)]:
             gx, gz = self.grid_cell(*n)
             if gx in cols or gz in rows:
-                if self.behavior(*n) == WALL:
+                if self.behavior(*n) == WALL or (len(n) == 3 and not self._layer_point(n)):
                     out.pop(n, None)
                 else:
                     out[n] = self._moves(*n)
         return out
+
+    def _other_layers(self, edges, slide_ends):
+        """Adds to `edges` the moves from every point on another layer that a
+        move leads to, and from the points those lead to, and so on."""
+        todo = [m for moves in edges.values() for m, _ in moves if len(m) == 3 and m not in edges]
+        while todo:
+            n = todo.pop()
+            if n in edges:
+                continue
+            if not self._layer_point(n):
+                continue
+            moves = edges[n] = self._moves(*n)
+            slide_ends.update(m for m, k in moves if k == "slide")
+            todo += [m for m, _ in moves if len(m) == 3 and m not in edges]
+
+    def _layer_point(self, n):
+        """Whether point n on another layer is in the graph. On its layer's
+        own ground (on_sheet), unless a wall. Elsewhere that layer's cells are
+        blank, and read as level floor wherever the window reaches: rooms
+        that use them close them off as they play (the game writes cell
+        behaviors to any layer), so the walk follows them only over floor
+        the player can see, layer 0's at the same height and not a wall."""
+        if self.behavior(*n) == WALL:
+            return False
+        if self.on_sheet(n):
+            return True
+        x, z = n[0], n[1]
+        return self.behavior(x, z) != WALL and abs(self.ground(x, z) - self.ground(*n)) <= STEP_UP
+
+    def on_sheet(self, n):
+        """Whether graph point n is on ground of its own layer, as the editor
+        draws a second layer's ground: a cell with a shape or cell behavior.
+        Elsewhere the second layer is blank, and whoever walks there stands,
+        as the player sees it, on the floor below (the floor's own point)."""
+        if len(n) == 2:
+            return False
+        gx, gz = self.grid_cell(*n)
+        return bool(self.col[gz][gx] or self.shp[gz][gx])
+
+    def floor_view(self, points):
+        """`points` with each one off its layer's ground (on_sheet) as the
+        floor's own point: what the player sees reached."""
+        if all(len(n) == 2 for n in points):
+            return points
+        return {n if len(n) == 2 or self.on_sheet(n) else n[:2] for n in points}
 
     def _near(self, x, z, reach):
         """Lattice points within `reach` pixels of (x, z): every point the
@@ -510,6 +583,7 @@ class Walk:
 
     def target_reached(self, cells, how, reach, standing):
         if how == "step":
+            reach = self.floor_view(reach)
             return any(self._node(*c) in reach or (c[0] - 4, c[1] - 4) in reach for c in cells)
         # A search looks 16 pixels ahead: stand next to the cell.
         return any(math.hypot(s[0] - c[0], s[1] - c[1]) <= SEARCH_REACH + 6 and self.grid_cell(*s) != self.grid_cell(*c)
@@ -523,7 +597,8 @@ class Walk:
         story); slide: a slide cell (someone there is in the way of a slide);
         trigger: a door, exit or step spot (keep it clear); cut: the party
         can't get near; wall: a wall."""
-        standing = self.standing()
+        standing = self.floor_view(self.standing())
+        before = self.floor_view(self.before_reach)
         stand_cells = {}
         for s in standing:
             stand_cells.setdefault(((s[0] - self.x0) // 16, (s[1] - self.z0) // 16), []).append(s)
@@ -547,10 +622,24 @@ class Walk:
                 elif b in self.slide:
                     out.append("slide")
                 elif (i, j) in stand_cells and (x, z) in standing:
-                    out.append("good" if (x, z) in self.before_reach else "later")
+                    out.append("good" if (x, z) in before else "later")
                 else:
                     near = [s for dx in (-1, 0, 1) for dz in (-1, 0, 1) for s in index[(x // 32 + dx, z // 32 + dz)]]
                     out.append("talk" if self.talk_points(x, z, near) else "cut")
+        return out
+
+    def layer_cells(self):
+        """{layer: per window cell (row-major, w x h)} for each layer other
+        than 0 the party walks on: good or later (as cells() says them) where
+        the party can stand on that layer, else None."""
+        standing = self.standing()
+        out = {}
+        for n in standing:
+            if self.on_sheet(n):
+                cells = out.setdefault(n[2], [None] * (self.w * self.h))
+                i, j = (n[0] - self.x0) // 16, (n[1] - self.z0) // 16
+                if (n[0] - self.x0) % 16 == 8 and (n[1] - self.z0) % 16 == 8:
+                    cells[j * self.w + i] = "good" if n in self.before_reach else "later"
         return out
 
     def check(self, x, z, ignore=None):
@@ -687,9 +776,9 @@ class Walk:
         height in pixels to a flat shape id the map already has."""
         if not self.inside(x, z) or self.behavior(x, z) == WALL:
             return None
-        standing = self.standing()
+        standing = self.floor_view(self.standing())
         good = {((s[0] - self.x0) // 16, (s[1] - self.z0) // 16) for s in standing
-                if self.behavior(*s) not in self.slide}
+                if len(s) == 2 and self.behavior(*s) not in self.slide}
         target = ((x - self.x0) // 16, (z - self.z0) // 16)
         if target in good:
             return None

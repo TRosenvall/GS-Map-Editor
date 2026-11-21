@@ -1,4 +1,4 @@
-<!-- translated from README.md @ b823c8f5bf62 -->
+<!-- translated from README.md @ 1b7841614757 -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · [Deutsch](README.de.md) · [Français](README.fr.md) · **Italiano** · [日本語](README.ja.md)
@@ -158,7 +158,7 @@ Premi **Visualizza** (V) per guardare senza cambiare nulla.
 - **Zoom:** da 1× a 4×.
 - **Livelli:** ogni luogo ne ha fino a tre, chiamati **Terreno**, **Centrale** e **Superiore**. Puoi nascondere ciascuno. Spunta **Avanzate** per avere dei cursori che li sfumano.
 - **Sovrapposizioni:** spunta **Calpestabilità**, **Altezza** per vedere l'altezza del terreno, o **Griglia** per vedere le caselle.
-- **Terreno nascosto e percorsi che si incrociano:** il terreno rialzato è disegnato più in alto sullo schermo, quindi la cima di una scogliera può coprire il terreno dietro. Spunta **Vista piatta** per disegnare ogni casella dove si trova davvero il suo terreno, senza alzarla, e raggiungere così il terreno sotto. Le immagini restano dove sono. Alcuni luoghi hanno anche un secondo percorso sopra il primo, come un ponte sopra una fossa. **Calpestabilità** e **Altezza** mostrano i due percorsi insieme, e delle strisce rosse segnano dove si incrociano. Un clic su un punto a righe cambia il percorso in alto, o l'ultimo scelto lì se lo imposti in **Dove i percorsi si incrociano**. Maiusc-clic cambia l'altro.
+- **Terreno nascosto e percorsi che si incrociano:** il terreno rialzato è disegnato più in alto sullo schermo, quindi la cima di una scogliera può coprire il terreno dietro. Spunta **Vista piatta** per disegnare ogni casella dove si trova davvero il suo terreno, senza alzarla, e raggiungere così il terreno sotto. Le immagini restano dove sono. Alcuni luoghi hanno anche un secondo percorso sopra il primo, come un ponte sopra una fossa. **Calpestabilità** e **Altezza** mostrano i due percorsi insieme, e delle strisce rosse segnano dove si incrociano. Un clic su un punto a righe cambia il percorso in alto, o l'ultimo scelto lì se lo imposti in **Dove i percorsi si incrociano**. Maiusc-clic cambia l'altro. **Dove possono stare le persone** segue il gruppo anche sopra un ponte. Per creare un ponte, scegli **Calpestabilità** o **Altezza**, imposta **Dipingi:** su **un ponte sopra** e dipingi le sue caselle con un'altezza. Dove il ponte incontra terreno più o meno della stessa altezza, l'editor crea da solo il modo di salire e scendere. Dipingi l'immagine del ponte con **Dipingi**. **Dipingi: niente: rimuovi un ponte** toglie di nuovo le caselle.
 - I **forzieri** si vedono sempre sulla mappa. Porte, persone ed eventi si vedono quando usi i loro strumenti.
 
 ## Dipingi: com'è il terreno
