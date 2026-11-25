@@ -578,14 +578,15 @@ FIRST_MARKER_ACTOR = 11  # gWorldPicture_AreaMarkers' row i is actor 11 + i (wor
 
 def marker_rows(root):
     """How many actors the pause-screen map has a marker row for, from actor 11
-    up: the rows of gWorldPicture_AreaMarkers before its -1 end. Rows are
-    `AREA_MARKER(...)` or `0, 0` in field/world_picture_markers.c, or
+    up: the rows of gMapScreen_AreaMarkers (gWorldPicture_AreaMarkers before
+    2026-11-25) before its -1 end. Rows are `AREA_MARKER(...)` or `0, 0` in C, or
     `.4byte a, b` in field/scripts.s before 2026-11-17."""
     import re
     rel = layout.first_existing(root, layout.AREA_MARKERS)
     with open(os.path.join(root, rel), encoding="utf-8") as f:
         text = f.read()
-    m = re.search(rf"\b{layout.AREA_MARKERS_LABEL}(?::|\s*\[\s*\]\s*=\s*\{{)", text)
+    labels = "|".join(layout.AREA_MARKERS_LABELS)
+    m = re.search(rf"\b(?:{labels})(?::|\s*\[\s*\]\s*=\s*\{{)", text)
     if not m:
         raise ValueError(tr("Can't find the pause-screen map's markers ({path}).", path=rel))
     rows = 0
