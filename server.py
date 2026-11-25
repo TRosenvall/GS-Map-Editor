@@ -420,6 +420,8 @@ def make_handler(project, token=None, local_only=True):
             ],
             "markers_editable": marker_table is not None and len(project.marker_users(marker_path)) == 1,
             "grids": planes,
+            # layers the game shows faintly, as light glows (see Project.blend)
+            "blend": project.blend(info),
             # heights for drawing ground-level things where the game shows them
             "shapes": project.shape_rows(info) if os.path.exists(info.source("SHAPES", "shapes.tsv")) else [],
             # 0xfff cells numbered as the game numbers them at load

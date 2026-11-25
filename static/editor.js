@@ -467,18 +467,30 @@ function buildBrushes() {
 function cellPainter() {
   const m = S.map, z = +$('#zoom').value, s = 16 * z, grid = $('#ovGrid').checked;
   const ls = visibleLayers().filter(l => S.show[l.index] && S.atlas[l.char_base]).map(l => ({
-    img: S.atlas[l.char_base], alpha: S.alpha[l.index], ox: l.origin[0] + m.bounds[0] / 2, oy: l.origin[1] + m.bounds[1] / 2 }));
+    img: S.atlas[l.char_base], ox: l.origin[0] + m.bounds[0] / 2, oy: l.origin[1] + m.bounds[1] / 2, ...layerLook(l) }));
   return (ctx, x, y) => {
     ctx.fillStyle = '#000'; ctx.fillRect(x * s, y * s, s, s);
     for (const L of ls) {  // as at(m.blocks, l, x, y)
       const b = m.blocks?.[(L.oy + y) % 128]?.[(L.ox + x) % 128]; if (b == null) continue;
       const id = b & 0xfff; if (id >= m.metatile_count) continue;
-      ctx.globalAlpha = L.alpha;
+      ctx.globalAlpha = L.alpha; ctx.globalCompositeOperation = L.op;
       ctx.drawImage(L.img, (id % 32) * 16, Math.floor(id / 32) * 16, 16, 16, x * s, y * s, s, s);
     }
-    ctx.globalAlpha = 1;
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
     if (grid) { ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.strokeRect(x * s + .5, y * s + .5, s, s); }
   };
+}
+
+// How layer l is drawn. A layer the place's blend script fades (light glows:
+// a torch's halo, a shaft of light) is drawn as the game shows it: added
+// faintly over what's below where the layer below shows in full, else mixed
+// in by the two strengths. While Paint paints on that layer it's drawn in full,
+// so what's painted can be seen.
+function layerLook(l) {
+  const b = S.map.blend, alpha = S.alpha[l.index];
+  if (!b || !b.layers.includes(l.index) || (S.tool === 'block' && layer() === l)) return { alpha, op: 'source-over' };
+  if (b.b >= 1) return { alpha: alpha * b.a, op: 'lighter' };
+  return { alpha: alpha * (b.a / ((b.a + b.b) || 1)), op: 'source-over' };
 }
 
 // ---- walking sheets ----------------------------------------------------------

@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 21d4e6859f94 -->
+<!-- translated from README.md @ bc2600e76436 -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · [Deutsch](README.de.md) · [Français](README.fr.md) · **Italiano** · [日本語](README.ja.md)
@@ -156,7 +156,7 @@ Ogni salvataggio è tutto o niente. Se l'editor si ferma a metà, la volta succe
 Premi **Visualizza** (V) per guardare senza cambiare nulla.
 
 - **Zoom:** da 1× a 4×.
-- **Livelli:** ogni luogo ne ha fino a tre, chiamati **Terreno**, **Centrale** e **Superiore**. Puoi nascondere ciascuno. Spunta **Avanzate** per avere dei cursori che li sfumano.
+- **Livelli:** ogni luogo ne ha fino a tre, chiamati **Terreno**, **Centrale** e **Superiore**. Puoi nascondere ciascuno. Spunta **Avanzate** per avere dei cursori che li sfumano. Alcuni luoghi illuminano le loro stanze con un livello che il gioco mostra solo tenue, come il bagliore di una torcia, e l'editor lo disegna allo stesso modo. Mentre dipingi su quel livello con **Dipingi**, viene disegnato per intero così puoi vederlo.
 - **Sovrapposizioni:** spunta **Calpestabilità**, **Altezza** per vedere l'altezza del terreno, o **Griglia** per vedere le caselle.
 - **Terreno nascosto e percorsi che si incrociano:** il terreno rialzato è disegnato più in alto sullo schermo, quindi la cima di una scogliera può coprire il terreno dietro. Spunta **Vista piatta** per disegnare ogni casella dove si trova davvero il suo terreno, senza alzarla, e raggiungere così il terreno sotto. Le immagini restano dove sono. Alcuni luoghi hanno anche un secondo percorso sopra il primo, come un ponte sopra una fossa. **Calpestabilità** e **Altezza** mostrano i due percorsi insieme, e delle strisce rosse segnano dove si incrociano. Un clic su un punto a righe cambia il percorso in alto, o l'ultimo scelto lì se lo imposti in **Dove i percorsi si incrociano**. Maiusc-clic cambia l'altro. **Dove possono stare le persone** segue il gruppo anche sopra un ponte. Per creare un ponte, scegli **Calpestabilità** o **Altezza**, scegli **Centrale** sotto **Dipingi su** e dipingi le sue caselle con un'altezza. Dove il ponte incontra terreno entro un gradino, l'editor crea da solo il modo di salire e scendere. **Superiore** ospita un secondo ponte, che può passare sopra il primo o partire da esso. Il gioco ha tre livelli, quindi un luogo non può sovrapporne di più. Dipingi l'immagine del ponte con **Dipingi**, sullo stesso livello. Spunta **Cancella invece le sue caselle** per togliere di nuovo le caselle. Dove sotto il cursore ci sono due o tre livelli, la barra in basso mostra una riga per ciascuno e segna quello che un clic cambia.
 - I **forzieri** si vedono sempre sulla mappa. Porte, persone ed eventi si vedono quando usi i loro strumenti.

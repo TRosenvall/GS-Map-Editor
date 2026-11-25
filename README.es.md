@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 21d4e6859f94 -->
+<!-- translated from README.md @ bc2600e76436 -->
 # GS Map Editor
 
 [English](README.md) · **Español** · [Deutsch](README.de.md) · [Français](README.fr.md) · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -156,7 +156,7 @@ Cada guardado es todo o nada. Si el editor se detiene a mitad, la próxima vez q
 Pulsa **Ver** (V) para mirar sin cambiar nada.
 
 - **Zoom:** de 1× a 4×.
-- **Capas:** cada lugar tiene hasta tres, llamadas **Suelo**, **Medio** y **Superior**. Puedes ocultar cada una. Marca **Avanzado** para tener controles deslizantes que las atenúan.
+- **Capas:** cada lugar tiene hasta tres, llamadas **Suelo**, **Medio** y **Superior**. Puedes ocultar cada una. Marca **Avanzado** para tener controles deslizantes que las atenúan. Algunos lugares iluminan sus salas con una capa que el juego muestra solo tenue, como el resplandor de una antorcha, y el editor la dibuja igual. Mientras pintas en esa capa con **Pintar**, se dibuja completa para que la veas.
 - **Superposiciones:** marca **Zonas de paso**, **Altura** para ver la altura del suelo, o **Cuadrícula** para ver las casillas.
 - **Suelo oculto y caminos que se cruzan:** el suelo elevado se dibuja más arriba en la pantalla, así que lo alto de un acantilado puede tapar el suelo de detrás. Marca **Vista plana** para dibujar cada casilla donde está realmente su suelo, sin elevarla, y así llegar al suelo de debajo. Las imágenes se quedan donde están. Algunos lugares tienen además un segundo camino sobre el primero, como un puente sobre un foso. **Zonas de paso** y **Altura** muestran los dos caminos juntos, y unas rayas rojas señalan dónde se cruzan. Un clic en un sitio a rayas cambia el camino de arriba, o el último que elegiste ahí si lo indicas en **Donde se cruzan caminos**. Mayús-clic cambia el otro. **Dónde pueden estar las personas** también sigue al grupo cuando sube a un puente. Para hacer un puente, elige **Zonas de paso** o **Altura**, elige **Medio** en **Pintar en** y pinta sus casillas con una altura. Donde el puente se une con suelo a un paso o menos, el editor crea solo la forma de subir y bajar. **Superior** guarda un segundo puente, que puede cruzar el primero o empezar en él. El juego tiene tres capas, así que un lugar no puede apilar más. Pinta la imagen del puente con **Pintar**, en la misma capa. Marca **Borrar sus casillas en su lugar** para volver a quitar casillas. Donde hay dos o tres capas bajo el cursor, la barra de abajo muestra una línea para cada una y marca la que cambia un clic.
 - Los **cofres** siempre se ven en el mapa. Las puertas, las personas y los eventos se ven cuando usas sus herramientas.

@@ -702,6 +702,40 @@ class Project:
         t = self._parsed(info.source("SHAPES", "shapes.tsv"), tablemod.load)
         return [[r[0]] + [v - 256 if v > 127 else v for v in r[1:4]] for r in t.rows]
 
+    def blend(self, info):
+        """How the place's blend script shows its layers, as one steady look:
+        {"layers": [...], "a": strength, "b": what shows through}, or None.
+
+        field/field/map_animation.c runs the script each frame: a control row
+        sets BLDCNT, each level row sets BLDALPHA (the layer's own strength in
+        its low byte, what's below in the high one, in sixteenths) and waits.
+        The levels are averaged over their waits, so a flicker shows at its
+        middle strength. Layer k shows on BG 3 - k (field/field/map_layers.c).
+        Only alpha blending is read; a brightness fade is left out."""
+        path = info.sources.get("BLEND")
+        if not path or not os.path.exists(path):
+            return None
+        control, levels = None, []
+        for line in self._read_lines(path):
+            f = line.split()
+            if len(f) >= 2 and f[0] == "control" and control is None:
+                control = int(f[1], 0)
+            elif len(f) >= 3 and f[0] == "level":
+                levels.append((int(f[1], 0), max(int(f[2], 0), 1)))
+        if control is None or (control >> 6) & 3 != 1 or not levels:
+            return None
+        layers = [3 - bg for bg in (1, 2, 3) if control >> bg & 1]
+        if not layers:
+            return None
+        total = sum(w for _, w in levels)
+        mean = lambda part: round(sum(min(part(v), 16) * w for v, w in levels) / total / 16, 3)
+        return {"layers": layers, "a": mean(lambda v: v & 31), "b": mean(lambda v: v >> 8 & 31)}
+
+    @staticmethod
+    def _read_lines(path):
+        with open(path, encoding="utf-8") as f:
+            return f.read().splitlines()
+
     @staticmethod
     def cell_height(row):
         """Ground height (px) at a cell's centre: flat kinds use their sample,

@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 21d4e6859f94 -->
+<!-- translated from README.md @ bc2600e76436 -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · [Deutsch](README.de.md) · **Français** · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -156,7 +156,7 @@ Chaque enregistrement se fait en entier ou pas du tout. Si l'éditeur s'arrête 
 Appuyez sur **Regarder** (V) pour regarder sans rien modifier.
 
 - **Zoom :** de 1× à 4×.
-- **Calques :** chaque lieu en a jusqu'à trois, appelés **Sol**, **Milieu** et **Au-dessus**. Vous pouvez masquer chacun d'eux. Cochez **Avancé** pour avoir des curseurs qui les estompent.
+- **Calques :** chaque lieu en a jusqu'à trois, appelés **Sol**, **Milieu** et **Au-dessus**. Vous pouvez masquer chacun d'eux. Cochez **Avancé** pour avoir des curseurs qui les estompent. Certains lieux éclairent leurs salles avec une couche que le jeu n'affiche que faiblement, comme la lueur d'une torche, et l'éditeur la dessine de la même façon. Pendant que vous peignez sur cette couche avec **Peindre**, elle est dessinée en entier pour que vous la voyiez.
 - **Superpositions :** cochez **Praticabilité**, **Hauteur** pour voir la hauteur du sol, ou **Grille** pour voir les cases.
 - **Sol caché et chemins qui se croisent :** le sol surélevé est dessiné plus haut à l'écran, donc le haut d'une falaise peut couvrir le sol derrière. Cochez **Vue à plat** pour dessiner chaque case là où se trouve vraiment son sol, sans la surélever, et atteindre ainsi le sol en dessous. Les images restent à leur place. Quelques lieux ont aussi un second chemin au-dessus du premier, comme un pont au-dessus d'une fosse. **Praticabilité** et **Hauteur** montrent les deux chemins ensemble, et des rayures rouges marquent leurs croisements. Un clic sur un endroit rayé modifie le chemin du haut, ou le dernier choisi à cet endroit si vous le réglez dans **Où des chemins se croisent**. Maj-clic modifie l'autre. **Là où les personnages peuvent se tenir** suit aussi l'équipe sur un pont. Pour créer un pont, choisissez **Praticabilité** ou **Hauteur**, choisissez **Milieu** sous **Peindre sur** et peignez ses cases avec une hauteur. Là où le pont rejoint un sol à une marche près, l'éditeur crée tout seul le passage pour monter et descendre. **Au-dessus** porte un second pont, qui peut croiser le premier ou partir de lui. Le jeu a trois couches : un lieu ne peut pas en empiler davantage. Peignez l'image du pont avec **Peindre**, sur la même couche. Cochez **Effacer ses cases à la place** pour retirer à nouveau des cases. Là où deux ou trois couches sont sous le curseur, la barre du bas affiche une ligne pour chacune et marque celle qu'un clic modifie.
 - Les **coffres** sont toujours visibles sur la carte. Les portes, les personnages et les événements apparaissent quand vous utilisez leurs outils.
