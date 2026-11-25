@@ -7,10 +7,15 @@ docs/research/overworld.md.
   cell word    bits 0-15 block, 16-23 step code, 24-30 terrain kind
                (encounter region; 21 = snowy graphics), 31 behaviour bank.
                Layer 1 uses only the block.
-  default/cell_pictures.tsv  4 tile bytes per block (TL TR BL BR).
-  default/collision.txt      per 8x8 tile, 4x4 walkability nibbles, written as
-               sheets of 16 tiles across; upper layer wins, then lower, else
-               7; 5-12 walkable.
+               Since 2026-11-25 the file is decimal, under a row of column
+               numbers; before, hex with no such row.
+  default/cell_tiles.tsv     4 tile numbers per block (TL TR BL BR);
+               cell_pictures.tsv before 2026-11-25, in hex.
+  default/collision.tsv      per 8x8 tile, 4x4 walkability nibbles, written as
+               sheets of 16 tiles across, a nibble a column under a row of
+               column numbers; collision.txt before 2026-11-25, four nibbles a
+               word, a blank line between rows of tiles. Upper layer wins, then
+               lower, else 7; 5-12 walkable.
   graphics     set A: tiles a+b (ground) c+d (overlay), palette a;
                set B (snowy north, kind 21): tiles f+g, h+i, palette b.
 
@@ -37,40 +42,73 @@ WALK_MIN, WALK_MAX = 5, 12
 
 
 def parse_collision(text):
-    """collision.txt as the bytes the game reads: 8 per tile, 2 per row of 4
-    nibbles, the first nibble of each pair in its low half. The sheet has 16
-    tiles across, 4 lines per row of tiles, and a blank line between rows."""
+    """The walkability sheet as the bytes the game reads: 8 per tile, 2 per row
+    of 4 nibbles, the first nibble of each pair in its low half. The sheet has
+    16 tiles across and 4 lines per row of tiles: collision.tsv a nibble a
+    column under a row of column numbers, collision.txt four nibbles a word with
+    a blank line between rows of tiles."""
+    lines = text.strip("\n").split("\n")
+    if "\t" in lines[0]:  # collision.tsv
+        values = [[int(v) for v in line.split("\t")] for line in lines[1:]]
+        rows = [[[line[i:i + 4] for i in range(0, len(line), 4)] for line in values[r:r + 4]]
+                for r in range(0, len(values), 4)]
+    else:
+        rows = [[[[int(c, 16) for c in word] for word in line.split()] for line in part.split("\n")]
+                for part in text.strip("\n").split("\n\n")]
     out = []
-    rows = [[line.split() for line in part.split("\n")] for part in text.strip("\n").split("\n\n")]
     for row in rows:
         for tile in range(len(row[0])):
             for line in row:
-                n = [int(c, 16) for c in line[tile]]
+                n = line[tile]
                 out += [n[0] | n[1] << 4, n[2] | n[3] << 4]
     return out
+
+
+class BlockRows(list):
+    """blocks.tsv's rows of words, and how the file writes them: decimal under a
+    row of column numbers (since 2026-11-25) or hex."""
+    header = None
 
 
 def parse_blocks(text):
     lines = text.split("\n")
     if lines[-1] == "":
         lines.pop()
-    return [[int(t, 16) for t in line.split("\t")] for line in lines]
+    rows = BlockRows()
+    if lines and lines[0].startswith("0\t1\t"):
+        rows.header = lines.pop(0)
+        rows.extend([int(t) for t in line.split("\t")] for line in lines)
+    else:
+        rows.extend([int(t, 16) for t in line.split("\t")] for line in lines)
+    return rows
 
 
 def format_blocks(rows):
+    if getattr(rows, "header", None) is not None:
+        return rows.header + "\n" + "".join("\t".join(str(v) for v in row) + "\n" for row in rows)
     return "".join("\t".join(format(v, "x") for v in row) + "\n" for row in rows)
+
+
+def _cell_tiles(path):
+    """[TL, TR, BL, BR] tile numbers per block, from cell_tiles.tsv (decimal,
+    plain header) or cell_pictures.tsv (a typed table)."""
+    if os.path.basename(path) == "cell_tiles.tsv":
+        with open(path, encoding="utf-8") as f:
+            lines = f.read().strip("\n").split("\n")[1:]
+        return [[int(v) for v in line.split("\t")[:4]] for line in lines]
+    flat = [v for r in tablemod.load(path).rows for v in r]
+    return [flat[i:i + 4] for i in range(0, len(flat) - 3, 4)]
 
 
 class World:
     def __init__(self, root):
         self.root = root
         self.blocks_path = os.path.join(root, layout.WORLD_BLOCKS)
-        self.cells_path = os.path.join(root, layout.WORLD_CELLS)
-        self.attr_path = os.path.join(root, layout.WORLD_COLLISION)
+        self.cells_path = os.path.join(root, layout.first_existing(root, layout.WORLD_CELLS))
+        self.attr_path = os.path.join(root, layout.first_existing(root, layout.WORLD_COLLISION))
         self.gfx = os.path.join(root, layout.WORLD_GRAPHICS)
         self.rows = parse_blocks(open(self.blocks_path, encoding="utf-8").read())
-        flat = [v for r in tablemod.load(self.cells_path).rows for v in r]
-        self.block_tiles = [flat[i:i + 4] for i in range(0, len(flat) - 3, 4)]
+        self.block_tiles = _cell_tiles(self.cells_path)
         self.attr = parse_collision(open(self.attr_path, encoding="utf-8").read())  # 0x000-0x7ff lower tiles, 0x800-0xfff upper
         self._tiles = {}
         self._blocks = {}  # (set, layer) -> {block: 16x16 picture}

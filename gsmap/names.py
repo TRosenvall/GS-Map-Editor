@@ -15,6 +15,7 @@ import re
 from PIL import Image
 
 from . import layout
+from . import scenes as scenemod
 from .i18n import tr, translate
 from .messages import Messages
 
@@ -116,9 +117,13 @@ def _enum_values(text, enum):
 def _read_places(root, msgs):
     """{scene id: place}: its name in the scene list, and the area name the
     game's rules give it when no particular entrance is asked about."""
-    scenes = re.findall(r"^\s*scene\s+(\w*)\s*,\s*\w+\s*,\s*(\d+)\s*,", _source(root, layout.SCENE_TABLE), re.M)
+    try:
+        scenes = [(s["name"] or "", s["group"]) for s in scenemod.read_scene_table(root)]
+    except (OSError, KeyError, ValueError):  # preflight says what moved
+        scenes = []
     ids = {name: i for i, (name, _) in enumerate(scenes) if name}
-    text = _source(root, layout.AREA_RULES)
+    text = _source(root, layout.first_existing(root, layout.AREA_RULES))
+    areas_by_name = scenemod.enum_values(_source(root, layout.AREA_IDS), "AreaId")
     rules = re.findall(r"^\s*(area|scene)_name\s+(\w+)\s*,\s*(-?\w+)\s*,\s*(\d+)", text, re.M)
     by_scene, by_area = {}, {}
     for kind, who, entrance, index in rules:
@@ -127,13 +132,15 @@ def _read_places(root, msgs):
         if kind == "area":
             if who.lstrip("-").isdigit():
                 by_area.setdefault(int(who), int(index))
+            elif who in areas_by_name:
+                by_area.setdefault(areas_by_name[who], int(index))
         else:
             by_scene.setdefault(ids.get(who, int(who) if who.isdigit() else -1), int(index))
     highest = max([*by_scene.values(), *by_area.values()], default=0)
     areas = _message_block(msgs, "MsgDebugAreaName", highest + 1)
     places = {}
     for sid, (name, area) in enumerate(scenes):
-        index = by_scene.get(sid, by_area.get(int(area), 0))
+        index = by_scene.get(sid, by_area.get(area, 0))
         area_name = areas[index] if index < len(areas) else None
         places[sid] = {
             "id": sid, "symbol": name or None,
@@ -354,6 +361,14 @@ class Names:
         without that table numbers its pictures item_001.png."""
         if self._icon_paths is None:
             self._icon_paths = {}
+            listed = os.path.join(self.root, layout.ITEM_ICON_LIST)
+            if os.path.exists(listed):  # list.tsv: the table, then the picture's name
+                folder = os.path.dirname(layout.ITEM_ICON_LIST)
+                with open(listed, encoding="utf-8") as f:
+                    names = [r[1] for r in (line.rstrip("\n").split("\t") for line in f)
+                             if len(r) > 1 and r[0] == "gItemIcons"]
+                self._icon_paths = {n: f"{folder}/{name}.png" for n, name in enumerate(names)}
+                return self._icon_paths.get(icon) or layout.ITEM_ICON.format(icon=icon)
             try:
                 from .project import EDITION, _preprocess
                 with open(os.path.join(self.root, layout.ITEM_ICONS), encoding="utf-8") as f:
