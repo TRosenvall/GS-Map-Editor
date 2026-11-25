@@ -184,6 +184,7 @@
   footer { grid-column: 1 / 4; padding: 5px 12px; background: var(--panel); border-top: 1px solid var(--line);
            color: var(--muted); font-variant-numeric: tabular-nums; min-height: 26px; white-space: nowrap; overflow: hidden; }
   footer b { color: var(--text); font-weight: 500; }
+  footer .here { color: var(--text); }
   .err { color: var(--bad); } .ok { color: var(--good); } .warn { color: var(--accent); }
 </style>
 </head>
@@ -213,7 +214,6 @@
     <label>on <select id="editLayer" title="Which layer you’re working on"></select></label>
     <label id="valueBox" style="display:none" class="adv">value <input type="text" id="value" value=""></label>
     <label id="fillBox" style="display:none" title="Click to fill the connected area that matches the square you click (F)"><input type="checkbox" id="fill"> Fill</label>
-    <label id="bridgeWrap" style="display:none" title="A bridge is a second path over the ground: the party walks over it, and under it on the ground. Paint its squares with a height; where it meets ground at the same height, the editor makes the way on and off. Paint the bridge's picture with Paint.">Paint on <select id="bridgeMode"><option value="">the ground</option><option value="add">a bridge over it</option><option value="remove">nothing: remove a bridge</option></select></label>
   </div>
   <div class="group">
     <button id="undo" disabled title="Undo (⌘Z)">Undo</button>
@@ -292,6 +292,7 @@
       <div class="row"><button id="importApply" class="primary">Add to tile set</button><button id="importCancel">Cancel</button></div>
     </div>
   </div>
+  <div id="layerPick" style="display:none"></div>
   <h2 id="brushTitle" style="display:none">Walkability brushes</h2>
   <div id="brushes" style="display:none"></div>
   <h2 id="heightTitle" style="display:none">Height</h2>

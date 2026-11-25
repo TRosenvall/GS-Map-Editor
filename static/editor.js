@@ -501,7 +501,8 @@ function groundSheets() {
       for (let x = 0; x < W; x++) { const k = (row[(ox + x) % 128] >> 12) & 3; if (k > 1) targets.add(k - 1); }
     }
   }
-  if (m.bridged || bridgeMode()) targets.add(1);  // a bridge being painted, before its landings exist
+  for (const k of m.bridged || []) targets.add(k);  // a bridge being painted, before its landings exist
+  if (paintLayer()) targets.add(paintLayer());
   const sheet = (l, main) => ({ l, main, ox: l.origin[0] + m.bounds[0] / 2, oy: l.origin[1] + m.bounds[1] / 2 });
   const sheets = [sheet(m.layers[0], true)];
   for (const k of [...targets].sort()) {
@@ -523,33 +524,41 @@ function sheetOf(gx, gy) {
 }
 
 // ---- bridges ---------------------------------------------------------------
-// A bridge is a second path over the ground: squares of layer 1, which the party
+// A bridge is a path over the ground: squares of layer 1 or 2, which the party
 // walks on once a layer marker moves it there (the block word's bits 12-13 under
-// it hold the layer + 1; field_actor_camera.c). Painting "a bridge over it"
-// writes a square's height or walkability to layer 1, and its ends follow by
-// themselves, as the game's own bridges are made:
-// - a landing: main ground beside the bridge and within a step of it, copied
-//   to layer 1, with a marker on the main ground that moves the party onto it;
-// - beyond each landing, the main ground copied again with a marker back to
-//   layer 0 (the party leaves one square further out than it got on, so it
-//   never flickers between the two);
+// it hold the layer + 1; field_actor_camera.c). The game has three layers, so a
+// place holds the ground and at most two paths over it. With layer 2 or 3
+// picked above the brushes, height and walkability go to that layer, and the
+// bridge's ends follow by themselves, as the game's own bridges are made:
+// - a landing: ground beside the bridge and within a step of it (main ground,
+//   or a lower bridge) copied to the bridge's layer, with a marker on the
+//   ground that moves the party onto it;
+// - beyond each landing, that ground copied again with a marker back down
+//   (the party leaves one square further out than it got on, so it never
+//   flickers between the two);
 // - a wall along each side where stepping off would otherwise be a step down
 //   (a high bridge needs none: the drop stops the party).
 // Bridge squares, landings, ways off and side walls are told apart by their
 // markers and walls; only squares near the ones painted are ever tidied.
-function bridgeLayer() {
-  const m = S.map; if (!m || !m.layers[1]) return null;
-  if (m.bridgeOk === undefined) {
-    // Layer 1's window must be its own: writing it mustn't change another's.
+// Layer k, if a path can be painted on it: its window must be its own, so
+// writing it changes no other layer.
+function freeLayer(k) {
+  const m = S.map; if (!m || !k || !m.layers[k]) return null;
+  m.layerFree ||= {};
+  if (m.layerFree[k] === undefined) {
     const cells = l => { const out = new Set(); for (let y = 0; y < m.size[1]; y++) for (let x = 0; x < m.size[0]; x++) { const [gx, gy] = gridXY(l, x, y); out.add(gy * 128 + gx); } return out; };
-    const mine = cells(m.layers[1]);
-    m.bridgeOk = [0, 2].every(k => !m.layers[k] || ![...cells(m.layers[k])].some(c => mine.has(c)));
+    const mine = cells(m.layers[k]);
+    m.layerFree[k] = [0, 1, 2].every(j => j === k || !m.layers[j] || ![...cells(m.layers[j])].some(c => mine.has(c)));
   }
-  return m.bridgeOk ? m.layers[1] : null;
+  return m.layerFree[k] ? m.layers[k] : null;
 }
-function bridgeMode() {
-  return (S.tool === 'collision' || S.tool === 'shape') && bridgeLayer() ? $('#bridgeMode').value : '';
+// The layer height and walkability are painted on: 0 is the ground.
+function paintLayer() {
+  const k = S.paintLayer || 0;
+  return (S.tool === 'collision' || S.tool === 'shape') && freeLayer(k) ? k : 0;
 }
+function bridgeLayer() { return freeLayer(paintLayer()); }
+function bridgeMode() { return paintLayer() ? ($('#eraseBridge')?.checked ? 'remove' : 'add') : ''; }
 // Layer k's grid square at window square (x, y), and what it holds.
 const brXY = (k, x, y) => gridXY(S.map.layers[k], x, y);
 const brIn = (x, y) => x >= 0 && y >= 0 && x < S.map.size[0] && y < S.map.size[1];
@@ -558,54 +567,71 @@ function brShape(k, x, y) { const [gx, gy] = brXY(k, x, y); return S.map.grids.s
 function brHeight(k, x, y) { return cellHeightPx(S.map.shapes?.[brShape(k, x, y)]); }
 function brMarker(k, x, y) { const [gx, gy] = brXY(k, x, y); return (S.map.blocks[gy][gx] >> 12) & 3; }
 function brSetMarker(k, x, y, v) { const [gx, gy] = brXY(k, x, y); setValue('block', gx, gy, (S.map.blocks[gy][gx] & ~0x3000) | (v << 12)); }
-function brSet(x, y, col, shape) { const [gx, gy] = brXY(1, x, y); setValue('collision', gx, gy, col); setValue('shape', gx, gy, shape); }
-const brHas = (x, y) => !!(brCol(1, x, y) || brShape(1, x, y));         // anything on layer 1
-// A landing's copy of the ground can be blank on layer 1 (ground of the first
-// height, nothing special underfoot), so the markers alone tell these apart.
-const brLanding = (x, y) => brMarker(0, x, y) === 2;  // the party gets on here
-const brWayOff = (x, y) => brMarker(1, x, y) === 1;   // and off here
-const brWall = (x, y) => brCol(1, x, y) === 255 && !brShape(1, x, y);
+const brAny = (k, x, y) => !!(brCol(k, x, y) || brShape(k, x, y));
+// The rest work on the layer being painted, K.
+const BK = () => paintLayer();
+function brSet(x, y, col, shape) { const [gx, gy] = brXY(BK(), x, y); setValue('collision', gx, gy, col); setValue('shape', gx, gy, shape); }
+const brHas = (x, y) => brAny(BK(), x, y);
+// A landing's copy of the ground can be blank (ground of the first height,
+// nothing special underfoot), so the markers alone tell these apart. A landing
+// is a marker up to K on a lower layer; a way off, a marker on K down to one.
+function brLandingFrom(x, y) { const K = BK(); for (let j = K - 1; j >= 0; j--) if (brMarker(j, x, y) === K + 1) return j; return -1; }
+const brLanding = (x, y) => brLandingFrom(x, y) >= 0;
+const brWayOff = (x, y) => { const v = brMarker(BK(), x, y); return v >= 1 && v <= BK(); };
+const brWall = (x, y) => brCol(BK(), x, y) === 255 && !brShape(BK(), x, y);
 const brSquare = (x, y) => brHas(x, y) && !brLanding(x, y) && !brWayOff(x, y) && !brWall(x, y);
 const brFree = (x, y) => !brHas(x, y) && !brLanding(x, y) && !brWayOff(x, y);
 const BR_DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 function brNear(x, y, test) { return BR_DIRS.some(([dx, dy]) => brIn(x + dx, y + dy) && test(x + dx, y + dy)); }
+// The lower layer the party can step from at (x, y) onto a bridge square at
+// height h: the highest one with walkable ground there within a step, and no
+// marker of its own yet. -1 if none.
+function brFrom(x, y, h) {
+  for (let j = BK() - 1; j >= 0; j--) {
+    if (j && (!freeLayer(j) || !brAny(j, x, y))) continue;
+    if (brMarker(j, x, y) || brCol(j, x, y) === 255) continue;
+    if (Math.abs(brHeight(j, x, y) - h) <= 8) return j;
+  }
+  return -1;
+}
 
 // The grid square a bridge stroke changes at window square (x, y): the bridge
 // square under the cursor, else a new one drawn under it at the brush's height.
 function bridgeCell(x, y) {
-  const sheets = groundSheets(), si = sheets.findIndex(sh => sh.l === bridgeLayer());
+  const K = BK(), sheets = groundSheets(), si = sheets.findIndex(sh => sh.l === bridgeLayer());
   const g = si >= 0 && S.mouse && groundsAt(S.mouse[0], S.mouse[1]).find(c => c.si === si);
   if (g) return [g.gx, g.gy];
   if (bridgeMode() === 'remove') return null;
   const v = parseInt($('#value').value, 16);
   const lift = S.flat || S.tool !== 'shape' || isNaN(v) ? 0 : Math.round(cellHeightPx(S.map.shapes?.[v]) / 16);
-  return brIn(x, y + lift) ? brXY(1, x, y + lift) : null;
+  return brIn(x, y + lift) ? brXY(K, x, y + lift) : null;
 }
 function paintBridge(gx, gy, value) {
-  const w = windowXY(bridgeLayer(), gx, gy); if (!w) return;
+  const K = BK(), w = windowXY(bridgeLayer(), gx, gy); if (!w) return;
   const [x, y] = w, mode = bridgeMode();
+  const unmark = () => {
+    if (brWayOff(x, y)) brSetMarker(K, x, y, 0);
+    const j = brLandingFrom(x, y); if (j >= 0) brSetMarker(j, x, y, 0);
+  };
   if (mode === 'remove') {
     if (!brHas(x, y) && !brLanding(x, y) && !brWayOff(x, y)) return;
-    brSet(x, y, 0, 0);
-    if (brMarker(1, x, y)) brSetMarker(1, x, y, 0);
-    if (brMarker(0, x, y) === 2) brSetMarker(0, x, y, 0);
+    brSet(x, y, 0, 0); unmark();
   } else {
     if (S.tool === 'collision' && !brSquare(x, y)) return status(`<span class="warn">${T('Give the bridge a height here first, with Height.')}</span>`);
-    if (S.tool === 'shape' && !value && !brCol(1, x, y)) return status(`<span class="warn">${T('A bridge square needs a height other than the first one in the list.')}</span>`);
+    if (S.tool === 'shape' && !value && !brCol(K, x, y)) return status(`<span class="warn">${T('A bridge square needs a height other than the first one in the list.')}</span>`);
     // A landing, way off or side wall painted over becomes part of the bridge.
-    if (brMarker(1, x, y)) brSetMarker(1, x, y, 0);
-    if (brMarker(0, x, y) === 2) brSetMarker(0, x, y, 0);
+    unmark();
     if (brWall(x, y)) setValue('collision', gx, gy, 0);
     setValue(S.tool, gx, gy, value);
   }
-  S.map.bridged = true;
+  (S.map.bridged ||= new Set()).add(K);
   (S.bridgeTouched ||= new Set()).add(y * 128 + x);
 }
 // Redo the ends and sides of the bridge near the squares just painted: part of
 // the same stroke, so one Undo takes it all back.
 function tidyBridge() {
-  const m = S.map, touched = S.bridgeTouched; S.bridgeTouched = null;
-  if (!touched?.size || !bridgeLayer()) return;
+  const m = S.map, touched = S.bridgeTouched, K = BK(); S.bridgeTouched = null;
+  if (!touched?.size || !K) return;
   const area = [];
   for (const k of touched) {
     const tx = k % 128, ty = Math.floor(k / 128);
@@ -613,29 +639,32 @@ function tidyBridge() {
   }
   const blank = cellHeightPx(m.shapes?.[0]);
   // What no bridge square needs any more goes.
-  const reaches = (x, y) => brNear(x, y, (a, b) => brSquare(a, b) && Math.abs(brHeight(1, a, b) - brHeight(0, x, y)) <= 8);
-  for (const [x, y] of area) if (brLanding(x, y) && !reaches(x, y)) { brSetMarker(0, x, y, 0); brSet(x, y, 0, 0); }
-  for (const [x, y] of area) if (brWayOff(x, y) && !brNear(x, y, brLanding)) { brSetMarker(1, x, y, 0); brSet(x, y, 0, 0); }
+  const reaches = (x, y, j) => brNear(x, y, (a, b) => brSquare(a, b) && Math.abs(brHeight(K, a, b) - brHeight(j, x, y)) <= 8);
+  for (const [x, y] of area) { const j = brLandingFrom(x, y); if (j >= 0 && !reaches(x, y, j)) { brSetMarker(j, x, y, 0); brSet(x, y, 0, 0); } }
+  for (const [x, y] of area) if (brWayOff(x, y) && !brNear(x, y, brLanding)) { brSetMarker(K, x, y, 0); brSet(x, y, 0, 0); }
   for (const [x, y] of area) if (brWall(x, y) && !brNear(x, y, brSquare)) brSet(x, y, 0, 0);
-  // Landings where main ground beside a bridge square is within a step of it.
+  // Landings where lower ground beside a bridge square is within a step of it.
   const landings = [], sides = [];
   for (const [x, y] of area) {
     if (!brSquare(x, y)) continue;
-    const h = brHeight(1, x, y);
+    const h = brHeight(K, x, y);
     for (const [dx, dy] of BR_DIRS) {
       const nx = x + dx, ny = y + dy;
       if (!brIn(nx, ny) || !brFree(nx, ny)) continue;
-      if (brCol(0, nx, ny) !== 255 && Math.abs(brHeight(0, nx, ny) - h) <= 8) landings.push([nx, ny]);
+      const j = brFrom(nx, ny, h);
+      if (j >= 0) landings.push([nx, ny, j]);
       else if (Math.abs(blank - h) <= 12) sides.push([nx, ny]);
     }
   }
-  for (const [x, y] of landings) { brSet(x, y, brCol(0, x, y), brShape(0, x, y)); brSetMarker(0, x, y, 2); }
-  for (const [x, y] of landings) for (const [dx, dy] of BR_DIRS) {
+  const done = [];
+  for (const [x, y, j] of landings) if (brFree(x, y)) { brSet(x, y, brCol(j, x, y), brShape(j, x, y)); brSetMarker(j, x, y, K + 1); done.push([x, y, j]); }
+  for (const [x, y, j] of done) for (const [dx, dy] of BR_DIRS) {
     const nx = x + dx, ny = y + dy;
     if (!brIn(nx, ny) || !brFree(nx, ny)) continue;
-    brSet(nx, ny, brCol(0, nx, ny), brShape(0, nx, ny)); brSetMarker(1, nx, ny, 1);
+    if (j && !brAny(j, nx, ny)) continue;  // off a lower bridge only onto that bridge
+    brSet(nx, ny, brCol(j, nx, ny), brShape(j, nx, ny)); brSetMarker(K, nx, ny, j + 1);
   }
-  for (const [x, y] of sides) if (brFree(x, y)) setValue('collision', ...brXY(1, x, y), 255);
+  for (const [x, y] of sides) if (brFree(x, y)) setValue('collision', ...brXY(K, x, y), 255);
   sheetMemo = null;
 }
 
@@ -1218,10 +1247,26 @@ function showScenePanel() {
   $('#tableSel').style.display = $('#tableView').style.display = full ? '' : 'none';
 }
 
-// "Paint on: a bridge" shows for walkability and height where layer 1 can hold one.
+// Which layer walkability and height are painted on, above their brushes.
 function showBridgeOption() {
-  const t = S.tool, ok = (t === 'collision' || t === 'shape') && !!bridgeLayer();
-  $('#bridgeWrap').style.display = ok ? '' : 'none';
+  const t = S.tool, box = $('#layerPick'), on = !!S.map && (t === 'collision' || t === 'shape');
+  box.style.display = on ? '' : 'none';
+  if (!on) return;
+  const k = paintLayer(), erase = $('#eraseBridge')?.checked;
+  const key = [S.map.number, k, erase].join();  // drawAll calls this: rebuild only on a change
+  if (box.dataset.key === key) return;
+  box.dataset.key = key;
+  const free = [1, 2].filter(freeLayer);
+  const tips = [T('The ground the party walks on'), T('A bridge or other path over the ground: the party walks over it, and under it on the ground'),
+    T('A second path over the ground, over the Middle one too')];
+  const btn = i => `<button data-layer="${i}" class="${k === i ? 'on' : ''}" ${i && !freeLayer(i) ? `disabled title="${esc(T("This place's layer shares its squares with another layer, so it can't hold a path."))}"` : `title="${esc(tips[i])}"`}>${esc(LAYER_NAMES[i])}</button>`;
+  box.innerHTML = `<h2>${T('Painting on')}</h2><div class="hb-row">${[0, 1, 2].filter(i => !i || S.map.layers[i]).map(btn).join('')}</div>`
+    + (k ? `<div class="note">${T('Paint its squares with a height; where it meets ground within a step, the editor makes the way on and off. Paint its picture with Paint, on the same layer.')}</div>
+      <label class="hb-row"><input type="checkbox" id="eraseBridge" ${erase ? 'checked' : ''}> ${T('Erase its squares instead')}</label>` : '')
+    + (!free.length ? `<div class="note">${T('This place has no layer free for a bridge.')}</div>` : '');
+  box.querySelectorAll('[data-layer]').forEach(b => b.onclick = () => {
+    S.paintLayer = +b.dataset.layer; sheetMemo = null; showBridgeOption(); drawAll();
+  });
 }
 function setTool(t) {
   // Walkability and height each keep their own brush.
@@ -1352,13 +1397,30 @@ $('#cv').addEventListener('mousemove', e => {
       return status(line ? T('{who} says: “{text}”', { who, text: esc(shortText(line.text)) }) : T("{who} doesn't say anything here yet.", { who }));
     }
   }
+  const lines = layerLines(p0);
+  if (lines.length && !S.advanced) return status(lines.join(''));
   status(S.advanced
     ? T('cell {cell} (ground {ground}) · blocks {blocks} · {what} · height {height} ({px} px) on L{layer}', {
       cell: `<b>${x},${y}</b>`, ground: `${gx},${gy}`, blocks: parts.join(' '), what,
       height: `<b>${hex(m.grids.shape?.[gy]?.[gx])}</b>`, px: groundHeightPx(gx, gy), layer: l.index }) + where
     // The ground square: what doors, chests and Check name, even on raised ground.
-    : T('{what} · level {n} · cell {cell}', { what, n: levelOf(groundHeightPx(gx, gy)), cell: `${gx},${gy}` }) + where);
+    : T('{what} · level {n} · cell {cell}', { what, n: levelOf(groundHeightPx(gx, gy)), cell: `${gx},${gy}` }) + where,
+    lines);
 });
+// Where ground of two or three layers shows at the cursor: a line for each,
+// the one a click changes marked. Shift picks another.
+function layerLines(picked) {
+  const all = S.mouse ? groundsAt(S.mouse[0], S.mouse[1]) : [];
+  if (all.length < 2) return [];
+  const sheets = groundSheets(), m = S.map;
+  return all.map(c => {
+    const on = picked && c.gx === picked.gx && c.gy === picked.gy;
+    const name = LAYER_NAMES[sheets[c.si].l.index] || 'L' + sheets[c.si].l.index;
+    const line = T('{layer}: {what} · level {n} · cell {cell}', {
+      layer: name, what: `<b>${esc(collisionName(m.grids.collision?.[c.gy]?.[c.gx]))}</b>`, n: levelOf(groundHeightPx(c.gx, c.gy)), cell: `${c.gx},${c.gy}` });
+    return `<div class="${on ? 'here' : ''}">${on ? '▸ ' : '&nbsp;&nbsp; '}${line}${on ? ' · ' + T('paths cross here: Shift-click for the other') : ''}</div>`;
+  });
+}
 
 // ---- scenes and their tables ---------------------------------------------------
 function clone(v) { return JSON.parse(JSON.stringify(v)); }
@@ -2995,7 +3057,7 @@ async function fillPlayFrom() {
 $('#sceneSel').addEventListener('change', fillPlayFrom);
 
 function log(text) { const el = $('#log'); el.style.display = 'block'; el.textContent = text; }
-function status(html) { $('#status').innerHTML = html; }
+function status(html, more = []) { $('#status').innerHTML = more.length ? `<div>${html}</div>${more.join('')}` : html; }
 
 // Undo takes back unsaved changes first, then saved actions newest first, from
 // any tool and any place; Redo does them again until something new is saved.
@@ -3036,7 +3098,6 @@ $('#zoom').onchange = () => { save('zoom', $('#zoom').value); drawAll(); };
 for (const id of ['#ovCollision', '#ovShape', '#ovGrid']) $(id).onchange = drawAll;
 $('#ovFlat').onchange = () => { S.flat = $('#ovFlat').checked; save('ovFlat', S.flat); drawAll(); };
 $('#crossPick').onchange = () => { save('crossPick', $('#crossPick').value); S.crossPick = null; };
-$('#bridgeMode').onchange = () => { if (bridgeMode() && S.map) { S.map.bridged = true; drawAll(); } };
 $('#ovStand').onchange = () => { save('ovStand', $('#ovStand').checked); WK.key = null; loadStand(); drawAll(); };
 window.addEventListener('keydown', e => {
   const dialog = openDialog();
