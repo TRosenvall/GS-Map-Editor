@@ -27,8 +27,10 @@ from .messages import Messages
 
 ZONES = f"{layout.SRC}/field/encounter_zones.c"
 RULES = f"{layout.SRC}/field/world_map_encounter_rules.c"
-# BATTLE_ENVIRONMENT_*, WORLD_MAP_ENCOUNTER_REGION_* (in module/field/field.h before 2026-11-17)
-RULE_NAMES = (f"{layout.INCLUDE}/field/field.h", f"{layout.INCLUDE}/module/field/field.h")
+# BATTLE_ENVIRONMENT_*, WORLD_MAP_ENCOUNTER_REGION_* (in module/field/field.h before 2026-11-17),
+# and since 2026-11-25 ENCOUNTER_ZONE_* (enum EncounterZoneId), which the rules name zones by.
+RULE_NAMES = (f"{layout.INCLUDE}/field/field.h", f"{layout.INCLUDE}/module/field/field.h",
+              f"{layout.INCLUDE}/field/field_sequence.h")
 SCENE_RULES = f"{layout.SRC}/field/encounter_rules.s"  # gScene_EncounterRules: places' zones
 FORMATIONS = f"{layout.SRC}/battle/formations.c"
 ENEMY_IDS = f"{layout.INCLUDE}/enemy_ids.h"
@@ -270,9 +272,14 @@ class Encounters:
     def _formations(self):
         text = _read(self.root, FORMATIONS)
         rows = {e["id"]: i for i, e in enumerate(self.enemies)}
-        out = []
+        out, last = [], _array_body(text, "gFormations")[0]
         for a, b in _entries(text, "gFormations"):
             entry = text[a:b]
+            # Since 2026-11-25 each row says its number ([12] = {...}), and empty rows are left out.
+            at = re.search(r"\[\s*(\d+)\s*\]\s*=\s*$", _strip_comments(text[last:a]))
+            last = b
+            if at:
+                out += [[] for _ in range(int(at.group(1)) - len(out))]
             members = [rows.get(x) for x in re.findall(r"ENEMY_ROW\((\w+)\)", _field(entry, "memberIds") or "")]
             low, high = _ints(_field(entry, "minimumCounts")), _ints(_field(entry, "maximumCounts"))
             out.append([{"enemy": m, "min": low[i] if i < len(low) else 0, "max": high[i] if i < len(high) else 0}
@@ -326,6 +333,26 @@ class Encounters:
         """Zones the world map or a place uses for random battles."""
         return self.world_zones() | {r["zone"] for r in self.scene_rules if r["zone"]}
 
+    def _monster_comment(self, formations):
+        """The comment over a zone's formations: the monsters they bring, by
+        English name, first seen first, wrapped as clang-format would."""
+        seen = []
+        for f in formations:
+            for m in self.formations[f] if f < len(self.formations) else []:
+                name = self.enemies[m["enemy"]]["name"]
+                if name not in seen:
+                    seen.append(name)
+        if not seen:
+            return []
+        text = (seen[0] if len(seen) == 1 else ", ".join(seen[:-1]) + " and " + seen[-1]) + "."
+        out, line = [], "        //"
+        for word in text.split(" "):
+            if len(line) + 1 + len(word) > 80 and line != "        //":
+                out.append(line)
+                line = "        //"
+            line += " " + word
+        return out + [line]
+
     def set_zone(self, zone_id, rate, groups):
         """Change a world map zone's rate and its formations with their chances."""
         if zone_id not in self.editable_zones():
@@ -352,6 +379,13 @@ class Encounters:
             lines.append(f"        .rate = {new['rate']},")
         if new["level"]:
             lines.append(f"        .level = {new['level']},")
+        # Since 2026-11-25 a zone names the monsters its formations bring, in a
+        # comment over them: kept when they stay, written anew when they change.
+        said = re.findall(r"^[ \t]*//.*$", self.text[a:b].split(".formations")[0], re.M)
+        if said and new["formations"] == zone["formations"]:
+            lines += [line.rstrip() for line in said]
+        elif said:
+            lines += self._monster_comment(new["formations"])
         lines.append("        .formations = {" + ", ".join(map(str, new["formations"])) + "},")
         lines.append("        .weights = {" + ", ".join(map(str, new["weights"])) + "},")
         lines.append("    }")
