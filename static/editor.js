@@ -1308,7 +1308,7 @@ window.addEventListener('mouseup', e => {
 $('#cv').addEventListener('mousemove', e => {
   const m = S.map; if (!m) return;
   const [x, y] = cellFromEvent(e);
-  S.mouse = mousePx(e);
+  S.mouse = mousePx(e); S.lastMove = [e.clientX, e.clientY];
   const p0 = pickGround(S.mouse[0], S.mouse[1], e.shiftKey), g0 = p0 && [p0.gx, p0.gy];
   const key = S.tool === 'block' || !g0 ? `${x},${y}` : `${g0[0]},${g0[1]}`;
   if (painting && key !== lastCell && !S.saving) { lastCell = key; paintTo(x, y); }
@@ -2561,7 +2561,7 @@ $('#importApply').onclick = async () => {
 $('#stampCopy').onclick = () => setStampMode('copy');
 $('#stampPaste').onclick = () => setStampMode('paste');
 $('#stampObjects').onchange = drawStampOverlay;
-$('#cv').addEventListener('mouseleave', () => { S.hoverCell = null; if (S.tool === 'stamp' && !(S.sel && S.sel.dragging)) drawStampOverlay(); });
+$('#cv').addEventListener('mouseleave', () => { S.hoverCell = null; S.lastMove = null; if (S.tool === 'stamp' && !(S.sel && S.sel.dragging)) drawStampOverlay(); });
 try { S.clip = JSON.parse(localStorage.getItem('gsmap.clip')); } catch (e) { S.clip = null; }
 
 // ---- save / build / play -------------------------------------------------------
@@ -3051,6 +3051,13 @@ window.addEventListener('keydown', e => {
   if (e.key.toLowerCase() === 'f' && !e.metaKey && !e.ctrlKey && $('#fillBox').style.display !== 'none') { $('#fill').checked = !$('#fill').checked; return; }
   const t = { v: 'view', b: 'block', c: 'collision', h: 'shape', k: 'chest', e: 'events', d: 'doors', p: 'points', s: 'stamp' }[e.key.toLowerCase()];
   if (t && !e.metaKey && !e.ctrlKey) setTool(t);
+});
+// Shift reaches the ground under a bridge: update what the cursor is over
+// as soon as it's pressed or let go, not on the next move.
+for (const type of ['keydown', 'keyup']) window.addEventListener(type, e => {
+  if (e.key !== 'Shift' || e.repeat || !S.lastMove || painting || openDialog() || isTyping(e.target)) return;
+  const [clientX, clientY] = S.lastMove;
+  $('#cv').dispatchEvent(new MouseEvent('mousemove', { clientX, clientY, shiftKey: type === 'keydown' }));
 });
 window.addEventListener('beforeunload', e => { if (dirtyCount()) { e.preventDefault(); e.returnValue = ''; } });
 init().then(() => {
