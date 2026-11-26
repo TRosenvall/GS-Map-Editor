@@ -1,4 +1,4 @@
-<!-- translated from README.md @ 4cd107cf5ad4 -->
+<!-- translated from README.md @ 1803bce43e80 -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · [Deutsch](README.de.md) · **Français** · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -11,7 +11,7 @@ L'éditeur s'appuie sur [alchemy](https://github.com/PascalPixel/alchemy), un pr
 
 > **Avant-première : testeurs recherchés.** L'éditeur couvre l'édition anglaise de The Broken Seal, sur macOS et, à titre de premier essai, sur Windows. Il a surtout été testé sur un seul Mac Intel, et la version Windows n'a jamais tourné sur un vrai PC Windows : chaque retour compte, y compris « ça a marché » : [téléchargez-le](https://github.com/TRosenvall/GS-Map-Editor/releases), essayez-le et [dites-nous comment ça s'est passé](https://github.com/TRosenvall/GS-Map-Editor/issues/new?template=bug_report.md). Gardez une sauvegarde de tout mod auquel vous tenez.
 
-**Version d'alchemy :** cet éditeur est testé avec le commit d'alchemy [`9bf56b6993`](https://github.com/PascalPixel/alchemy/commit/9bf56b699328033f913aed8d81505eac1cce8868) (2026-11-25). L'installation télécharge exactement ce commit. Alchemy évolue vite : une copie plus récente risque de ne pas fonctionner tant que l'éditeur ne l'a pas rattrapée. Quand une nouvelle version de l'éditeur est testée avec un commit plus récent, une copie installée auparavant affiche **Mettre à jour la source du jeu…** dans la barre du haut : vos changements sont sauvegardés, la copie passe à ce commit avec votre mod, et le jeu est construit pour la vérifier. Si quelque chose ne peut pas être reporté, la copie est remise exactement comme avant.
+**Version d'alchemy :** cet éditeur est testé avec le commit d'alchemy [`b10318be81`](https://github.com/PascalPixel/alchemy/commit/b10318be8103cad5e0446b402445fc73c78510f0) (2026-11-26). L'installation télécharge exactement ce commit. Alchemy évolue vite : une copie plus récente risque de ne pas fonctionner tant que l'éditeur ne l'a pas rattrapée. Quand une nouvelle version de l'éditeur est testée avec un commit plus récent, une copie installée auparavant affiche **Mettre à jour la source du jeu…** dans la barre du haut : vos changements sont sauvegardés, la copie passe à ce commit avec votre mod, et le jeu est construit pour la vérifier. Si quelque chose ne peut pas être reporté, la copie est remise exactement comme avant.
 
 ## Sommaire
 
