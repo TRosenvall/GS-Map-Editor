@@ -3,9 +3,13 @@
 Facts this relies on, each checked against alchemy's engine source or by
 rendering (see README.md):
 
-- A map is games/tbs/src/map/<dir>/map.inc (map.s before 2026-11-17) plus its tables: map.txt (the grid),
-  cell_pictures.tsv, shapes.tsv; the chests are `treasure_spot` lines inside
-  map.inc. Its header gives the map bounds and the layer origins in 8 px tile units, three BG priorities
+- A map is a folder games/tbs/src/map/<dir>: header.tsv, layers.tsv and
+  contents.tsv (which tables it uses, possibly another map's), its grid
+  (grid_picture.tsv and the others, gsmap/grid.py), cell_tiles.tsv,
+  shapes.tsv and spots.tsv (its chests); map/maps.tsv lists the folders.
+  Before 2026-11-25 it was map.inc (map.s before 2026-11-17) holding the
+  header and the chests as `treasure_spot` lines, with map.txt and
+  cell_pictures.tsv. The header gives the map bounds and the layer origins in 8 px tile units, three BG priorities
   (0 = layer off) and three BG char bases (16 KiB blocks).
 - Each layer's cells start at (x/2, y/2) in the 128x128 cell grid.
 - A cell's low 12 bits pick a block (a cell picture). 0xfff marks the map's next
@@ -17,10 +21,11 @@ rendering (see README.md):
   vflip 0x800, palette in the top 4 bits.
 - Absolute tile = char_base*512 + (entry & 0x3ff); char block 1..3 hold the
   three tile sheets the map's gMaps row names; block 0 is window tiles.
-- map/resources.c (gMaps; map/maps.c before 2026-11-17) gives each map's resources as positions in the
-  expanded resource directory counted from Field_EmptyMap (Field_Map001 before
-  2026-11-17): header, palette,
-  char blocks 1-3, and sheet D (tile animation source).
+- map/resources.s (gMaps) names each map's resources: header, palette,
+  char blocks 1-3, and sheet D (tile animation source). Before 2026-11-25,
+  map/resources.c (map/maps.c before 2026-11-17) gave them as positions in
+  the expanded resource directory counted from Field_EmptyMap (Field_Map001
+  before 2026-11-17).
 - Layer windows wrap at 128 cells.
 """
 
@@ -37,6 +42,7 @@ from . import grid as gridmod
 from . import table as tablemod
 
 EDITION = "TBS_EDITION_EN"
+TABLE_EDITION = "en"  # a table row for one edition names it in its "edition" column
 EMPTY = 0xFFF
 # A cell's shape is one byte, and the game reads the table as four bytes a row
 # into Ram_MapGridShapes, with the tileset animation 0x1000 bytes on (map_grid.c).
@@ -200,11 +206,120 @@ class Markers:
         atomic_write(self.path, "\n".join(text))
 
 
+def read_rows(path):
+    """A table's header and the rows the English edition reads, each padded
+    to the header's width."""
+    with open(path, encoding="utf-8") as f:
+        lines = f.read().split("\n")
+    header = lines[0].split("\t")
+    ed = header.index("edition") if "edition" in header else None
+    rows = []
+    for line in lines[1:]:
+        if not line:
+            continue
+        cells = line.split("\t")
+        cells += [""] * (len(header) - len(cells))
+        if ed is None or cells[ed] in ("", TABLE_EDITION):
+            rows.append(cells)
+    return header, rows
+
+
+def camel(folder):
+    """vale_plaza -> ValePlaza: how alchemy names a folder's labels."""
+    return "".join(w[:1].upper() + w[1:] for w in folder.split("_"))
+
+
+def _norm(label):
+    """A label as compared with a folder's name: McCoyPalace and mccoy_palace agree."""
+    return label.replace("_", "").lower()
+
+
+# contents.tsv names the packed file a block is built from; its source table
+# sits beside it: map_es.grid.lz -> grid_picture_es.tsv, shapes.table.lz ->
+# shapes.tsv, cell_tiles.delta1.lz -> cell_tiles.tsv.
+CONTENT_KINDS = {"cell_tiles": "CELL_PICTURES", "shapes": "SHAPES", "grid": "GRID",
+                 "animation": "ANIMATION", "blend": "BLEND"}
+
+
+def _content_source(path, kind):
+    folder, name = os.path.split(path)
+    stem = name.split(".")[0]
+    if kind == "GRID":
+        return os.path.join(folder, "grid_picture" + stem[len("map"):] + ".tsv")
+    return os.path.join(folder, stem + ".tsv")
+
+
+class Spots:
+    """A map's chests and Psynergy stones in the table layout: spots.tsv,
+    `column row subject edition`, read as Markers reads treasure_spot lines.
+    Rows for another edition are kept as they are. A map with none has no
+    file, and saving none removes it."""
+
+    END = [0xFF, 0xFF, 0xFF]
+    HEADER = "column\trow\tsubject\tedition"
+
+    def __init__(self, path):
+        self.path = path
+        self.rows, self._other = [], []
+        if os.path.exists(path):
+            with open(path, encoding="utf-8") as f:
+                lines = [line for line in f.read().split("\n")[1:] if line]
+            for line in lines:
+                cells = line.split("\t")
+                if len(cells) > 3 and cells[3] not in ("", TABLE_EDITION):
+                    self._other.append(line)
+                else:
+                    self.rows.append([int(v) for v in cells[:3]])
+        self.rows.append(list(self.END))
+
+    def set(self, row, col, value):
+        self.rows[row][col] = value
+
+    def insert(self, index, values):
+        self.rows.insert(index, list(values))
+
+    def delete(self, index):
+        del self.rows[index]
+
+    def save(self):
+        lines = [f"{x}\t{z}\t{code}" for x, z, code in self.rows if [x, z, code] != self.END] + self._other
+        if not lines:
+            if os.path.exists(self.path):
+                os.remove(self.path)
+            return
+        atomic_write(self.path, "\n".join([self.HEADER] + lines) + "\n")
+
+
 class MapInfo:
+    @classmethod
+    def from_tables(cls, number, folder, maps_dir, games_root):
+        """A map in the table layout (since 2026-11-25), from its folder."""
+        info = cls.__new__(cls)
+        info.number, info.folder, info.games_root = number, folder, games_root
+        info.path = os.path.join(folder, layout.MAP_HEADER)
+        _, header = read_rows(info.path)
+        vals = [int(v) for v in header[0][:12]]
+        info.bounds, info.priority, info.char_base = vals[0:4], vals[4:7], vals[7:10]
+        _, layers = read_rows(os.path.join(folder, "layers.tsv"))
+        info.layers = [[int(v) for v in r[:8]] for r in layers][:3]
+        info.sources, info.spots = {}, None
+        _, contents = read_rows(os.path.join(folder, "contents.tsv"))
+        for block, file, *_ in contents:
+            if block == "markers":
+                info.spots = os.path.join(folder, "spots.tsv")
+            elif block in CONTENT_KINDS and file:
+                # FOLDER/FILE is another map's table
+                packed = os.path.join(maps_dir, file) if "/" in file else os.path.join(folder, file)
+                info.sources[CONTENT_KINDS[block]] = _content_source(packed, CONTENT_KINDS[block])
+        info.tileset = info.palette = info.resources = None
+        info.alternates = []
+        return info
+
     def __init__(self, number, folder, map_s, games_root):
         self.number = number  # "009"
         self.folder = folder  # absolute path of map dir
         self.games_root = games_root
+        self.spots = None  # the chests are in map_s
         text = _preprocess(map_s, {EDITION})
         # A table may come from another map's folder:
         # `.LField_Map172_GRID:` then `.incbin "games/tbs/src/map/empty_map/map.grid.lz"`.
@@ -239,9 +354,24 @@ class MapInfo:
         """Source file of a table (CELL_PICTURES, SHAPES, GRID, ...)."""
         return self.sources.get(kind, os.path.join(self.folder, default_name))
 
+    def tables_layout(self):
+        """Whether this map is in the table layout (since 2026-11-25)."""
+        return getattr(self, "path", "").endswith(layout.MAP_HEADER)
+
+    def cells_path(self):
+        """The cell pictures table (cell_tiles.tsv, or cell_pictures.tsv before
+        2026-11-25), possibly in another map's folder."""
+        return self.source("CELL_PICTURES", "cell_tiles.tsv" if self.tables_layout() else "cell_pictures.tsv")
+
+    def grid_paths(self):
+        """Every file of the grid: the four tables, or map.txt."""
+        path = self.grid_path()
+        return list(gridmod.table_paths(path).values()) if gridmod.is_table_grid(path) else [path]
+
     def grid_path(self):
-        """The grid file (map.txt, possibly in another map's folder)."""
-        return self.source("GRID", "map.txt")
+        """The grid file (grid_picture.tsv, or map.txt before 2026-11-25),
+        possibly in another map's folder."""
+        return self.source("GRID", "grid_picture.tsv" if self.tables_layout() else "map.txt")
 
 
 class Project:
@@ -271,6 +401,18 @@ class Project:
     # ---- discovery -------------------------------------------------------
 
     def _scan_maps(self):
+        maps_dir = os.path.join(self.root, layout.MAPS)
+        listing = os.path.join(self.root, layout.MAP_LIST)
+        if os.path.exists(listing):
+            # maps.tsv: each folder, and its label where it isn't Field_ and the folder's name
+            _, rows = read_rows(listing)
+            for folder, label, *_ in rows:
+                path = os.path.join(maps_dir, folder)
+                if not os.path.exists(os.path.join(path, layout.MAP_HEADER)):
+                    continue
+                key = label[len("Field_"):] if label.startswith("Field_") else camel(folder)
+                self.maps[key] = MapInfo.from_tables(key, path, maps_dir, os.path.join(self.root, "games"))
+            return
         paths = (p for name in layout.MAP_FILES for p in glob.glob(os.path.join(self.root, layout.MAPS, "*", name)))
         for path in sorted(paths):
             text = open(path, encoding="utf-8").read()
@@ -287,8 +429,27 @@ class Project:
         """Map every Tileset_* label to the PNG its .incbin is built from.
 
         Names do not always match folders: a set's label can be built from
-        another set's sheet.
+        another set's sheet. Since 2026-11-25 the labels are made by the build
+        from graphics/tileset/<set>/packed.tsv (Tileset_ and the set's and the
+        part's names: vale, tiles_a -> Tileset_ValeTilesA) and, for the test
+        maps' own copies, map/<map>/placed.tsv (each row's label and file).
         """
+        sets = os.path.join(self.root, layout.TILESETS)
+        if os.path.isdir(sets):
+            for name in sorted(os.listdir(sets)):
+                packed = os.path.join(sets, name, "packed.tsv")
+                if os.path.exists(packed):
+                    for part, file, *_ in read_rows(packed)[1]:
+                        png = os.path.join(sets, name, file.split(".")[0] + ".png")
+                        self.symbols["Tileset_" + camel(name) + camel(part)] = png
+            maps_dir = os.path.join(self.root, layout.MAPS)
+            for placed in sorted(glob.glob(os.path.join(maps_dir, "*", "placed.tsv"))):
+                for label, file, *_ in read_rows(placed)[1]:
+                    full = os.path.normpath(os.path.join(maps_dir, file))
+                    self.symbols[label] = os.path.join(os.path.dirname(full), os.path.basename(full).split(".")[0] + ".png")
+            # A label's capitals don't always follow the folder (McCoy): match them loosely.
+            self._loose_symbols = {_norm(k): v for k, v in self.symbols.items()}
+            return
         games = os.path.join(self.root, "games")
         for path in _assembly_files(self.tbs):
             text = open(path, encoding="utf-8", errors="replace").read()
@@ -358,10 +519,16 @@ class Project:
 
     @staticmethod
     def parse_map_rows(text):
-        """Rows as `{0, 1, {2, 3, 4}, 5},` (map/resources.c) or `{{0, 1, 2, 3, 4, 5}},`
+        """Rows as `map Name, Field_X, Tileset_P, A, B, C, D` (map/resources.s:
+        the six labels), or as positions in the directory: `{0, 1, {2, 3, 4}, 5},`
+        (map/resources.c before 2026-11-25) or `{{0, 1, 2, 3, 4, 5}},`
         (map/maps.c before 2026-11-17), each followed by at most a comment."""
         rows = []
         for line in text.splitlines():
+            m = re.match(r"\s*map\s+\w+\s*,(.*)", line.split("@")[0])
+            if m:
+                rows.append([v.strip() for v in m.group(1).split(",")])
+                continue
             line = line.split("//")[0].strip()
             if re.fullmatch(r"\{[\d\s,{}]*\},?", line):
                 rows.append([int(v) for v in re.findall(r"\d+", line)])
@@ -370,10 +537,12 @@ class Project:
     def _read_directory(self):
         """Give each map its palette, char blocks 1-3 and sheet D from
         gMaps (positions in the directory from its first map's entry)."""
-        entries = self.directory_entries()
-        base = entries.index(layout.first_map_entry(entries))
-        for row, values in enumerate(self.map_rows()):
-            labels = [entries[base + v] for v in values]
+        rows = self.map_rows()
+        if rows and isinstance(rows[0][0], int):  # positions in the directory, before 2026-11-25
+            entries = self.directory_entries()
+            base = entries.index(layout.first_map_entry(entries))
+            rows = [[entries[base + v] for v in values] for values in rows]
+        for row, labels in enumerate(rows):
             m = re.fullmatch(r"Field_(?:Map(\d+)|(\w+))", labels[0] or "")
             key = m and (m.group(1) or m.group(2))
             info = self.maps.get(key)
@@ -402,7 +571,7 @@ class Project:
 
     def label_path(self, label):
         """Source PNG of a Tileset_* directory label, or None."""
-        p = self.symbols.get(label or "")
+        p = self.symbols.get(label or "") or getattr(self, "_loose_symbols", {}).get(_norm(label or ""))
         return p if p and os.path.exists(p) else None
 
     def palette_path(self, info):
@@ -419,8 +588,9 @@ class Project:
         """A parsed file, kept until it changes. Shared: treat it as read-only.
         `key` tells apart several things worked out from one file; they're
         dropped with it (_parse_cache.pop(path) after a save)."""
-        st = os.stat(path)
-        stamp = (st.st_mtime_ns, st.st_size)
+        # a grid in the table layout is four files: any of them changing counts
+        files = gridmod.table_paths(path).values() if gridmod.is_table_grid(path) else [path]
+        stamp = tuple((st.st_mtime_ns, st.st_size) for st in (os.stat(f) for f in files if f == path or os.path.exists(f)))
         hit = self._parse_cache.get(path)
         if hit is None or hit[0] != stamp:
             hit = self._parse_cache[path] = (stamp, {})
@@ -433,7 +603,7 @@ class Project:
         return self._parsed(info.grid_path(), gridmod.load).plane(plane)
 
     def load_metatiles(self, info):
-        return self._parsed(info.source("CELL_PICTURES", "cell_pictures.tsv"), tablemod.load)
+        return self._parsed(info.cells_path(), tablemod.load)
 
     # ---- rendering -------------------------------------------------------
 
@@ -538,8 +708,9 @@ class Project:
         return sorted(p for p in paths if p)
 
     def marker_path(self, info):
-        """The file holding this map's chests and stones: its own map.inc."""
-        return info.path
+        """The file holding this map's chests and stones: its spots.tsv
+        (which may not exist yet), or its own map.inc before 2026-11-25."""
+        return info.spots or info.path
 
     def marker_users(self, path):
         """Maps whose markers are in `path`: only its own, since they're inline."""
@@ -548,7 +719,7 @@ class Project:
     def load_markers(self, info):
         """(path, Markers), which save themselves back into map.inc."""
         path = self.marker_path(info)
-        return path, Markers(path)
+        return path, (Spots(path) if info.spots else Markers(path))
 
     def markers(self, info):
         """(x, z, id) rows, end marker excluded."""
@@ -680,9 +851,8 @@ class Project:
             grid.planes["metatile"], _ = self.encode_placeholders(blocks)
         saved = []
         if touched - {"markers"}:
-            gridmod.save(grid, info.grid_path())
+            saved += gridmod.save(grid, info.grid_path())
             self._parse_cache.pop(info.grid_path(), None)
-            saved.append(info.grid_path())
         if "markers" in touched:
             marker_table.save()
             saved.append(marker_path)

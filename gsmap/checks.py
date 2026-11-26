@@ -51,7 +51,7 @@ def changed_maps(project):
     folders = {os.path.dirname(p) for p in paths}
     # A map's tables can live in another map's folder (the test maps draw empty_map's).
     return {n for n, m in project.maps.items()
-            if m.folder in folders or {m.grid_path(), m.source("CELL_PICTURES", "cell_pictures.tsv")} & paths}
+            if m.folder in folders or {*m.grid_paths(), m.cells_path()} & paths}
 
 
 class Checker:

@@ -18,7 +18,9 @@ from .messages import BEGIN, END, Messages
 from .modgen import Overrides, generate
 from .sceneedit import SceneEditor
 
-TABLES = ("map.txt", "cell_pictures.tsv", "shapes.tsv", "markers.tsv")
+# Tables the editor can make in a place's folder: one the original lacks goes.
+TABLES = ("grid_picture.tsv", "grid_behavior.tsv", "grid_shape.tsv", "grid_actors.tsv", "cell_tiles.tsv",
+          "spots.tsv", "map.txt", "cell_pictures.tsv", "shapes.tsv", "markers.tsv")
 RESTORED = (".s", ".tsv", ".txt", ".png")
 KINDS = ("entrances", "exits", "placements", "events", "regions")
 
@@ -171,7 +173,7 @@ def reset_map(project, scenes, names, info, settings=None, shared_too=False):
     if not listing:
         raise ValueError(tr("The original game has no copy of this place to go back to (you made it)."))
     # A place can draw another's grid or blocks (the test maps draw empty_map's).
-    borrowed = {os.path.relpath(p, root) for p in (info.grid_path(), info.source("CELL_PICTURES", "cell_pictures.tsv"),
+    borrowed = {os.path.relpath(p, root) for p in (*info.grid_paths(), info.cells_path(),
                                                    info.source("SHAPES", "shapes.tsv"))} - set(listing)
     _refuse_if_set_up_by_hand(project, base, info)
     changed = 0

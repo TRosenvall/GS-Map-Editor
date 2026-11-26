@@ -1,4 +1,4 @@
-"""Load and re-serialise every map grid, table and chest list; all must be identical.
+"""Load and re-serialise every map grid, table and chest list, in either layout; all must be identical.
 
 Run: python3 tests/roundtrip.py [path/to/alchemy]
 """
@@ -36,7 +36,15 @@ for path in sorted(glob.glob(f"{maps}/*/*.tsv") + glob.glob(f"{maps}/*/*.txt")):
         out = world.format_blocks(world.parse_blocks(text))
     elif grid.is_grid_text(text):
         out = grid.parse(text).to_text()
-    elif name.startswith(("cell_pictures", "shapes")):
+    elif name.startswith("grid_picture") and "patch" not in name:
+        # the table layout: the four tables of one grid, written back together
+        for other, out in grid.load(path).to_files().items():
+            with open(other, encoding="utf-8") if os.path.exists(other) else open(os.devnull) as f:
+                compare(other, f.read(), out)
+        continue
+    elif name.startswith(("grid_behavior", "grid_shape", "grid_actors")) and "patch" not in name:
+        continue  # checked with their grid_picture table
+    elif name.startswith(("cell_pictures", "cell_tiles", "shapes")):
         out = table.parse(text).to_text()
     else:
         skipped += 1
@@ -52,6 +60,16 @@ for path in sorted(p for name in layout.MAP_FILES for p in glob.glob(f"{maps}/*/
     with tempfile.TemporaryDirectory() as d:
         copy = shutil.copy(path, os.path.join(d, os.path.basename(path)))
         project.Markers(copy).save()
+        with open(copy, encoding="utf-8") as f:
+            compare(path, text, f.read())
+
+# Since 2026-11-25 chests are spots.tsv.
+for path in sorted(glob.glob(f"{maps}/*/spots.tsv")):
+    with open(path, encoding="utf-8") as f:
+        text = f.read()
+    with tempfile.TemporaryDirectory() as d:
+        copy = shutil.copy(path, os.path.join(d, "spots.tsv"))
+        project.Spots(copy).save()
         with open(copy, encoding="utf-8") as f:
             compare(path, text, f.read())
 

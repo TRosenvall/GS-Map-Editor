@@ -124,15 +124,16 @@ def _check(root):
     if len(project.maps) < 100:
         problems.append(tr("Only found {n} maps; expected about 180.", n=len(project.maps)))
     rows = project.map_rows()
-    entries = project.directory_entries()
-    first = layout.first_map_entry(entries)
-    if first not in entries:
-        problems.append(tr("The resource directory has no {name}, which map art is counted from.", name=first))
-        return problems
-    base = entries.index(first)
-    too_far = sum(1 for row in rows for v in row if base + v >= len(entries))
-    if too_far:
-        problems.append(tr("{n} map resources point past the end of the resource directory.", n=too_far))
+    if rows and isinstance(rows[0][0], int):  # positions in the directory, before 2026-11-25
+        entries = project.directory_entries()
+        first = layout.first_map_entry(entries)
+        if first not in entries:
+            problems.append(tr("The resource directory has no {name}, which map art is counted from.", name=first))
+            return problems
+        base = entries.index(first)
+        too_far = sum(1 for row in rows for v in row if base + v >= len(entries))
+        if too_far:
+            problems.append(tr("{n} map resources point past the end of the resource directory.", n=too_far))
     no_art, no_table = [], []
     for info in project.maps.values():
         if not info.resources:
@@ -140,7 +141,7 @@ def _check(root):
         labels = [info.resources["palette"]] + [b for b in info.resources["blocks"] if b]
         if any(project.label_path(label) is None for label in labels):
             no_art.append(info.number)
-        if not os.path.exists(info.grid_path()) or not os.path.exists(info.source("CELL_PICTURES", "cell_pictures.tsv")):
+        if not os.path.exists(info.grid_path()) or not os.path.exists(info.cells_path()):
             no_table.append(info.number)
     if no_art:
         problems.append(tr("{n} maps have tile art the editor can't find (first: map {first}).",

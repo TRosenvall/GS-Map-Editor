@@ -64,7 +64,7 @@ def block_family(project, info):
     """(family hash, family size): blocks 0..size-1 are shared with the
     family's other maps, so stamps between them keep their meaning."""
     meta = load_meta(project.root).get(info.number, {})
-    path = info.source("CELL_PICTURES", "cell_pictures.tsv")
+    path = info.cells_path()
     if "family" in meta:
         return meta["family"], meta["family_size"]
     rows = len(project.load_metatiles(info).rows)
@@ -141,7 +141,7 @@ def import_image(project, info, png_bytes, layer, dry_run=True):
     canvas = Image.new("RGBA", (w16 * 16, h16 * 16), (0, 0, 0, 0))
     canvas.paste(img, (0, 0))
 
-    mt_path = info.source("CELL_PICTURES", "cell_pictures.tsv")
+    mt_path = info.cells_path()
     mt = tablemod.load(mt_path)
     retired = retired_blocks(project, info)
 

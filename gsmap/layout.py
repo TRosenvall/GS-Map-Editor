@@ -9,9 +9,14 @@ SRC = "games/tbs/src"
 INCLUDE = "games/tbs/include"
 
 # Maps and what they draw
-MAPS = f"{SRC}/map"                                # <place>/map.inc, map.txt, cell_pictures.tsv, shapes.tsv (map_NNN/ before 2026-11-13)
-MAP_FILES = ("map.inc", "map.s")                   # a place's header and markers (map.s before 2026-11-17)
-MAP_TABLES = (f"{SRC}/map/resources.c", f"{SRC}/map/maps.c")  # gMaps: each map's resources (maps.c before 2026-11-17)
+MAPS = f"{SRC}/map"                                # <place>/header.tsv, grid_*.tsv, cell_tiles.tsv, shapes.tsv, spots.tsv
+                                                   # (map.inc, map.txt, cell_pictures.tsv before 2026-11-25; map_NNN/ before 2026-11-13)
+MAP_LIST = f"{SRC}/map/maps.tsv"                   # the places' folders in Game Pak order, and a label where the folder's isn't used
+MAP_HEADER = "header.tsv"                          # a place's header, beside layers.tsv, contents.tsv and spots.tsv
+MAP_FILES = ("map.inc", "map.s")                   # a place's header and markers before 2026-11-25 (map.s before 2026-11-17)
+MAP_TABLES = (f"{SRC}/map/resources.s", f"{SRC}/map/resources.c", f"{SRC}/map/maps.c")
+                                                   # gMaps: each map's resources (resources.c before 2026-11-25, maps.c before 2026-11-17)
+TILESETS = f"{SRC}/graphics/tileset"               # <set>/packed.tsv: each part's packed file, its picture beside it (since 2026-11-25)
 DIRECTORY = f"{SRC}/gamepak/resource_directory.s"  # Resource_DirectoryTable
 DIRECTORY_LABEL = "Resource_DirectoryTable:"
 FIRST_MAP_ENTRIES = ("Field_EmptyMap", "Field_Map001")  # what gMaps' positions count from (Map001 before 2026-11-17)

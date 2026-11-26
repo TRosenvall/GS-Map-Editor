@@ -177,10 +177,10 @@ def make_handler(project, token=None, local_only=True):
         one of those files changes what they show too."""
         here = project.maps[n]
         files = {here.grid_path(), here.source("SHAPES", "shapes.tsv"),
-                 here.source("CELL_PICTURES", "cell_pictures.tsv")}
+                 here.cells_path()}
         return {o.number for o in project.maps.values()
                 if {o.grid_path(), o.source("SHAPES", "shapes.tsv"),
-                    o.source("CELL_PICTURES", "cell_pictures.tsv")} & files}
+                    o.cells_path()} & files}
 
     def drop_scene_change(n):
         """After a chest, door or event save: what map n's files gave, and
@@ -405,7 +405,7 @@ def make_handler(project, token=None, local_only=True):
             # Stamps paste between maps of one block family (the same table,
             # or one copied from it and extended); retired blocks never.
             "metatiles_hash": hashlib.sha1(
-                open(info.source("CELL_PICTURES", "cell_pictures.tsv"), "rb").read()
+                open(info.cells_path(), "rb").read()
             ).hexdigest()[:16],
             "shares_grid": sorted(o.number for o in project.maps.values()
                                   if o is not info and o.grid_path() == grid_path),

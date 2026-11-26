@@ -144,12 +144,15 @@ class SceneEditor:
         original game's value, if that carried no event, else a guess from around it."""
         from . import grid as gridmod, patch
         root = self.project.root
-        rel = os.path.relpath(info.grid_path(), root)
+        tables = gridmod.is_table_grid(info.grid_path())  # the behaviour has its own table since 2026-11-25
+        path = gridmod.table_paths(info.grid_path())["grid_behavior"] if tables else info.grid_path()
+        rel = os.path.relpath(path, root)
         base = patch.base_commit(root)
         shown = subprocess.run(["git", "-C", root, "show", f"{base}:{rel}"], capture_output=True) if base else None
         if shown is not None and shown.returncode == 0:
             try:
-                v = gridmod.parse(shown.stdout.decode("utf-8")).plane("collision").cells[z][x]
+                text = shown.stdout.decode("utf-8")
+                v = (gridmod.parse_plane(text) if tables else gridmod.parse(text).plane("collision").cells)[z][x]
                 if v != code and not 1 <= v <= 239:
                     return v
             except (ValueError, IndexError, KeyError):
