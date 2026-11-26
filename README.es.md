@@ -1,4 +1,4 @@
-<!-- translated from README.md @ e3e09daf168c -->
+<!-- translated from README.md @ 4cd107cf5ad4 -->
 # GS Map Editor
 
 [English](README.md) · **Español** · [Deutsch](README.de.md) · [Français](README.fr.md) · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -158,7 +158,7 @@ Pulsa **Ver** (V) para mirar sin cambiar nada.
 - **Zoom:** de 1× a 4×.
 - **Capas:** cada lugar tiene hasta tres, llamadas **Suelo**, **Medio** y **Superior**. Puedes ocultar cada una. Marca **Avanzado** para tener controles deslizantes que las atenúan. Algunos lugares iluminan sus salas con una capa que el juego muestra solo tenue, como el resplandor de una antorcha, y el editor la dibuja igual. Mientras pintas en esa capa con **Pintar**, se dibuja completa para que la veas.
 - **Superposiciones:** marca **Zonas de paso**, **Altura** para ver la altura del suelo, o **Cuadrícula** para ver las casillas.
-- **Suelo oculto y caminos que se cruzan:** el suelo elevado se dibuja más arriba en la pantalla, así que lo alto de un acantilado puede tapar el suelo de detrás. Marca **Vista plana** para dibujar cada casilla donde está realmente su suelo, sin elevarla, y así llegar al suelo de debajo. Las imágenes se quedan donde están. Algunos lugares tienen además un segundo camino sobre el primero, como un puente sobre un foso. **Zonas de paso** y **Altura** muestran los dos caminos juntos, y unas rayas rojas señalan dónde se cruzan. Un clic en un sitio a rayas cambia el camino de arriba, o el último que elegiste ahí si lo indicas en **Donde se cruzan caminos**. Mayús-clic cambia el otro. **Dónde pueden estar las personas** también sigue al grupo cuando sube a un puente. Para hacer un puente, elige **Zonas de paso** o **Altura**, elige **Medio** en **Pintar en** y pinta sus casillas con una altura. Donde el puente se une con suelo a un paso o menos, el editor crea solo la forma de subir y bajar. **Superior** guarda un segundo puente, que puede cruzar el primero o empezar en él. El juego tiene tres capas, así que un lugar no puede apilar más. Pinta la imagen del puente con **Pintar**, en la misma capa. Marca **Borrar sus casillas en su lugar** para volver a quitar casillas. Donde hay dos o tres capas bajo el cursor, la barra de abajo muestra una línea para cada una y marca la que cambia un clic.
+- **Suelo oculto y caminos que se cruzan:** el suelo elevado se dibuja más arriba en la pantalla, así que lo alto de un acantilado puede tapar el suelo de detrás. Marca **Vista plana** para dibujar cada casilla donde está realmente su suelo, sin elevarla, y así llegar al suelo de debajo. Las imágenes se quedan donde están. Algunos lugares tienen además un segundo camino sobre el primero, como un puente sobre un foso. **Zonas de paso** y **Altura** muestran los dos caminos juntos, y unas rayas rojas señalan dónde se cruzan. Un clic en un sitio a rayas cambia el camino de arriba, o el último que elegiste ahí si lo indicas en **Donde se cruzan caminos**. Mayús-clic cambia el otro. **Dónde pueden estar las personas** también sigue al grupo cuando sube a un puente. Para hacer un puente, elige **Zonas de paso** o **Altura**, elige **Medio** en **Pintar en** y pinta sus casillas con una altura. Donde el puente se une con suelo a un paso o menos, el editor crea solo la forma de subir y bajar. **Superior** guarda un segundo puente, que puede cruzar el primero o empezar en él. El juego tiene tres capas, así que un lugar no puede apilar más. Pinta la imagen del puente con **Pintar**, en la misma capa. Marca **Borrar sus casillas en su lugar** para volver a quitar casillas. Donde hay dos o tres capas bajo el cursor, la barra de abajo muestra una línea para cada una y marca la que cambia un clic. Al pulsar o soltar Mayús, la marca cambia al momento.
 - Los **cofres** siempre se ven en el mapa. Las puertas, las personas y los eventos se ven cuando usas sus herramientas.
 
 ## Pintar: cómo se ve el suelo
@@ -170,7 +170,7 @@ Pulsa **Pintar** (B).
 3. Haz clic o arrastra sobre el mapa.
 4. Guarda.
 
-Marca **Rellenar** en la barra superior (o pulsa F) y un clic rellena toda la zona conectada que tiene el mismo bloque que la casilla en la que haces clic, en esa capa. Rellenar también funciona en **Zonas de paso** y **Altura**, y entonces busca la misma zona de paso o la misma altura. Deshacer quita un relleno entero de una vez.
+Marca **Rellenar** en la barra superior (o pulsa F) y un clic rellena toda la zona conectada que tiene el mismo bloque que la casilla en la que haces clic, en esa capa. Rellenar también funciona en **Zonas de paso** y **Altura**, y entonces busca la misma zona de paso o la misma altura, pero no en un puente: esos se pintan casilla a casilla. Deshacer quita un relleno entero de una vez.
 
 Cada lugar tiene su propio conjunto de bloques, así que el panel cambia de un lugar a otro.
 
@@ -239,7 +239,7 @@ No todo sitio que parece libre es un buen lugar para que alguien esté. Marca **
 | Naranja | Una puerta, salida o sitio de paso: alguien ahí estorbaría. |
 | Rojo | El grupo no puede acercarse lo suficiente caminando para hablar. |
 
-Se calcula con las propias reglas de movimiento del juego, empezando en cada punto donde el grupo llega al lugar: puedes subir o bajar un nivel cada vez, las paredes te detienen y puedes hablar con alguien a dos casillas o menos. También se siguen los cambios que hacen los propios eventos del lugar, como una puerta que abre la Psinergía o un puente que baja la historia: lo que abren se ve en morado. Algunos cambios dependen de dónde hace algo el jugador, como empujar un pilar, y no se pueden calcular de antemano, así que lo que abren sigue viéndose en rojo.
+Se calcula con las propias reglas de movimiento del juego, empezando en cada punto donde el grupo llega al lugar: puedes subir o bajar un nivel cada vez, las paredes te detienen, los puentes te llevan por encima del suelo de debajo y puedes hablar con alguien a dos casillas o menos. También se siguen los cambios que hacen los propios eventos del lugar, como una puerta que abre la Psinergía o un puente que baja la historia: lo que abren se ve en morado. Algunos cambios dependen de dónde hace algo el jugador, como empujar un pilar, y no se pueden calcular de antemano, así que lo que abren sigue viéndose en rojo.
 
 Cuando un sitio tiene un problema, el editor dice cuál es con palabras sencillas, por ejemplo "el suelo aquí está 4 niveles más alto que el camino más cercano", o que estar ahí dejaría al grupo sin acceso a una puerta. Luego ofrece una solución:
 
@@ -436,6 +436,7 @@ En Windows y Linux, usa Ctrl en lugar de ⌘ y Alt en lugar de ⌥.
 | ⇧⌘Z | Rehacer | Rehacer |
 | ⌘S | Guardar | |
 | ⌥-clic | Tomar un bloque, o en Zonas de paso y Altura el pincel o la altura de la casilla | Tomar un bloque o una región |
+| ⇧-clic | Donde se cruzan caminos, cambiar el otro camino | |
 | ⇧ al soltar | Ajustar personas a los 8 píxeles más cercanos | |
 | Esc | Cerrar un cuadro de diálogo, o volver a copiar en Sello | Cerrar un cuadro de diálogo |
 

@@ -1,4 +1,4 @@
-<!-- translated from docs/PRODUCT.md @ 8a2e9a676b9b -->
+<!-- translated from docs/PRODUCT.md @ ba43885e09fb -->
 # gs-mapedit für Spieler: Produktplan
 
 *Dies ist eine Übersetzung der englischen [PRODUCT.md](../PRODUCT.md). Wenn sich die beiden unterscheiden, ist die englische Fassung aktuell.*
@@ -33,7 +33,7 @@ Die Engine-Schicht, die es heute gibt, bleibt das Fundament. Dazu gehören die D
 
 ## Namensschicht (Forschung nötig, meist Nachschlagen)
 
-- **Kollisionscodes:** Wand, Boden, Absätze, Kletterstellen, Untersuchungsstellen, Gefahr, Ausgänge, Truhen. Quellen: `step.c`, `events.c`, die Forschungsdokumente.
+- **Kollisionscodes:** Wand, Boden, Absätze, Kletterstellen, Untersuchungsstellen, Gefahr, Ausgänge, Truhen. Quellen: alchemys Feldcode und seine `field/README.md`, die Forschungsdokumente.
 - **Szenen:** Namen aus `scenes.s` plus Gebietsnamen (die eigenen Ortsnamen des Spiels) zur Anzeige.
 - **Gegenstände:** Namen aus `include/item_ids.h`, plus Gegenstandssymbole aus den Grafiken des Spiels.
 - **Sprites:** Sprite-ID → Name und ein Vorschaubild aus den Objektgrafiken.

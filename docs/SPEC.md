@@ -16,12 +16,12 @@ The editor reads and writes only alchemy's source files: TSV, PNG, and narrow re
 
 ### Rendering (implemented, verified on all 182 maps)
 
-- **Resources:** each map's palette, char blocks 1–3 and sheet D come from its `gMaps` row (`map/resources.c`), resolved through the expanded `gamepak/resource_directory.s`. Maps 001, 002, 108 and 110 have alternate rows.
-- **Placeholders:** the k-th `0xfff` cell, row-major over the whole 128×128 grid, is block k with its top nibble kept (`field/map_grid_convert.s`). The placeholder count equals the `metatiles.tsv` row count on all 182 maps.
+- **Resources:** each map's palette, char blocks 1–3 and sheet D come from its `gMaps` row (`map/resources.s`; `map/resources.c` in older checkouts), resolved through the expanded `gamepak/resource_directory.s`. The sheets' labels come from `graphics/tileset/<set>/packed.tsv`. Maps 001, 002, 108 and 110 have alternate rows.
+- **Placeholders:** the k-th `0xfff` cell, row-major over the whole 128×128 grid, is block k with its top nibble kept (`field/map_grid_convert.s`). The placeholder count equals the `cell_tiles.tsv` row count on all 182 maps.
 - **Windows:** each layer's window starts at the layer origin plus the header bounds and wraps at 128.
 - **Still to do:**
-  - blend compositing (`blend.tsv`: BLDCNT/BLDALPHA/BLDY);
-  - tile animation (`animation.tsv`, sheet D);
+  - blend compositing over time (`blend.tsv`: BLDCNT/BLDALPHA/BLDY). Today a layer the script alpha-blends is drawn at the script's average strength (light glows); brightness fades and the flicker aren't drawn;
+  - tile animation (`tileset_anims.tsv`, sheet D);
   - parallax anchoring for maps 047, 103, 104, 147 and 148;
   - optional camera bounds from scene entrances.
 
@@ -31,14 +31,14 @@ The editor reads and writes only alchemy's source files: TSV, PNG, and narrow re
 
 | Thing | File | Edit | Invariants / notes |
 |---|---|---|---|
-| Blocks per cell (3 layers) | `map.txt`, each cell's picture | paint resolved block ids | Saved with the **placeholder encoder**: walk row-major with counter k. A cell whose block == k is written `0xfff` (top nibble kept) and k++; other cells are written explicitly. Verified to be the exact inverse on all 182 maps. |
-| Block definitions | `cell_pictures.tsv` | append new 2×2 tile combos | Max 4,095 blocks. Row number = block id. |
-| Collision codes | `map.txt`, each cell's behavior | paint | Per layer window. Codes 1–239 can carry events (exits, chests). |
-| Height / shape | `map.txt`, each cell's shape, + `shapes.tsv` | paint | Per layer window. |
-| Chests / Psynergy stones | `treasure_spot x, z, id` lines in `map.inc` | add/move/remove | **id must equal the collision code at (x, z)**: verified 418/418. The game places at most 10 per scene, counting only markers whose code is a chest or a not-yet-taken Psynergy Stone in that scene's events (`treasure_spots.c`). End marker row `ff ff ff`. Contents need a `SEARCH(SEARCH_CHEST)` event in the scene with a fresh flag. |
-| Tile animation | `animation.tsv` | later | 16 channels max. |
+| Blocks per cell (3 layers) | `grid_picture.tsv` (`map.txt` in older checkouts), each cell's picture; layer markers and priorities in `grid_actors.tsv` | paint resolved block ids | Saved with the **placeholder encoder**: walk row-major with counter k. A cell whose block == k is written `0xfff` (top nibble kept) and k++; other cells are written explicitly. Verified to be the exact inverse on all 182 maps. |
+| Block definitions | `cell_tiles.tsv` (`cell_pictures.tsv`) | append new 2×2 tile combos | Max 4,095 blocks. Row number = block id. |
+| Collision codes | `grid_behavior.tsv` (`map.txt`), each cell's behavior | paint | Per layer window. Codes 1–239 can carry events (exits, chests). |
+| Height / shape | `grid_shape.tsv` (`map.txt`), each cell's shape, + `shapes.tsv` | paint | Per layer window. A bridge is a second layer's window holding its own behavior and shape, reached through layer markers. |
+| Chests / Psynergy stones | `spots.tsv` rows `column row subject` (`treasure_spot x, z, id` lines in `map.inc`) | add/move/remove | **id must equal the collision code at (x, z)**: verified 418/418. The game places at most 10 per scene, counting only markers whose code is a chest or a not-yet-taken Psynergy Stone in that scene's events (`field_sequence_treasure_spots.c`). The game's list ends with a row `ff ff ff`. Contents need a `SEARCH(SEARCH_CHEST)` event in the scene with a fresh flag. |
+| Tile animation | `tileset_anims.tsv` | later | 16 channels max. |
 
-Shared files: blocks can come from another map's folder, and `default/` cells and attributes are shared too. The editor shows when a file is shared and warns before editing it.
+Shared files: a map's `contents.tsv` can name another map's tables, and `default/` cells and collision are shared too. The editor shows when a file is shared and warns before editing it.
 
 ### Scene tables: one hook, editor-owned overrides
 
@@ -47,7 +47,7 @@ Shared files: blocks can come from another map's folder, and `default/` cells an
 - The editor adds **one line** there, `MOD_SCENE_LOADED(gMainRoutineWork.next, &gOverlayArea);`. It's a macro that expands to nothing unless the build defines `GSMOD`, so the stock build keeps matching retail.
 - With `GSMOD`, the macro calls editor-generated code in `games/tbs/src/mod/`. That code swaps the entry table's function pointers (entrances, exits, placements, events, regions) for functions returning the editor's override tables for that scene, and leaves the rest alone.
 - The world map is also a scene overlay, so the same hook covers overworld icons, exits and events.
-- Scene `.c` files are never rewritten. Override tables live in the mod folder, in ROM. Pure data files (map tables, chest lines) are still edited directly.
+- Scene `.c` files are never rewritten. Override tables live in the mod folder, in ROM. Pure data files (map tables, chest rows) are still edited directly.
 
 The underlying tables, for reference:
 
@@ -75,7 +75,7 @@ The exit graph is: collision code / script / region → exit kind → exit table
 
 The checklist is in `local-connections.md` §6:
 - 25 spare resource-directory slots, pinned at 0x08320000;
-- append rows to `gMaps` (`map/resources.c`) and `scenes.s`;
+- append rows to `gMaps` (`map/resources.s`), `map/maps.tsv` and `scenes.s`;
 - add the map row to `ld_script.ld` before the overlays, plus the overlay, music, area-name and encounter rules;
 - group ≤ 0x7f, scene ids < 511.
 
@@ -86,12 +86,12 @@ The checklist is in `local-connections.md` §6:
 | Thing | File | Notes |
 |---|---|---|
 | Ground + overlay cells | `map/world/blocks.tsv` | 320×512 u32. Chunks are 16×16 cells, laid 32 wide in the TSV and 16×16 in the world. Ground = chunk c, overlay = c + 320. Alternates 256–319 (snow set, story bridge). Cell bits: 0–15 block, 16–23 step/event code, 24–30 terrain kind (= encounter region), 31 behaviour bank. |
-| Blocks | `map/default/cells.tsv` | 4,386 × 4 tile bytes. **Shared with local maps.** Prefer appending. |
-| Walkability | `map/default/attributes.tsv` | Per 8×8 tile, 4×4 nibbles. Overlay wins, then ground, else 7. Values 5–12 are walkable. Also shared. |
+| Blocks | `map/default/cell_tiles.tsv` | 4,386 × 4 tile bytes. **Shared with local maps.** Prefer appending. |
+| Walkability | `map/default/collision.tsv` | Per 8×8 tile, 4×4 nibbles. Overlay wins, then ground, else 7. Values 5–12 are walkable. Also shared. |
 | Graphics | `graphics/world_map/*.png` | 8bpp, 256 tiles per layer, 224 colours. Set B is the snowy north. Preserve PNG mode and indices. |
-| Town icons / entering | `scene/world_map.c` `gWorldMapPlacements`, `gWorldMapEvents`, `gWorldMapExits` | Icon = actor 8 + row. Touching raises trigger 100 + actor → `EVENT_EXIT` → exit → (scene, entrance). Some entries are step codes instead. Must stay aligned with `gWorldMap_PlaceMarkers` (actor 11 + i). |
-| Leaving to the world | `gWorldMapEntrances` | A town's `SCENE_EXIT(n, 2, e)` places the party at row e. |
-| Encounters | `object/zonedata.c` rules → `object/encounter.tsv` zones | Terrain kind + behaviour → rule → zone (104 fixed rows). |
+| Town icons / entering | `scene/world_map.c` `gWorldMapActorPlacements`, `gWorldTriggers`, `gWorldMapExits` | Icon = actor 8 + row. Touching raises trigger 100 + actor → `EVENT_EXIT` → exit → (scene, entrance). Some entries are step codes instead. Must stay aligned with the pause map's `gMapScreen_AreaMarkers` (actor 11 + i). |
+| Leaving to the world | `gWorldSceneEntrances` | A town's `SCENE_EXIT(n, 2, e)` places the party at row e. |
+| Encounters | `field/world_map_encounter_rules.c` rules → `field/encounter_zones.c` zones | Terrain kind + behaviour → rule → zone (104 fixed rows). |
 
 Caveats:
 - The pause-screen map (`picture.png`) is separate art, so it needs repainting by hand after coastline edits.
@@ -103,7 +103,7 @@ Caveats:
 | Stage | Delivers | Verification |
 |---|---|---|
 | **1. Viewer** ✅ | All 182 local maps rendered correctly; overlays; hover info | round trip 895 files; render-all; visual checks |
-| **1b. Render fidelity** | Blend compositing, animated tiles (play/frame), parallax anchoring, camera-bounds crop | Compare against `rendering.md` validated renders; ideally mGBA screenshots |
+| **1b. Render fidelity** | Blend compositing (light glows drawn at their average strength ✅), animated tiles (play/frame), parallax anchoring, camera-bounds crop | Compare against `rendering.md` validated renders; ideally mGBA screenshots |
 | **2. Local painting** ✅ except the new-block composer | Block palette from atlas; paint per layer; collision/height brushes; new block composer (pick 4 tiles); undo/redo; save with the placeholder encoder | Unedited save byte-identical; edited save builds (`make tbs-en`); boots in mGBA |
 | **3. Markers + scene tables** ✅ adding, filling, moving and removing chests; doors linked by clicking (relink, add, remove, script doors included); events in words with new lines, signs, step messages, people and conditions; exit areas; moving stones; entrances, NPCs, exits | Chest/stone placement (marker + collision + event); entrance/exit/placement editing; exit graph navigation between maps | Table round trip byte-identical over all 201 scenes; build; playtest an exit change |
 | **4. Overworld viewer** ✅ | Top-down world with set A/B, overlay layer, walkability, terrain-kind/encounter overlay, town icons and exit links | Port the research prototype; compare `world_mixed_small.png` |

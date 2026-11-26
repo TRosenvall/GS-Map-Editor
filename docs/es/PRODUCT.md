@@ -1,4 +1,4 @@
-<!-- translated from docs/PRODUCT.md @ 8a2e9a676b9b -->
+<!-- translated from docs/PRODUCT.md @ ba43885e09fb -->
 # gs-mapedit para jugadores: plan de producto
 
 *Esta es una traducción del documento en inglés [PRODUCT.md](../PRODUCT.md); si los dos difieren, el inglés es el actualizado.*
@@ -33,7 +33,7 @@ La capa del motor que existe hoy sigue siendo la base. Eso abarca los formatos d
 
 ## Capa de nombres (necesita investigación, sobre todo consultas)
 
-- **Códigos de colisión:** pared, suelo, salientes, puntos de escalada, puntos de búsqueda, peligro, salidas, cofres. Fuentes: `step.c`, `events.c`, los documentos de investigación.
+- **Códigos de colisión:** pared, suelo, salientes, puntos de escalada, puntos de búsqueda, peligro, salidas, cofres. Fuentes: el código de campo de alchemy y su `field/README.md`, los documentos de investigación.
 - **Escenas:** nombres de `scenes.s` más nombres de zona (los propios nombres de lugares del juego) para mostrar.
 - **Objetos:** nombres de `include/item_ids.h`, más los iconos de objetos de los gráficos del juego.
 - **Sprites:** id de sprite → nombre y una imagen de vista previa a partir de los gráficos de objetos.

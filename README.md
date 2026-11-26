@@ -155,7 +155,7 @@ Press **View** (V) to look without changing anything.
 - **Zoom:** 1× to 4×.
 - **Layers:** each place has up to three, called **Ground**, **Middle** and **Overhead**. You can hide each one. Tick **Advanced** for sliders that fade them. Some places light their rooms with a layer the game shows only faintly, such as a torch's glow, and the editor draws it the same way. While you paint on that layer with **Paint**, it's drawn in full so you can see it.
 - **Overlays:** tick **Walkability**, **Height** to see ground height, or **Grid** to see the squares.
-- **Hidden ground and crossing paths:** raised ground is drawn further up the screen, so a cliff top can cover the ground behind it. Tick **Flat view** to draw every square where its ground really is, without raising it, so you can reach the ground underneath. The pictures stay where they are. A few places also have a second path over the first, such as a bridge over a pit. **Walkability** and **Height** show both paths together, and red stripes mark where they cross. A click on a striped spot changes the upper path, or the one you picked there last if you choose that under **Where paths cross**. Shift-click changes the other one. **Where people can stand** follows the party up onto a bridge too. To make a bridge, pick **Walkability** or **Height**, choose **Middle** under **Painting on** and paint its squares with a height. Where the bridge meets ground within a step of it, the editor makes the way on and off by itself. **Overhead** holds a second bridge, which can cross the first or start from it. The game has three layers, so that's as many as a place can stack. Paint the bridge's picture with **Paint**, on the same layer. Tick **Erase its squares instead** to take squares away again. Where two or three layers lie under the cursor, the bar at the bottom shows a line for each and marks the one a click changes.
+- **Hidden ground and crossing paths:** raised ground is drawn further up the screen, so a cliff top can cover the ground behind it. Tick **Flat view** to draw every square where its ground really is, without raising it, so you can reach the ground underneath. The pictures stay where they are. A few places also have a second path over the first, such as a bridge over a pit. **Walkability** and **Height** show both paths together, and red stripes mark where they cross. A click on a striped spot changes the upper path, or the one you picked there last if you choose that under **Where paths cross**. Shift-click changes the other one. **Where people can stand** follows the party up onto a bridge too. To make a bridge, pick **Walkability** or **Height**, choose **Middle** under **Painting on** and paint its squares with a height. Where the bridge meets ground within a step of it, the editor makes the way on and off by itself. **Overhead** holds a second bridge, which can cross the first or start from it. The game has three layers, so that's as many as a place can stack. Paint the bridge's picture with **Paint**, on the same layer. Tick **Erase its squares instead** to take squares away again. Where two or three layers lie under the cursor, the bar at the bottom shows a line for each and marks the one a click changes. Pressing or letting go of Shift moves the mark straight away.
 - **Chests** always show on the map. Doors, people and events show when you use their tools.
 
 ## Paint: what the ground looks like
@@ -167,7 +167,7 @@ Press **Paint** (B).
 3. Click or drag on the map.
 4. Save.
 
-Tick **Fill** in the top bar (or press F) and a click fills the whole connected area that has the same block as the square you click, on that layer. Fill works in **Walkability** and **Height** too, matching walkability or height instead. Undo takes back a whole fill at once.
+Tick **Fill** in the top bar (or press F) and a click fills the whole connected area that has the same block as the square you click, on that layer. Fill works in **Walkability** and **Height** too, matching walkability or height instead, but not on a bridge: paint those square by square. Undo takes back a whole fill at once.
 
 Each place has its own set of blocks, so the panel changes from place to place.
 
@@ -236,7 +236,7 @@ Not every spot that looks open is a good place for someone to stand. Tick **Wher
 | Orange | A door, exit or step spot: someone there would be in the way. |
 | Red | The party can't get near enough to talk by walking. |
 
-It's worked out from the game's own walking rules, starting from every point where the party arrives in the place: you can step up or down one level at a time, walls stop you, and you can talk to someone within two squares. Changes the place's own events make, like a door Psynergy opens or a bridge the story lowers, are followed too: what they open shows as purple. A few changes depend on where the player does something, like pushing a pillar, and can't be worked out beforehand, so what those open still shows as red.
+It's worked out from the game's own walking rules, starting from every point where the party arrives in the place: you can step up or down one level at a time, walls stop you, bridges carry you over the ground below, and you can talk to someone within two squares. Changes the place's own events make, like a door Psynergy opens or a bridge the story lowers, are followed too: what they open shows as purple. A few changes depend on where the player does something, like pushing a pillar, and can't be worked out beforehand, so what those open still shows as red.
 
 When a spot has a problem, the editor says what it is in plain words, for example "the ground here is 4 levels higher than the nearest path", or that standing there would cut the party off from a door. Then it offers a way round:
 
@@ -433,6 +433,7 @@ On Windows and Linux, use Ctrl for ⌘ and Alt for ⌥.
 | ⇧⌘Z | Redo | Redo |
 | ⌘S | Save | |
 | ⌥-click | Pick up a block, or in Walkability and Height the square's brush or height | Pick up a block or region |
+| ⇧-click | Where paths cross, change the other path | |
 | ⇧ while dropping | Snap people to the nearest 8 pixels | |
 | Esc | Close a dialog, or go back to copying in Stamp | Close a dialog |
 

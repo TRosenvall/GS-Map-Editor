@@ -1,4 +1,4 @@
-<!-- translated from docs/SPEC.md @ c19706671471 -->
+<!-- translated from docs/SPEC.md @ 234e0a50c7d9 -->
 # gs-mapedit : spécification de l'éditeur et plan de construction
 
 *Ceci est une traduction du document anglais [SPEC.md](../SPEC.md) ; en cas de différence, c'est la version anglaise qui fait foi.*
@@ -19,12 +19,12 @@ L'éditeur lit et écrit uniquement les fichiers source d'alchemy : TSV, PNG, et
 
 ### Rendu (implémenté, vérifié sur les 182 cartes)
 
-- **Ressources :** la palette, les blocs de caractères 1–3 et la planche D de chaque carte proviennent de sa ligne `gMaps` (`map/resources.c`), résolue via le `gamepak/resource_directory.s` développé. Les cartes 001, 002, 108 et 110 ont des lignes alternatives.
-- **Emplacements réservés :** la k-ième case `0xfff`, ligne par ligne sur toute la grille de 128×128, est le bloc k avec son quartet supérieur conservé (`field/map_grid_convert.s`). Le nombre d'emplacements réservés est égal au nombre de lignes de `metatiles.tsv` sur les 182 cartes.
+- **Ressources :** la palette, les blocs de caractères 1–3 et la planche D de chaque carte proviennent de sa ligne `gMaps` (`map/resources.s` ; `map/resources.c` dans les copies plus anciennes), résolue via le `gamepak/resource_directory.s` développé. Les étiquettes des planches viennent de `graphics/tileset/<set>/packed.tsv`. Les cartes 001, 002, 108 et 110 ont des lignes alternatives.
+- **Emplacements réservés :** la k-ième case `0xfff`, ligne par ligne sur toute la grille de 128×128, est le bloc k avec son quartet supérieur conservé (`field/map_grid_convert.s`). Le nombre d'emplacements réservés est égal au nombre de lignes de `cell_tiles.tsv` sur les 182 cartes.
 - **Fenêtres :** la fenêtre de chaque calque commence à l'origine du calque plus les limites de l'en-tête et boucle à 128.
 - **Reste à faire :**
-  - composition des fusions (`blend.tsv` : BLDCNT/BLDALPHA/BLDY) ;
-  - animation des tuiles (`animation.tsv`, planche D) ;
+  - composition des fusions dans le temps (`blend.tsv` : BLDCNT/BLDALPHA/BLDY). Aujourd'hui, un calque que le script fond en alpha est dessiné à l'intensité moyenne du script (lueurs) ; les fondus de luminosité et le scintillement ne sont pas dessinés ;
+  - animation des tuiles (`tileset_anims.tsv`, planche D) ;
   - ancrage de la parallaxe pour les cartes 047, 103, 104, 147 et 148 ;
   - limites de caméra facultatives tirées des entrées de scène.
 
@@ -34,14 +34,14 @@ L'éditeur lit et écrit uniquement les fichiers source d'alchemy : TSV, PNG, et
 
 | Élément | Fichier | Modification | Invariants / remarques |
 |---|---|---|---|
-| Blocs par case (3 calques) | `map.txt`, l'image de chaque case | peindre des id de blocs résolus | Enregistré avec l'**encodeur d'emplacements réservés** : parcourir ligne par ligne avec un compteur k. Une case dont le bloc == k est écrite `0xfff` (quartet supérieur conservé) et k++ ; les autres cases sont écrites explicitement. Vérifié comme l'inverse exact sur les 182 cartes. |
-| Définitions de blocs | `cell_pictures.tsv` | ajouter de nouvelles combinaisons de tuiles 2×2 | 4 095 blocs au maximum. Numéro de ligne = id du bloc. |
-| Codes de collision | `map.txt`, le comportement de chaque case | peindre | Par fenêtre de calque. Les codes 1–239 peuvent porter des événements (sorties, coffres). |
-| Hauteur / forme | `map.txt`, la forme de chaque case, + `shapes.tsv` | peindre | Par fenêtre de calque. |
-| Coffres / Pierres de Psynergie | lignes `treasure_spot x, z, id` dans `map.inc` | ajouter/déplacer/supprimer | **l'id doit être égal au code de collision en (x, z)** : vérifié 418/418. Le jeu en place au plus 10 par scène, en ne comptant que les marqueurs dont le code est un coffre ou une Pierre de Psynergie pas encore prise dans les événements de cette scène (`treasure_spots.c`). Ligne de marqueur de fin `ff ff ff`. Le contenu nécessite un événement `SEARCH(SEARCH_CHEST)` dans la scène avec un nouveau drapeau. |
-| Animation des tuiles | `animation.tsv` | plus tard | 16 canaux au maximum. |
+| Blocs par case (3 calques) | `grid_picture.tsv` (`map.txt` dans les copies plus anciennes), l'image de chaque case ; marques de calque et priorités dans `grid_actors.tsv` | peindre des id de blocs résolus | Enregistré avec l'**encodeur d'emplacements réservés** : parcourir ligne par ligne avec un compteur k. Une case dont le bloc == k est écrite `0xfff` (quartet supérieur conservé) et k++ ; les autres cases sont écrites explicitement. Vérifié comme l'inverse exact sur les 182 cartes. |
+| Définitions de blocs | `cell_tiles.tsv` (`cell_pictures.tsv`) | ajouter de nouvelles combinaisons de tuiles 2×2 | 4 095 blocs au maximum. Numéro de ligne = id du bloc. |
+| Codes de collision | `grid_behavior.tsv` (`map.txt`), le comportement de chaque case | peindre | Par fenêtre de calque. Les codes 1–239 peuvent porter des événements (sorties, coffres). |
+| Hauteur / forme | `grid_shape.tsv` (`map.txt`), la forme de chaque case, + `shapes.tsv` | peindre | Par fenêtre de calque. Un pont est la fenêtre d'un second calque avec son propre comportement et sa propre forme, atteinte par des marques de calque. |
+| Coffres / Pierres de Psynergie | lignes `column row subject` de `spots.tsv` (lignes `treasure_spot x, z, id` dans `map.inc`) | ajouter/déplacer/supprimer | **l'id doit être égal au code de collision en (x, z)** : vérifié 418/418. Le jeu en place au plus 10 par scène, en ne comptant que les marqueurs dont le code est un coffre ou une Pierre de Psynergie pas encore prise dans les événements de cette scène (`field_sequence_treasure_spots.c`). Ligne de marqueur de fin `ff ff ff`. Le contenu nécessite un événement `SEARCH(SEARCH_CHEST)` dans la scène avec un nouveau drapeau. |
+| Animation des tuiles | `tileset_anims.tsv` | plus tard | 16 canaux au maximum. |
 
-Fichiers partagés : les blocs peuvent venir du dossier d'une autre carte, et les cases et attributs de `default/` sont partagés aussi. L'éditeur indique quand un fichier est partagé et avertit avant de le modifier.
+Fichiers partagés : le `contents.tsv` d'une carte peut nommer les tables d'une autre carte, et les cases et la collision de `default/` sont partagées aussi. L'éditeur indique quand un fichier est partagé et avertit avant de le modifier.
 
 ### Tables de scène : un point d'accroche, des remplacements appartenant à l'éditeur
 
@@ -78,7 +78,7 @@ Le graphe des sorties est : code de collision / script / région → type de sor
 
 La liste de contrôle se trouve dans `local-connections.md` §6 :
 - 25 emplacements libres dans le répertoire de ressources, épinglés à 0x08320000 ;
-- ajouter des lignes à `gMaps` (`map/resources.c`) et à `scenes.s` ;
+- ajouter des lignes à `gMaps` (`map/resources.s`), à `map/maps.tsv` et à `scenes.s` ;
 - ajouter la ligne de la carte à `ld_script.ld` avant les overlays, plus l'overlay, la musique, le nom de zone et les règles de rencontres ;
 - groupe ≤ 0x7f, id de scène < 511.
 
@@ -89,12 +89,12 @@ La liste de contrôle se trouve dans `local-connections.md` §6 :
 | Élément | Fichier | Remarques |
 |---|---|---|
 | Cases du sol + de la surcouche | `map/world/blocks.tsv` | 320×512 u32. Les morceaux font 16×16 cases, disposés sur 32 de large dans le TSV et en 16×16 dans le monde. Sol = morceau c, surcouche = c + 320. Alternatives 256–319 (jeu enneigé, pont de l'histoire). Bits d'une case : 0–15 bloc, 16–23 code de passage/d'événement, 24–30 type de terrain (= région de rencontres), 31 banque de comportement. |
-| Blocs | `map/default/cells.tsv` | 4 386 × 4 octets de tuiles. **Partagé avec les cartes locales.** Préférer l'ajout à la fin. |
-| Praticabilité | `map/default/attributes.tsv` | Par tuile de 8×8, 4×4 quartets. La surcouche l'emporte, puis le sol, sinon 7. Les valeurs 5–12 sont praticables. Partagé aussi. |
+| Blocs | `map/default/cell_tiles.tsv` | 4 386 × 4 octets de tuiles. **Partagé avec les cartes locales.** Préférer l'ajout à la fin. |
+| Praticabilité | `map/default/collision.tsv` | Par tuile de 8×8, 4×4 quartets. La surcouche l'emporte, puis le sol, sinon 7. Les valeurs 5–12 sont praticables. Partagé aussi. |
 | Graphismes | `graphics/world_map/*.png` | 8 bpp, 256 tuiles par calque, 224 couleurs. Le jeu B est le nord enneigé. Préserver le mode et les indices des PNG. |
-| Icônes de villes / entrée | `scene/world_map.c` `gWorldMapPlacements`, `gWorldMapEvents`, `gWorldMapExits` | Icône = acteur 8 + ligne. Le contact déclenche 100 + acteur → `EVENT_EXIT` → sortie → (scène, entrée). Certaines entrées sont plutôt des codes de passage. Doit rester aligné avec `gWorldMap_PlaceMarkers` (acteur 11 + i). |
-| Rejoindre le monde | `gWorldMapEntrances` | Le `SCENE_EXIT(n, 2, e)` d'une ville place le groupe à la ligne e. |
-| Rencontres | règles de `object/zonedata.c` → zones de `object/encounter.tsv` | Type de terrain + comportement → règle → zone (104 lignes fixes). |
+| Icônes de villes / entrée | `scene/world_map.c` `gWorldMapActorPlacements`, `gWorldTriggers`, `gWorldMapExits` | Icône = acteur 8 + ligne. Le contact déclenche 100 + acteur → `EVENT_EXIT` → sortie → (scène, entrée). Certaines entrées sont plutôt des codes de passage. Doit rester aligné avec les `gMapScreen_AreaMarkers` de la carte de pause (acteur 11 + i). |
+| Rejoindre le monde | `gWorldSceneEntrances` | Le `SCENE_EXIT(n, 2, e)` d'une ville place le groupe à la ligne e. |
+| Rencontres | règles de `field/world_map_encounter_rules.c` → zones de `field/encounter_zones.c` | Type de terrain + comportement → règle → zone (104 lignes fixes). |
 
 Mises en garde :
 - La carte de l'écran de pause (`picture.png`) est une illustration distincte, elle doit donc être repeinte à la main après des modifications de côtes.
@@ -106,7 +106,7 @@ Mises en garde :
 | Étape | Livre | Vérification |
 |---|---|---|
 | **1. Visionneuse** ✅ | Les 182 cartes locales rendues correctement ; surcouches ; infos au survol | aller-retour sur 895 fichiers ; rendu complet ; vérifications visuelles |
-| **1b. Fidélité du rendu** | Composition des fusions, tuiles animées (lecture/image par image), ancrage de la parallaxe, recadrage selon les limites de caméra | Comparer aux rendus validés de `rendering.md` ; idéalement à des captures d'écran de mGBA |
+| **1b. Fidélité du rendu** | Composition des fusions (lueurs à leur intensité moyenne ✅), tuiles animées (lecture/image par image), ancrage de la parallaxe, recadrage selon les limites de caméra | Comparer aux rendus validés de `rendering.md` ; idéalement à des captures d'écran de mGBA |
 | **2. Peinture locale** ✅ sauf le compositeur de nouveaux blocs | Palette de blocs depuis l'atlas ; peinture par calque ; pinceaux de collision/hauteur ; compositeur de nouveaux blocs (choisir 4 tuiles) ; annuler/rétablir ; enregistrement avec l'encodeur d'emplacements réservés | Enregistrement non modifié identique à l'octet près ; enregistrement modifié qui compile (`make tbs-en`) ; démarre dans mGBA |
 | **3. Marqueurs + tables de scène** ✅ ajout, remplissage, déplacement et suppression de coffres ; portes reliées par un clic (redirection, ajout, suppression, portes scriptées comprises) ; événements en mots avec nouvelles répliques, panneaux, messages de passage, personnages et conditions ; zones de sortie ; déplacement des pierres ; entrées, PNJ, sorties | Placement de coffres/pierres (marqueur + collision + événement) ; modification des entrées/sorties/placements ; navigation dans le graphe des sorties entre cartes | Aller-retour des tables identique à l'octet près sur les 201 scènes ; compilation ; test en jeu d'un changement de sortie |
 | **4. Visionneuse du monde extérieur** ✅ | Monde vu de dessus avec les jeux A/B, calque de surcouche, praticabilité, surcouche des types de terrain/rencontres, icônes de villes et liens de sortie | Porter le prototype de recherche ; comparer à `world_mixed_small.png` |
