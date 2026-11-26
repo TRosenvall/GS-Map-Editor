@@ -125,6 +125,12 @@ def _check(root):
     if len(project.maps) < 100:
         problems.append(tr("Only found {n} maps; expected about 180.", n=len(project.maps)))
     rows = project.map_rows()
+    if rows and not isinstance(rows[0][0], int):  # map rows name their art since 2026-11-25; overlays still count
+        from .scenes import overlay_numbers
+        try:
+            overlay_numbers(root)
+        except DirectoryError as e:
+            return problems + [str(e)]  # every scene's overlay would be wrong: nothing past here can be read
     if rows and isinstance(rows[0][0], int):  # positions in the directory, before 2026-11-25
         entries = project.directory_entries()
         first = layout.first_map_entry(entries)

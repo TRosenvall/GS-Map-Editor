@@ -71,7 +71,7 @@ def snapshot(root):
     out = {}
     for base, _, files in os.walk(os.path.join(root, "games/tbs/src/map")):
         for f in files:
-            if f in ("map.txt", "map.inc", "map.s"):
+            if f in ("map.txt", "map.inc", "map.s", "spots.tsv") or f.startswith("grid_"):
                 out[os.path.join(base, f)] = read(os.path.join(base, f))
     for rel in ("games/tbs/text/en.po", "games/tbs/src/mod/overrides.json", "games/tbs/src/mod/mod.c"):
         out[rel] = read(os.path.join(root, rel))
@@ -226,24 +226,26 @@ with tempfile.TemporaryDirectory() as tmp:
 
     # ---- nothing half done
     sandbox = next((p.maps[k] for k in ("Test1", "173") if k in p.maps), None)
+    # A value the square doesn't hold, so each save really changes a file.
+    wall = 254 if p.load_grid(sandbox, "collision").cells[8][8] == 255 else 255
     before = snapshot(tmp)
     try:
         with fsio.transaction(tmp):
-            p.apply_edits(sandbox, [{"plane": "collision", "x": 8, "y": 8, "value": 255}])
+            p.apply_edits(sandbox, [{"plane": "collision", "x": 8, "y": 8, "value": wall}])
             events.add_spot(sandbox, 192, events.describe(sandbox, 192)["symbol"], 9, 8, "search", "Half done.")
             raise RuntimeError("the power went out")
     except RuntimeError:
         pass
     check("a failure part way undoes every file", snapshot(tmp) == before)
     with fsio.transaction(tmp):
-        p.apply_edits(sandbox, [{"plane": "collision", "x": 8, "y": 8, "value": 255}])
+        p.apply_edits(sandbox, [{"plane": "collision", "x": 8, "y": 8, "value": wall}])
         fsio.abort()
     check("abort() undoes the action too", snapshot(tmp) == before)
     check("no journal left behind", not os.path.exists(os.path.join(tmp, fsio.JOURNAL)))
     # A crash: the journal is there and the process never got to clean up.
     t = fsio._Transaction(tmp)
     fsio._current.txn = t
-    p.apply_edits(sandbox, [{"plane": "collision", "x": 8, "y": 8, "value": 255}])
+    p.apply_edits(sandbox, [{"plane": "collision", "x": 8, "y": 8, "value": wall}])
     fsio._current.txn = None
     check("the crash left a changed file", snapshot(tmp) != before)
     check("the next start restores it", fsio.recover(tmp) and snapshot(tmp) == before)
@@ -481,9 +483,15 @@ with tempfile.TemporaryDirectory() as tmp:
     directory = os.path.join(tmp, "games/tbs/src/gamepak/resource_directory.s")
     text = read(directory)
     with open(directory, "w", encoding="utf-8") as f:
-        f.write(re.sub(r"\tunused \d+\n", lambda m: "\twhatever Something\n" + m.group(0), text, count=1))
+        # before an unused row, or since 2026-11-25 (no such rows) the first overlay
+        f.write(re.sub(r"\tunused \d+\n" if "\tunused " in text else r"\toverlay \w+\n",
+                       lambda m: "\twhatever Something\n" + m.group(0), text, count=1))
+    from gsmap.scenes import overlay_numbers
     try:
-        Project(tmp).directory_entries()
+        if isinstance(Project(tmp).map_rows()[0][0], int):
+            Project(tmp).directory_entries()
+        else:
+            overlay_numbers(tmp)  # map rows name their art: the directory only numbers overlays
         check("an unknown directory line is refused, not skipped", False)
     except DirectoryError as e:
         check("an unknown directory line is refused, not skipped", "doesn't understand" in str(e))

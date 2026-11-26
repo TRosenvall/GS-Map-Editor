@@ -435,13 +435,13 @@ class Project:
         maps' own copies, map/<map>/placed.tsv (each row's label and file).
         """
         sets = os.path.join(self.root, layout.TILESETS)
-        if os.path.isdir(sets):
-            for name in sorted(os.listdir(sets)):
-                packed = os.path.join(sets, name, "packed.tsv")
-                if os.path.exists(packed):
-                    for part, file, *_ in read_rows(packed)[1]:
-                        png = os.path.join(sets, name, file.split(".")[0] + ".png")
-                        self.symbols["Tileset_" + camel(name) + camel(part)] = png
+        packed = sorted(glob.glob(os.path.join(sets, "*", "packed.tsv")))
+        if packed:  # older checkouts have the folders too, without packed.tsv
+            for path in packed:
+                folder = os.path.dirname(path)
+                for part, file, *_ in read_rows(path)[1]:
+                    png = os.path.join(folder, file.split(".")[0] + ".png")
+                    self.symbols["Tileset_" + camel(os.path.basename(folder)) + camel(part)] = png
             maps_dir = os.path.join(self.root, layout.MAPS)
             for placed in sorted(glob.glob(os.path.join(maps_dir, "*", "placed.tsv"))):
                 for label, file, *_ in read_rows(placed)[1]:

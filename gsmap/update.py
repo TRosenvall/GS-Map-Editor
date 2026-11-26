@@ -172,6 +172,7 @@ class Update:
             self.gcc_head = _out(os.path.join(root, "alchemy-gcc"), "rev-parse", "HEAD", check=False)
             self.maps = self._read_maps()
             self.markers = {} if self.maps is not None else self._read_markers()
+            self.tilesets = self._read_tilesets()
             self.saved, self.carried = self._save()
         except Stop as e:
             return self._finish(False, str(e))
@@ -296,6 +297,51 @@ class Update:
             mt.rows = merge_rows(base, mine, mt.rows, Markers.END)
             mt.save()
 
+    def _read_tilesets(self):
+        """The notes on places with a tile set of their own (mod/tilesets.json,
+        gsmap/tileset.py), by gMaps row: each is keyed by its place's name and
+        names its block family by a fingerprint of a cell table, and both can
+        change in a new version (places were numbers before 2026-11-13; the
+        table is cell_tiles.tsv since 2026-11-25). [(row, key, note, family's
+        row)]; a note on no place keeps its key, as it was."""
+        from . import tileset
+        from .project import Project
+        meta = tileset.load_meta(self.root)
+        if not meta:
+            return []
+        project = Project(self.root)
+        rows_by_hash = {}
+        for info in project.maps.values():
+            if info.resources and os.path.exists(info.cells_path()):
+                rows_by_hash.setdefault(tileset.table_hash(info.cells_path()), info.resources["row"])
+        out = []
+        for key, note in meta.items():
+            info = project.maps.get(key)
+            known = info is not None and info.resources and isinstance(note, dict)
+            out.append((info.resources["row"] if known else None, key, note,
+                        rows_by_hash.get(note.get("family")) if known else None))
+        return out
+
+    def _carry_tilesets(self):
+        """Each note under its place's name in the new version, its family's
+        fingerprint taken from the same table there."""
+        if not self.tilesets:
+            return
+        from . import tileset
+        from .project import Project
+        by_row = {info.resources["row"]: info for info in Project(self.root).maps.values() if info.resources}
+        meta = {}
+        for row, key, note, family_row in self.tilesets:
+            info, family = by_row.get(row), by_row.get(family_row)
+            if info is None:
+                meta[key] = note
+                continue
+            note = dict(note)
+            if family is not None and "family" in note:
+                note["family"] = tileset.table_hash(family.cells_path())
+            meta[info.number] = note
+        tileset.save_meta(self.root, meta)
+
     def _read_maps(self):
         """None for a copy whose maps are table files already. Otherwise
         {folder: {file name: (the old version's text, the player's)}} for each
@@ -403,6 +449,7 @@ class Update:
         _git(root, "reset", "-q")  # as before: the changes uncommitted, nothing staged
         self._carry_markers()
         self._carry_maps()
+        self._carry_tilesets()
 
     def _rebuild(self):
         root = self.root

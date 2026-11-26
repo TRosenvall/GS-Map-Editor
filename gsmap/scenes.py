@@ -241,12 +241,27 @@ def _read(root, rel):
 def overlay_numbers(root):
     """{name: resource id} of the directory's `overlay NAME` rows: OverlayId_NAME
     is its row's number (gamepak/resource_directory.s). Empty for checkouts that
-    write the scene table's overlays as numbers."""
-    out, row = {}, 0
-    for line in _asm_lines(_read(root, layout.DIRECTORY)):
-        m = re.match(r"\s*(resource|map_resource|overlay)(?:\s+(\w*))?", line)
-        if not m:
+    write the scene table's overlays as numbers. A row of a kind it doesn't
+    know raises DirectoryError: skipping it would move every number after it."""
+    from .i18n import tr
+    from .project import DirectoryError
+    out, row, inside = {}, 0, False
+    lines = _asm_lines(_read(root, layout.DIRECTORY))
+    if not any(re.match(r"\s*overlay\s+\w", line) for line in lines):
+        return out
+    for line in lines:
+        s = line.strip()
+        if s == layout.DIRECTORY_LABEL:
+            inside = True
             continue
+        if not inside or not s or s.startswith("."):
+            continue
+        if re.fullmatch(r"\w+:", s):  # the next label: the table is over
+            break
+        m = re.match(r"(resource|map_resource|overlay)\b(?:\s+(\w*))?", s)
+        if not m:
+            raise DirectoryError(tr("The resource directory has a line the editor doesn't understand: {line}. "
+                                    "It would misplace every map's art after that point.", line=repr(s)))
         if m.group(1) == "overlay":
             out[m.group(2)] = row
         row += 1
