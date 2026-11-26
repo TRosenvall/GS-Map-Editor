@@ -109,7 +109,7 @@ async function openMap(n) {
   if (stale()) return;
   fillPlayFrom();
   if (S.tool === 'stamp') setStampMode(S.stampMode);
-  api(`/api/map/${n}/legend`).then(l => { if (S.map !== map) return; S.legend = l.error ? {} : l; drawAll(); });
+  api(`/api/map/${n}/legend`).then(l => { if (S.map !== map) return; S.legend = l.error ? {} : l; drawAllSoon(); });
   loadChests(); loadDoors();
   if (S.tool === 'events') await loadEvents();
   if (stale()) return;
@@ -145,7 +145,7 @@ function buildLayerControls() {
       <input class="adv" type="range" min="0" max="100" value="${Math.round(S.alpha[i] * 100)}" title="${T('See-through')}">`;
     const [cb, rng] = el.querySelectorAll('input');
     cb.onchange = () => { S.show[i] = cb.checked; drawAll(); };
-    rng.oninput = () => { S.alpha[i] = rng.value / 100; drawAll(); };
+    rng.oninput = () => { S.alpha[i] = rng.value / 100; drawAllSoon(); };  // at most once a frame while dragging
     box.appendChild(el);
   }
   const sel = $('#editLayer'), prev = sel.value; sel.innerHTML = '';
@@ -866,13 +866,10 @@ function queueRedraw(cols) {
   if (first) requestAnimationFrame(() => { const q = redrawQueued; redrawQueued = null; q === true ? drawAll() : drawColumns(q); });
 }
 function drawAllSoon() { queueRedraw(null); }
-function redrawCells(cells) {
-  if ($('#ovCollision').checked || $('#ovShape').checked || $('#ovStand').checked) return queueRedraw(cells.map(c => c[0]));  // raised squares overlap other rows
-  const ctx = $('#cv').getContext('2d'); ctxSetup(ctx);
-  const paint = cellPainter();
-  for (const [x, y] of cells) paint(ctx, x, y);
-  markPending(ctx); drawMarkers(ctx); drawDoors(ctx); drawEvents(ctx); drawPoints(ctx); drawCellMark(ctx);
-}
+// Window cells (x, y) changed: their columns are redrawn, cleared first, so
+// what's drawn over them (unsaved outlines, chests) isn't drawn twice, and
+// raised squares that overlap other rows come out as a full redraw draws them.
+function redrawCells(cells) { queueRedraw(cells.map(c => c[0])); }
 
 // Window cell of grid cell (gx, gy) on layer l, or null when outside the window.
 function windowXY(l, gx, gy) {
@@ -1114,7 +1111,17 @@ function paintTo(x, y) {
   if (!path.length) return;
   for (const [gx, gy] of path) paintGround(gx, gy);
   S.strokeAt = path[path.length - 1];
-  if (path.length === 1 && path[0][0] === g[0] && path[0][1] === g[1]) redrawCells([[x, y]]); else drawAllSoon();
+  if (path.length === 1 && path[0][0] === g[0] && path[0][1] === g[1]) redrawCells([[x, y]]);
+  else if (bridgeMode()) drawAllSoon();  // a bridge's markers can change its sheets, which drawAll works out again
+  else queueRedraw(windowColumns(path));
+}
+// The window columns where grid squares `cells` can show, on any layer: a fast
+// stroke paints several squares at once, and redrawing only their columns
+// keeps it from redrawing the whole place every frame.
+function windowColumns(cells) {
+  const cols = new Set();
+  for (const [gx, gy] of cells) for (const l of S.map.layers) { const w = windowXY(l, gx, gy); if (w) cols.add(w[0]); }
+  return cols;
 }
 
 function paintAt(x, y) {
@@ -1474,7 +1481,7 @@ function fillTables(prefer) {
     sel.insertAdjacentHTML('beforeend', `<option value="${esc(t.symbol)}">${KIND_LABEL[t.kind]}: ${esc(variantName(t.symbol))}${t.overridden ? ' ✎' : ''}${t.editable ? '' : ' ' + T('(read-only)')}</option>`);
   const def = tables.find(t => t.kind === 'entrances') || tables[0];
   sel.value = prefer && tables.some(t => t.symbol === prefer) ? prefer : (def ? def.symbol : '');
-  renderTable(); drawAll();
+  renderTable(); drawAllSoon();
 }
 
 function table() { const sc = scene(); return sc && sc.tables.find(t => t.symbol === $('#tableSel').value); }
@@ -1895,7 +1902,7 @@ async function loadChests() {
   S.chests = r.error ? [] : r;
   if (r.error) status(`<span class="err">${esc(r.error)}</span>`);
   for (const c of S.chests) if (c.chest && c.value >> 20 === 1) chestIcon(c.value & 0xffff);
-  drawAll();
+  drawAllSoon();
 }
 function chestIcon(id) {
   if (!S.icons[id]) { S.icons[id] = new Image(); S.icons[id].onload = drawAllSoon; S.icons[id].src = `/api/asset/item/${id}.png`; }
@@ -2191,7 +2198,7 @@ async function loadStand() {
   WK.key = key;
   const r = await api(`/api/map/${S.map.number}/walk`, { scene: sc.id, table: EV.stage, edits, shapes });
   if (WK.key !== key) return;
-  if (r.error) { WK.cells = null; status(`<span class="err">${esc(r.error)}</span>`); drawAll(); return; }
+  if (r.error) { WK.cells = null; status(`<span class="err">${esc(r.error)}</span>`); drawAllSoon(); return; }
   WK.cells = r.cells; WK.size = r.size; WK.layers = r.layers || {};
   const shown = new Set(r.cells);
   $('#standLegend').innerHTML = Object.entries(STAND).filter(([k]) => (k !== 'slide' || r.slide) && (k !== 'later' || shown.has('later')))
@@ -2200,7 +2207,7 @@ async function loadStand() {
       ? T("Worked out from the game's walking rules, starting at this place's {n} arrival points, with the changes this place's own events make. Changes made where the player chooses (a pushed pillar) can't be followed, so what they open can still show as red.", { n: r.arrivals })
       : T("Worked out from the game's walking rules, starting at this place's 1 arrival point, with the changes this place's own events make. Changes made where the player chooses (a pushed pillar) can't be followed, so what they open can still show as red.")}</div>`
                   : `<div style="margin-top:4px">${T("This place has no arrival points, so the editor can't tell where the party walks.")}</div>`);
-  drawAll();
+  drawAllSoon();
 }
 function drawStand(ctx) {
   if (!$('#ovStand').checked || !WK.cells || !S.map) return;
@@ -2392,7 +2399,7 @@ async function loadDoors() {
   if (S.map.number !== n) return;
   S.doors = r.error ? {} : r;
   if (r.error) status(`<span class="err">${esc(r.error)}</span>`);
-  if (S.doorAt) doorSelect(S.doorAt.x, S.doorAt.z); else drawAll();
+  if (S.doorAt) doorSelect(S.doorAt.x, S.doorAt.z); else drawAllSoon();
 }
 function sceneDoors() { const sc = scene(); return (sc && S.doors?.[sc.id]) || []; }
 function doorAtCell(gx, gz) { return sceneDoors().find(d => d.cells.some(c => c[0] === gx && c[1] === gz)); }
