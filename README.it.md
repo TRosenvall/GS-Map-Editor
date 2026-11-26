@@ -1,4 +1,4 @@
-<!-- translated from README.md @ e3e09daf168c -->
+<!-- translated from README.md @ 4cd107cf5ad4 -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · [Deutsch](README.de.md) · [Français](README.fr.md) · **Italiano** · [日本語](README.ja.md)
@@ -158,7 +158,7 @@ Premi **Visualizza** (V) per guardare senza cambiare nulla.
 - **Zoom:** da 1× a 4×.
 - **Livelli:** ogni luogo ne ha fino a tre, chiamati **Terreno**, **Centrale** e **Superiore**. Puoi nascondere ciascuno. Spunta **Avanzate** per avere dei cursori che li sfumano. Alcuni luoghi illuminano le loro stanze con un livello che il gioco mostra solo tenue, come il bagliore di una torcia, e l'editor lo disegna allo stesso modo. Mentre dipingi su quel livello con **Dipingi**, viene disegnato per intero così puoi vederlo.
 - **Sovrapposizioni:** spunta **Calpestabilità**, **Altezza** per vedere l'altezza del terreno, o **Griglia** per vedere le caselle.
-- **Terreno nascosto e percorsi che si incrociano:** il terreno rialzato è disegnato più in alto sullo schermo, quindi la cima di una scogliera può coprire il terreno dietro. Spunta **Vista piatta** per disegnare ogni casella dove si trova davvero il suo terreno, senza alzarla, e raggiungere così il terreno sotto. Le immagini restano dove sono. Alcuni luoghi hanno anche un secondo percorso sopra il primo, come un ponte sopra una fossa. **Calpestabilità** e **Altezza** mostrano i due percorsi insieme, e delle strisce rosse segnano dove si incrociano. Un clic su un punto a righe cambia il percorso in alto, o l'ultimo scelto lì se lo imposti in **Dove i percorsi si incrociano**. Maiusc-clic cambia l'altro. **Dove possono stare le persone** segue il gruppo anche sopra un ponte. Per creare un ponte, scegli **Calpestabilità** o **Altezza**, scegli **Centrale** sotto **Dipingi su** e dipingi le sue caselle con un'altezza. Dove il ponte incontra terreno entro un gradino, l'editor crea da solo il modo di salire e scendere. **Superiore** ospita un secondo ponte, che può passare sopra il primo o partire da esso. Il gioco ha tre livelli, quindi un luogo non può sovrapporne di più. Dipingi l'immagine del ponte con **Dipingi**, sullo stesso livello. Spunta **Cancella invece le sue caselle** per togliere di nuovo le caselle. Dove sotto il cursore ci sono due o tre livelli, la barra in basso mostra una riga per ciascuno e segna quello che un clic cambia.
+- **Terreno nascosto e percorsi che si incrociano:** il terreno rialzato è disegnato più in alto sullo schermo, quindi la cima di una scogliera può coprire il terreno dietro. Spunta **Vista piatta** per disegnare ogni casella dove si trova davvero il suo terreno, senza alzarla, e raggiungere così il terreno sotto. Le immagini restano dove sono. Alcuni luoghi hanno anche un secondo percorso sopra il primo, come un ponte sopra una fossa. **Calpestabilità** e **Altezza** mostrano i due percorsi insieme, e delle strisce rosse segnano dove si incrociano. Un clic su un punto a righe cambia il percorso in alto, o l'ultimo scelto lì se lo imposti in **Dove i percorsi si incrociano**. Maiusc-clic cambia l'altro. **Dove possono stare le persone** segue il gruppo anche sopra un ponte. Per creare un ponte, scegli **Calpestabilità** o **Altezza**, scegli **Centrale** sotto **Dipingi su** e dipingi le sue caselle con un'altezza. Dove il ponte incontra terreno entro un gradino, l'editor crea da solo il modo di salire e scendere. **Superiore** ospita un secondo ponte, che può passare sopra il primo o partire da esso. Il gioco ha tre livelli, quindi un luogo non può sovrapporne di più. Dipingi l'immagine del ponte con **Dipingi**, sullo stesso livello. Spunta **Cancella invece le sue caselle** per togliere di nuovo le caselle. Dove sotto il cursore ci sono due o tre livelli, la barra in basso mostra una riga per ciascuno e segna quello che un clic cambia. Premendo o rilasciando Maiusc il segno si sposta subito.
 - I **forzieri** si vedono sempre sulla mappa. Porte, persone ed eventi si vedono quando usi i loro strumenti.
 
 ## Dipingi: com'è il terreno
@@ -170,7 +170,7 @@ Premi **Dipingi** (B).
 3. Clicca o trascina sulla mappa.
 4. Salva.
 
-Spunta **Riempi** nella barra in alto (o premi F) e un clic riempie tutta l'area collegata che ha lo stesso blocco della casella che clicchi, su quel livello. Riempi funziona anche in **Calpestabilità** e **Altezza**, dove segue la calpestabilità o l'altezza invece del blocco. Annulla toglie un intero riempimento in una volta sola.
+Spunta **Riempi** nella barra in alto (o premi F) e un clic riempie tutta l'area collegata che ha lo stesso blocco della casella che clicchi, su quel livello. Riempi funziona anche in **Calpestabilità** e **Altezza**, dove segue la calpestabilità o l'altezza invece del blocco, ma non su un ponte: quelli si dipingono casella per casella. Annulla toglie un intero riempimento in una volta sola.
 
 Ogni luogo ha il suo set di blocchi, quindi il pannello cambia da un luogo all'altro.
 
@@ -239,7 +239,7 @@ Non ogni punto che sembra libero è un buon posto per una persona. Spunta **Dove
 | Arancione | Una porta, un'uscita o un punto di passaggio: qualcuno lì sarebbe d'intralcio. |
 | Rosso | Il gruppo non riesce ad avvicinarsi abbastanza camminando per parlarci. |
 
-Viene calcolato con le regole di movimento del gioco stesso, partendo da ogni punto in cui il gruppo arriva nel luogo: puoi salire o scendere di un livello alla volta, i muri ti fermano, e puoi parlare con qualcuno entro due caselle. Vengono seguiti anche i cambiamenti fatti dagli eventi del luogo stesso, come una porta aperta con la Psicoenergia o un ponte abbassato dalla storia: ciò che aprono appare in viola. Alcuni cambiamenti dipendono da dove il giocatore fa qualcosa, come spingere un pilastro, e non si possono calcolare in anticipo, quindi ciò che aprono appare ancora in rosso.
+Viene calcolato con le regole di movimento del gioco stesso, partendo da ogni punto in cui il gruppo arriva nel luogo: puoi salire o scendere di un livello alla volta, i muri ti fermano, i ponti ti portano sopra il terreno sottostante, e puoi parlare con qualcuno entro due caselle. Vengono seguiti anche i cambiamenti fatti dagli eventi del luogo stesso, come una porta aperta con la Psicoenergia o un ponte abbassato dalla storia: ciò che aprono appare in viola. Alcuni cambiamenti dipendono da dove il giocatore fa qualcosa, come spingere un pilastro, e non si possono calcolare in anticipo, quindi ciò che aprono appare ancora in rosso.
 
 Quando un punto ha un problema, l'editor dice qual è a parole semplici, per esempio "il terreno qui è 4 livelli più alto del percorso più vicino", oppure che stare lì taglierebbe fuori il gruppo da una porta. Poi offre una soluzione:
 
@@ -436,6 +436,7 @@ Su Windows e Linux, usa Ctrl al posto di ⌘ e Alt al posto di ⌥.
 | ⇧⌘Z | Ripeti | Ripeti |
 | ⌘S | Salva | |
 | ⌥-clic | Prendi un blocco, oppure in Calpestabilità e Altezza il pennello o l'altezza della casella | Prendi un blocco o una regione |
+| ⇧-clic | Dove i percorsi si incrociano, cambia l'altro percorso | |
 | ⇧ mentre lasci | Aggancia le persone agli 8 pixel più vicini | |
 | Esc | Chiudi una finestra di dialogo, o torna a copiare nel Timbro | Chiudi una finestra di dialogo |
 

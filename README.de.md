@@ -1,4 +1,4 @@
-<!-- translated from README.md @ e3e09daf168c -->
+<!-- translated from README.md @ 4cd107cf5ad4 -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · **Deutsch** · [Français](README.fr.md) · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -158,7 +158,7 @@ Drück auf **Ansicht** (V), um dich umzusehen, ohne etwas zu ändern.
 - **Zoom:** 1× bis 4×.
 - **Ebenen:** Jeder Ort hat bis zu drei, genannt **Boden**, **Mitte** und **Oben**. Du kannst jede einzeln ausblenden. Setz das Häkchen bei **Erweitert** für Schieberegler, mit denen du sie ausblendest. Manche Orte beleuchten ihre Räume mit einer Ebene, die das Spiel nur schwach zeigt, etwa den Schein einer Fackel, und der Editor zeichnet sie genauso. Während du mit **Malen** auf dieser Ebene malst, wird sie voll gezeichnet, damit du sie siehst.
 - **Overlays:** Setz das Häkchen bei **Begehbarkeit**, bei **Höhe**, um die Bodenhöhe zu sehen, oder bei **Raster**, um die Felder zu sehen.
-- **Verdeckter Boden und sich kreuzende Wege:** Erhöhter Boden wird weiter oben auf dem Bildschirm gezeichnet, deshalb kann eine Klippe den Boden dahinter verdecken. Setz das Häkchen bei **Flache Ansicht**, um jedes Feld dort zu zeichnen, wo sein Boden wirklich liegt, ohne es anzuheben, so erreichst du den Boden darunter. Die Bilder bleiben, wo sie sind. Einige Orte haben außerdem einen zweiten Weg über dem ersten, etwa eine Brücke über eine Grube. **Begehbarkeit** und **Höhe** zeigen beide Wege zusammen, und rote Streifen markieren, wo sie sich kreuzen. Ein Klick auf eine gestreifte Stelle ändert den oberen Weg, oder den dort zuletzt gewählten, wenn du das bei **Wo Wege sich kreuzen** einstellst. Umschalt-Klick ändert den anderen. **Wo Personen stehen können** folgt der Gruppe auch auf eine Brücke. Um eine Brücke zu bauen, wähle **Begehbarkeit** oder **Höhe**, wähle unter **Malen auf** die Ebene **Mitte** und male ihre Felder mit einer Höhe. Wo die Brücke auf Boden trifft, der höchstens eine Stufe abweicht, legt der Editor den Weg hinauf und hinunter selbst an. **Oben** nimmt eine zweite Brücke auf, die über die erste führen oder auf ihr beginnen kann. Das Spiel hat drei Ebenen, mehr kann ein Ort nicht übereinanderlegen. Das Bild der Brücke malst du mit **Malen**, auf derselben Ebene. Mit **Stattdessen ihre Felder löschen** nimmst du Felder wieder weg. Liegen zwei oder drei Ebenen unter dem Mauszeiger, zeigt die Leiste unten eine Zeile für jede und markiert die, die ein Klick ändert.
+- **Verdeckter Boden und sich kreuzende Wege:** Erhöhter Boden wird weiter oben auf dem Bildschirm gezeichnet, deshalb kann eine Klippe den Boden dahinter verdecken. Setz das Häkchen bei **Flache Ansicht**, um jedes Feld dort zu zeichnen, wo sein Boden wirklich liegt, ohne es anzuheben, so erreichst du den Boden darunter. Die Bilder bleiben, wo sie sind. Einige Orte haben außerdem einen zweiten Weg über dem ersten, etwa eine Brücke über eine Grube. **Begehbarkeit** und **Höhe** zeigen beide Wege zusammen, und rote Streifen markieren, wo sie sich kreuzen. Ein Klick auf eine gestreifte Stelle ändert den oberen Weg, oder den dort zuletzt gewählten, wenn du das bei **Wo Wege sich kreuzen** einstellst. Umschalt-Klick ändert den anderen. **Wo Personen stehen können** folgt der Gruppe auch auf eine Brücke. Um eine Brücke zu bauen, wähle **Begehbarkeit** oder **Höhe**, wähle unter **Malen auf** die Ebene **Mitte** und male ihre Felder mit einer Höhe. Wo die Brücke auf Boden trifft, der höchstens eine Stufe abweicht, legt der Editor den Weg hinauf und hinunter selbst an. **Oben** nimmt eine zweite Brücke auf, die über die erste führen oder auf ihr beginnen kann. Das Spiel hat drei Ebenen, mehr kann ein Ort nicht übereinanderlegen. Das Bild der Brücke malst du mit **Malen**, auf derselben Ebene. Mit **Stattdessen ihre Felder löschen** nimmst du Felder wieder weg. Liegen zwei oder drei Ebenen unter dem Mauszeiger, zeigt die Leiste unten eine Zeile für jede und markiert die, die ein Klick ändert. Drückst du Umschalt oder lässt sie los, springt die Markierung sofort um.
 - **Truhen** sind immer auf der Karte zu sehen. Türen, Personen und Ereignisse erscheinen, wenn du ihre Werkzeuge benutzt.
 
 ## Malen: wie der Boden aussieht
@@ -170,7 +170,7 @@ Drück auf **Malen** (B).
 3. Klick oder zieh auf der Karte.
 4. Speichere.
 
-Setz in der oberen Leiste das Häkchen bei **Füllen** (oder drück F), dann füllt ein Klick die ganze zusammenhängende Fläche, die denselben Block hat wie das angeklickte Feld, auf dieser Ebene. Füllen funktioniert auch bei **Begehbarkeit** und **Höhe**; dann zählt gleiche Begehbarkeit oder gleiche Höhe. Rückgängig nimmt eine ganze Füllung auf einmal zurück.
+Setz in der oberen Leiste das Häkchen bei **Füllen** (oder drück F), dann füllt ein Klick die ganze zusammenhängende Fläche, die denselben Block hat wie das angeklickte Feld, auf dieser Ebene. Füllen funktioniert auch bei **Begehbarkeit** und **Höhe**; dann zählt gleiche Begehbarkeit oder gleiche Höhe, aber nicht auf einer Brücke: die malst du Feld für Feld. Rückgängig nimmt eine ganze Füllung auf einmal zurück.
 
 Jeder Ort hat seinen eigenen Satz Blöcke, deshalb ändert sich der Bereich von Ort zu Ort.
 
@@ -239,7 +239,7 @@ Nicht jede Stelle, die frei aussieht, ist ein guter Platz für eine Person. Setz
 | Orange | Eine Tür, ein Ausgang oder eine Trittstelle: Eine Person dort wäre im Weg. |
 | Rot | Die Gruppe kommt zu Fuß nicht nah genug heran, um zu reden. |
 
-Das wird aus den Laufregeln des Spiels selbst ermittelt, ausgehend von jedem Punkt, an dem die Gruppe an diesem Ort ankommt: Man kann immer eine Ebene hinauf- oder hinabsteigen, Wände halten einen auf, und man kann mit jemandem reden, der höchstens zwei Felder entfernt ist. Änderungen, die die Ereignisse des Orts selbst vornehmen, etwa eine Tür, die Psynergie öffnet, oder eine Brücke, die die Story herablässt, werden mitverfolgt: Was sie öffnen, erscheint lila. Einige Änderungen hängen davon ab, wo der Spieler etwas tut, etwa eine Säule schiebt, und lassen sich nicht vorher ermitteln; was diese öffnen, erscheint weiter rot.
+Das wird aus den Laufregeln des Spiels selbst ermittelt, ausgehend von jedem Punkt, an dem die Gruppe an diesem Ort ankommt: Man kann immer eine Ebene hinauf- oder hinabsteigen, Wände halten einen auf, Brücken führen über den Boden darunter, und man kann mit jemandem reden, der höchstens zwei Felder entfernt ist. Änderungen, die die Ereignisse des Orts selbst vornehmen, etwa eine Tür, die Psynergie öffnet, oder eine Brücke, die die Story herablässt, werden mitverfolgt: Was sie öffnen, erscheint lila. Einige Änderungen hängen davon ab, wo der Spieler etwas tut, etwa eine Säule schiebt, und lassen sich nicht vorher ermitteln; was diese öffnen, erscheint weiter rot.
 
 Wenn eine Stelle ein Problem hat, sagt der Editor in einfachen Worten, welches, zum Beispiel „der Boden hier ist 4 Ebenen höher als der nächste Weg“, oder dass eine Person dort die Gruppe von einer Tür abschneiden würde. Dann bietet er einen Ausweg an:
 
@@ -436,6 +436,7 @@ Unter Windows und Linux nimmst du Strg statt ⌘ und Alt statt ⌥.
 | ⇧⌘Z | Wiederholen | Wiederholen |
 | ⌘S | Speichern | |
 | ⌥-Klick | Einen Block aufnehmen, oder in Begehbarkeit und Höhe den Pinsel oder die Höhe des Feldes | Einen Block oder eine Region aufnehmen |
+| ⇧-Klick | Wo Wege sich kreuzen, den anderen Weg ändern | |
 | ⇧ beim Ablegen | Personen auf die nächsten 8 Pixel einrasten | |
 | Esc | Einen Dialog schließen oder im Stempel zurück zum Kopieren | Einen Dialog schließen |
 

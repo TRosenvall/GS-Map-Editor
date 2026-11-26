@@ -1,4 +1,4 @@
-<!-- translated from docs/SPEC.md @ c19706671471 -->
+<!-- translated from docs/SPEC.md @ 234e0a50c7d9 -->
 # gs-mapedit: specifica dell'editor e piano di sviluppo
 
 *Questa è una traduzione del file inglese [SPEC.md](../SPEC.md); se i due differiscono, vale quello inglese.*
@@ -19,12 +19,12 @@ L'editor legge e scrive solo i file sorgente di alchemy: TSV, PNG e zone ristret
 
 ### Rendering (implementato, verificato su tutte le 182 mappe)
 
-- **Risorse:** la palette, i char block 1–3 e il foglio D di ogni mappa vengono dalla sua riga di `gMaps` (`map/resources.c`), risolta tramite il `gamepak/resource_directory.s` espanso. Le mappe 001, 002, 108 e 110 hanno righe alternative.
-- **Segnaposto:** la k-esima cella `0xfff`, per righe sull'intera griglia 128×128, è il blocco k con il suo nibble alto mantenuto (`field/map_grid_convert.s`). Il numero di segnaposto è uguale al numero di righe di `metatiles.tsv` su tutte le 182 mappe.
+- **Risorse:** la palette, i char block 1–3 e il foglio D di ogni mappa vengono dalla sua riga di `gMaps` (`map/resources.s`; `map/resources.c` nei checkout più vecchi), risolta tramite il `gamepak/resource_directory.s` espanso. Le etichette dei fogli vengono da `graphics/tileset/<set>/packed.tsv`. Le mappe 001, 002, 108 e 110 hanno righe alternative.
+- **Segnaposto:** la k-esima cella `0xfff`, per righe sull'intera griglia 128×128, è il blocco k con il suo nibble alto mantenuto (`field/map_grid_convert.s`). Il numero di segnaposto è uguale al numero di righe di `cell_tiles.tsv` su tutte le 182 mappe.
 - **Finestre:** la finestra di ogni livello parte dall'origine del livello più i limiti dell'intestazione e si avvolge a 128.
 - **Ancora da fare:**
-  - composizione della fusione (`blend.tsv`: BLDCNT/BLDALPHA/BLDY);
-  - animazione delle tile (`animation.tsv`, foglio D);
+  - composizione della fusione nel tempo (`blend.tsv`: BLDCNT/BLDALPHA/BLDY). Oggi un livello che lo script fonde in alfa viene disegnato con l'intensità media dello script (bagliori); le dissolvenze di luminosità e lo sfarfallio non vengono disegnati;
+  - animazione delle tile (`tileset_anims.tsv`, foglio D);
   - ancoraggio della parallasse per le mappe 047, 103, 104, 147 e 148;
   - limiti facoltativi della telecamera dagli ingressi delle scene.
 
@@ -34,14 +34,14 @@ L'editor legge e scrive solo i file sorgente di alchemy: TSV, PNG e zone ristret
 
 | Cosa | File | Modifica | Invarianti / note |
 |---|---|---|---|
-| Blocchi per cella (3 livelli) | `map.txt`, l'immagine di ogni cella | dipingere id di blocco risolti | Salvato con il **codificatore dei segnaposto**: percorri per righe con un contatore k. Una cella il cui blocco == k viene scritta `0xfff` (nibble alto mantenuto) e k++; le altre celle vengono scritte esplicitamente. Verificato come inverso esatto su tutte le 182 mappe. |
-| Definizioni dei blocchi | `cell_pictures.tsv` | aggiungere nuove combinazioni di tile 2×2 | Massimo 4.095 blocchi. Numero di riga = id del blocco. |
-| Codici di collisione | `map.txt`, il comportamento di ogni cella | dipingere | Per finestra di livello. I codici 1–239 possono portare eventi (uscite, forzieri). |
-| Altezza / forma | `map.txt`, la forma di ogni cella, + `shapes.tsv` | dipingere | Per finestra di livello. |
-| Forzieri / Psynergy Stone | righe `treasure_spot x, z, id` in `map.inc` | aggiungere/spostare/rimuovere | **id deve essere uguale al codice di collisione in (x, z)**: verificato 418/418. Il gioco ne piazza al massimo 10 per scena, contando solo i marcatori il cui codice è un forziere o una Psynergy Stone non ancora presa negli eventi di quella scena (`treasure_spots.c`). Riga marcatore di fine `ff ff ff`. Il contenuto richiede un evento `SEARCH(SEARCH_CHEST)` nella scena con un nuovo flag. |
-| Animazione delle tile | `animation.tsv` | più avanti | Massimo 16 canali. |
+| Blocchi per cella (3 livelli) | `grid_picture.tsv` (`map.txt` nei checkout più vecchi), l'immagine di ogni cella; segni di livello e priorità in `grid_actors.tsv` | dipingere id di blocco risolti | Salvato con il **codificatore dei segnaposto**: percorri per righe con un contatore k. Una cella il cui blocco == k viene scritta `0xfff` (nibble alto mantenuto) e k++; le altre celle vengono scritte esplicitamente. Verificato come inverso esatto su tutte le 182 mappe. |
+| Definizioni dei blocchi | `cell_tiles.tsv` (`cell_pictures.tsv`) | aggiungere nuove combinazioni di tile 2×2 | Massimo 4.095 blocchi. Numero di riga = id del blocco. |
+| Codici di collisione | `grid_behavior.tsv` (`map.txt`), il comportamento di ogni cella | dipingere | Per finestra di livello. I codici 1–239 possono portare eventi (uscite, forzieri). |
+| Altezza / forma | `grid_shape.tsv` (`map.txt`), la forma di ogni cella, + `shapes.tsv` | dipingere | Per finestra di livello. Un ponte è la finestra di un secondo livello con comportamento e forma propri, raggiunta tramite i segni di livello. |
+| Forzieri / Psynergy Stone | righe `column row subject` di `spots.tsv` (righe `treasure_spot x, z, id` in `map.inc`) | aggiungere/spostare/rimuovere | **id deve essere uguale al codice di collisione in (x, z)**: verificato 418/418. Il gioco ne piazza al massimo 10 per scena, contando solo i marcatori il cui codice è un forziere o una Psynergy Stone non ancora presa negli eventi di quella scena (`field_sequence_treasure_spots.c`). Riga marcatore di fine `ff ff ff`. Il contenuto richiede un evento `SEARCH(SEARCH_CHEST)` nella scena con un nuovo flag. |
+| Animazione delle tile | `tileset_anims.tsv` | più avanti | Massimo 16 canali. |
 
-File condivisi: i blocchi possono venire dalla cartella di un'altra mappa, e anche le celle e gli attributi di `default/` sono condivisi. L'editor mostra quando un file è condiviso e avvisa prima di modificarlo.
+File condivisi: lo `contents.tsv` di una mappa può nominare le tabelle di un'altra mappa, e anche le celle e la collisione di `default/` sono condivise. L'editor mostra quando un file è condiviso e avvisa prima di modificarlo.
 
 ### Tabelle delle scene: un hook, override gestiti dall'editor
 
@@ -78,7 +78,7 @@ Il grafo delle uscite è: codice di collisione / script / regione → tipo di us
 
 La lista di controllo è in `local-connections.md` §6:
 - 25 slot liberi nella directory delle risorse, fissati a 0x08320000;
-- aggiungere righe a `gMaps` (`map/resources.c`) e `scenes.s`;
+- aggiungere righe a `gMaps` (`map/resources.s`), `map/maps.tsv` e `scenes.s`;
 - aggiungere la riga della mappa a `ld_script.ld` prima degli overlay, più l'overlay, la musica, il nome dell'area e le regole degli incontri;
 - gruppo ≤ 0x7f, id di scena < 511.
 
@@ -89,12 +89,12 @@ La lista di controllo è in `local-connections.md` §6:
 | Cosa | File | Note |
 |---|---|---|
 | Celle del terreno + della sovrapposizione | `map/world/blocks.tsv` | 320×512 u32. I chunk sono di 16×16 celle, disposti 32 per riga nel TSV e 16×16 nel mondo. Terreno = chunk c, sovrapposizione = c + 320. Alternative 256–319 (set della neve, ponte della storia). Bit della cella: 0–15 blocco, 16–23 codice di passo/evento, 24–30 tipo di terreno (= regione degli incontri), 31 banco di comportamento. |
-| Blocchi | `map/default/cells.tsv` | 4.386 × 4 byte di tile. **Condiviso con le mappe locali.** Meglio aggiungere in fondo. |
-| Calpestabilità | `map/default/attributes.tsv` | Per tile 8×8, 4×4 nibble. Vince la sovrapposizione, poi il terreno, altrimenti 7. I valori 5–12 sono calpestabili. Anche questo è condiviso. |
+| Blocchi | `map/default/cell_tiles.tsv` | 4.386 × 4 byte di tile. **Condiviso con le mappe locali.** Meglio aggiungere in fondo. |
+| Calpestabilità | `map/default/collision.tsv` | Per tile 8×8, 4×4 nibble. Vince la sovrapposizione, poi il terreno, altrimenti 7. I valori 5–12 sono calpestabili. Anche questo è condiviso. |
 | Grafica | `graphics/world_map/*.png` | 8bpp, 256 tile per livello, 224 colori. Il set B è il nord innevato. Mantieni la modalità e gli indici dei PNG. |
-| Icone delle città / entrare | `scene/world_map.c` `gWorldMapPlacements`, `gWorldMapEvents`, `gWorldMapExits` | Icona = attore 8 + riga. Toccarla attiva l'attivatore 100 + attore → `EVENT_EXIT` → uscita → (scena, ingresso). Alcune voci sono invece codici di passo. Devono restare allineate con `gWorldMap_PlaceMarkers` (attore 11 + i). |
-| Uscire verso il mondo | `gWorldMapEntrances` | Il `SCENE_EXIT(n, 2, e)` di una città mette il gruppo alla riga e. |
-| Incontri | regole di `object/zonedata.c` → zone di `object/encounter.tsv` | Tipo di terreno + comportamento → regola → zona (104 righe fisse). |
+| Icone delle città / entrare | `scene/world_map.c` `gWorldMapActorPlacements`, `gWorldTriggers`, `gWorldMapExits` | Icona = attore 8 + riga. Toccarla attiva l'attivatore 100 + attore → `EVENT_EXIT` → uscita → (scena, ingresso). Alcune voci sono invece codici di passo. Devono restare allineate con `gMapScreen_AreaMarkers` della mappa di pausa (attore 11 + i). |
+| Uscire verso il mondo | `gWorldSceneEntrances` | Il `SCENE_EXIT(n, 2, e)` di una città mette il gruppo alla riga e. |
+| Incontri | regole di `field/world_map_encounter_rules.c` → zone di `field/encounter_zones.c` | Tipo di terreno + comportamento → regola → zona (104 righe fisse). |
 
 Avvertenze:
 - La mappa della schermata di pausa (`picture.png`) è una grafica separata, quindi va ridipinta a mano dopo le modifiche alle coste.
@@ -106,7 +106,7 @@ Avvertenze:
 | Fase | Consegna | Verifica |
 |---|---|---|
 | **1. Visualizzatore** ✅ | Tutte le 182 mappe locali disegnate correttamente; sovrapposizioni; informazioni al passaggio del mouse | andata e ritorno su 895 file; rendering completo; controlli visivi |
-| **1b. Fedeltà del rendering** | Composizione della fusione, tile animate (riproduzione/fotogramma), ancoraggio della parallasse, ritaglio ai limiti della telecamera | Confronto con i rendering convalidati di `rendering.md`; idealmente screenshot di mGBA |
+| **1b. Fedeltà del rendering** | Composizione della fusione (bagliori alla loro intensità media ✅), tile animate (riproduzione/fotogramma), ancoraggio della parallasse, ritaglio ai limiti della telecamera | Confronto con i rendering convalidati di `rendering.md`; idealmente screenshot di mGBA |
 | **2. Pittura locale** ✅ tranne il compositore di nuovi blocchi | Palette di blocchi dall'atlante; pittura per livello; pennelli di collisione/altezza; compositore di nuovi blocchi (scegli 4 tile); annulla/ripeti; salvataggio con il codificatore dei segnaposto | Salvataggio non modificato identico byte per byte; salvataggio modificato che compila (`make tbs-en`); si avvia in mGBA |
 | **3. Marcatori + tabelle delle scene** ✅ aggiunta, riempimento, spostamento e rimozione dei forzieri; porte collegate con un clic (ricollegamento, aggiunta, rimozione, porte con script incluse); eventi a parole con nuove battute, cartelli, messaggi al passaggio, persone e condizioni; aree di uscita; spostamento delle pietre; ingressi, PNG, uscite | Posizionamento di forzieri/pietre (marcatore + collisione + evento); modifica di ingressi/uscite/posizionamenti; navigazione del grafo delle uscite tra le mappe | Andata e ritorno delle tabelle identica byte per byte su tutte le 201 scene; build; prova di gioco di una modifica a un'uscita |
 | **4. Visualizzatore del mondo esterno** ✅ | Mondo dall'alto con set A/B, livello di sovrapposizione, calpestabilità, sovrapposizione tipo di terreno/incontri, icone delle città e link delle uscite | Portare il prototipo di ricerca; confronto con `world_mixed_small.png` |

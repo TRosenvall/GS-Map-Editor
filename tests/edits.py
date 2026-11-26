@@ -1,4 +1,4 @@
-"""Saved edits reach map.txt and read back, on a copy of real maps.
+"""Saved edits reach the map's grid files and read back, on a copy of real maps.
 
 Run: python3 tests/edits.py [path/to/alchemy]
 """

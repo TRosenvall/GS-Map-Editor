@@ -1,4 +1,4 @@
-<!-- translated from docs/PRODUCT.md @ 8a2e9a676b9b -->
+<!-- translated from docs/PRODUCT.md @ ba43885e09fb -->
 # gs-mapedit pour les joueurs : plan produit
 
 *Ceci est une traduction du document anglais [PRODUCT.md](../PRODUCT.md) ; en cas de différence, c'est la version anglaise qui fait foi.*
@@ -33,7 +33,7 @@ La couche moteur qui existe aujourd'hui reste la fondation. Elle couvre les form
 
 ## Couche de noms (recherche nécessaire, surtout des consultations)
 
-- **Codes de collision :** mur, sol, rebords, points d'escalade, cases de fouille, danger, sorties, coffres. Sources : `step.c`, `events.c`, les documents de recherche.
+- **Codes de collision :** mur, sol, rebords, points d'escalade, cases de fouille, danger, sorties, coffres. Sources : le code de terrain d'alchemy et son `field/README.md`, les documents de recherche.
 - **Scènes :** les noms de `scenes.s` plus les noms de zones (les noms de lieux du jeu lui-même) pour l'affichage.
 - **Objets :** les noms de `include/item_ids.h`, plus les icônes d'objets tirées des graphismes du jeu.
 - **Sprites :** id de sprite → nom et image d'aperçu tirée des graphismes des objets.

@@ -883,7 +883,7 @@ function windowXY(l, gx, gy) {
 }
 
 // The game stores collision, height, doors, chests and people at their ground
-// position and draws them raised by the ground's height (field/terrain.c: a
+// position and draws them raised by the ground's height (field/field_terrain.c: a
 // cell's shape row holds a kind and samples in 8-px units). These convert.
 function groundHeightPx(gx, gy) {
   return cellHeightPx(S.map.shapes?.[S.map.grids.shape?.[gy]?.[gx]]);

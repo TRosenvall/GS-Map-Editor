@@ -13,7 +13,8 @@ more background VRAM. Importing an image therefore:
   4. appends one block per 16x16 cell to the map's cell_tiles.tsv
      (cell_pictures.tsv before 2026-11-25).
 
-Only for maps with their own tile set (the debug sandbox). Retired blocks and
+Only for maps with a tile set no other map uses (27 of the 182 in a stock
+checkout, and the mod's sandbox). Retired blocks and
 the block family (the table a map's blocks were copied from, for Stamp) are
 kept in alchemy's games/tbs/src/mod/tilesets.json.
 """

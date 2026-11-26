@@ -573,7 +573,7 @@ def remove_step(world, project, scenes, names, gx, gy):
 
 # ---- new town icons ------------------------------------------------------------------------
 
-FIRST_MARKER_ACTOR = 11  # gWorldPicture_AreaMarkers' row i is actor 11 + i (world_picture.c)
+FIRST_MARKER_ACTOR = 11  # the pause map's area markers' row i is actor 11 + i (layout.AREA_MARKERS)
 
 
 def marker_rows(root):

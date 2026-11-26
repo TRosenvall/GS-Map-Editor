@@ -1,4 +1,4 @@
-<!-- translated from docs/PRODUCT.md @ 8a2e9a676b9b -->
+<!-- translated from docs/PRODUCT.md @ ba43885e09fb -->
 # gs-mapedit per i giocatori: piano di prodotto
 
 *Questa è una traduzione del file inglese [PRODUCT.md](../PRODUCT.md); se i due differiscono, vale quello inglese.*
@@ -33,7 +33,7 @@ Il livello del motore che esiste oggi resta la base. Questo comprende i formati 
 
 ## Livello dei nomi (serve ricerca, per lo più consultazioni)
 
-- **Codici di collisione:** muro, pavimento, sporgenze, punti di arrampicata, punti di ricerca, pericoli, uscite, forzieri. Fonti: `step.c`, `events.c`, i documenti di ricerca.
+- **Codici di collisione:** muro, pavimento, sporgenze, punti di arrampicata, punti di ricerca, pericoli, uscite, forzieri. Fonti: il codice del campo di alchemy e il suo `field/README.md`, i documenti di ricerca.
 - **Scene:** i nomi di `scenes.s` più i nomi delle aree (i nomi dei luoghi del gioco stesso) per la visualizzazione.
 - **Oggetti:** i nomi di `include/item_ids.h`, più le icone degli oggetti dalla grafica del gioco.
 - **Sprite:** id dello sprite → nome e un'immagine di anteprima dalla grafica degli oggetti.

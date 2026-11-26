@@ -1,4 +1,4 @@
-<!-- translated from docs/SPEC.md @ c19706671471 -->
+<!-- translated from docs/SPEC.md @ 234e0a50c7d9 -->
 # gs-mapedit: especificación del editor y plan de construcción
 
 *Esta es una traducción del documento en inglés [SPEC.md](../SPEC.md); si los dos difieren, el inglés es el actualizado.*
@@ -19,12 +19,12 @@ El editor lee y escribe solo los archivos fuente de alchemy: TSV, PNG y zonas ac
 
 ### Renderizado (implementado, verificado en los 182 mapas)
 
-- **Recursos:** la paleta, los bloques de caracteres 1–3 y la hoja D de cada mapa vienen de su fila de `gMaps` (`map/resources.c`), resueltos mediante el `gamepak/resource_directory.s` expandido. Los mapas 001, 002, 108 y 110 tienen filas alternativas.
-- **Marcadores de posición:** la k-ésima celda `0xfff`, en orden por filas sobre toda la cuadrícula de 128×128, es el bloque k con su nibble superior conservado (`field/map_grid_convert.s`). El número de marcadores de posición es igual al número de filas de `metatiles.tsv` en los 182 mapas.
+- **Recursos:** la paleta, los bloques de caracteres 1–3 y la hoja D de cada mapa vienen de su fila de `gMaps` (`map/resources.s`; `map/resources.c` en copias más antiguas), resueltos mediante el `gamepak/resource_directory.s` expandido. Las etiquetas de las hojas vienen de `graphics/tileset/<set>/packed.tsv`. Los mapas 001, 002, 108 y 110 tienen filas alternativas.
+- **Marcadores de posición:** la k-ésima celda `0xfff`, en orden por filas sobre toda la cuadrícula de 128×128, es el bloque k con su nibble superior conservado (`field/map_grid_convert.s`). El número de marcadores de posición es igual al número de filas de `cell_tiles.tsv` en los 182 mapas.
 - **Ventanas:** la ventana de cada capa empieza en el origen de la capa más los límites de la cabecera y da la vuelta en 128.
 - **Pendiente:**
-  - composición de mezcla (`blend.tsv`: BLDCNT/BLDALPHA/BLDY);
-  - animación de tiles (`animation.tsv`, hoja D);
+  - composición de mezcla en el tiempo (`blend.tsv`: BLDCNT/BLDALPHA/BLDY). Hoy una capa que el script mezcla por alfa se dibuja con la intensidad media del script (resplandores de luz); los fundidos de brillo y el parpadeo no se dibujan;
+  - animación de tiles (`tileset_anims.tsv`, hoja D);
   - anclaje del paralaje para los mapas 047, 103, 104, 147 y 148;
   - límites de cámara opcionales a partir de las entradas de escena.
 
@@ -34,14 +34,14 @@ El editor lee y escribe solo los archivos fuente de alchemy: TSV, PNG y zonas ac
 
 | Cosa | Archivo | Edición | Invariantes / notas |
 |---|---|---|---|
-| Bloques por celda (3 capas) | `map.txt`, la imagen de cada celda | pintar ids de bloque resueltos | Se guarda con el **codificador de marcadores de posición**: recorre por filas con un contador k. Una celda cuyo bloque == k se escribe `0xfff` (con el nibble superior conservado) y k++; las demás celdas se escriben explícitamente. Verificado como el inverso exacto en los 182 mapas. |
-| Definiciones de bloques | `cell_pictures.tsv` | añadir al final nuevas combinaciones de 2×2 tiles | Máximo 4.095 bloques. Número de fila = id de bloque. |
-| Códigos de colisión | `map.txt`, el comportamiento de cada celda | pintar | Por ventana de capa. Los códigos 1–239 pueden llevar eventos (salidas, cofres). |
-| Altura / forma | `map.txt`, la forma de cada celda, + `shapes.tsv` | pintar | Por ventana de capa. |
-| Cofres / Piedras de Psinergía | líneas `treasure_spot x, z, id` en `map.inc` | añadir/mover/quitar | **el id debe ser igual al código de colisión en (x, z)**: verificado 418/418. El juego coloca como máximo 10 por escena y solo cuenta los marcadores cuyo código es un cofre o una Piedra de Psinergía aún no recogida en los eventos de esa escena (`treasure_spots.c`). Fila marcadora final `ff ff ff`. El contenido necesita un evento `SEARCH(SEARCH_CHEST)` en la escena con un indicador nuevo. |
-| Animación de tiles | `animation.tsv` | más adelante | 16 canales como máximo. |
+| Bloques por celda (3 capas) | `grid_picture.tsv` (`map.txt` en copias más antiguas), la imagen de cada celda; marcas de capa y prioridades en `grid_actors.tsv` | pintar ids de bloque resueltos | Se guarda con el **codificador de marcadores de posición**: recorre por filas con un contador k. Una celda cuyo bloque == k se escribe `0xfff` (con el nibble superior conservado) y k++; las demás celdas se escriben explícitamente. Verificado como el inverso exacto en los 182 mapas. |
+| Definiciones de bloques | `cell_tiles.tsv` (`cell_pictures.tsv`) | añadir al final nuevas combinaciones de 2×2 tiles | Máximo 4.095 bloques. Número de fila = id de bloque. |
+| Códigos de colisión | `grid_behavior.tsv` (`map.txt`), el comportamiento de cada celda | pintar | Por ventana de capa. Los códigos 1–239 pueden llevar eventos (salidas, cofres). |
+| Altura / forma | `grid_shape.tsv` (`map.txt`), la forma de cada celda, + `shapes.tsv` | pintar | Por ventana de capa. Un puente es la ventana de una segunda capa con su propio comportamiento y forma, a la que se llega por marcas de capa. |
+| Cofres / Piedras de Psinergía | filas `column row subject` de `spots.tsv` (líneas `treasure_spot x, z, id` en `map.inc`) | añadir/mover/quitar | **el id debe ser igual al código de colisión en (x, z)**: verificado 418/418. El juego coloca como máximo 10 por escena y solo cuenta los marcadores cuyo código es un cofre o una Piedra de Psinergía aún no recogida en los eventos de esa escena (`field_sequence_treasure_spots.c`). Fila marcadora final `ff ff ff`. El contenido necesita un evento `SEARCH(SEARCH_CHEST)` en la escena con un indicador nuevo. |
+| Animación de tiles | `tileset_anims.tsv` | más adelante | 16 canales como máximo. |
 
-Archivos compartidos: los bloques pueden venir de la carpeta de otro mapa, y las celdas y atributos de `default/` también se comparten. El editor muestra cuándo un archivo está compartido y avisa antes de editarlo.
+Archivos compartidos: el `contents.tsv` de un mapa puede nombrar tablas de otro mapa, y las celdas y la colisión de `default/` también se comparten. El editor muestra cuándo un archivo está compartido y avisa antes de editarlo.
 
 ### Tablas de escena: un gancho, sustituciones propias del editor
 
@@ -50,7 +50,7 @@ Archivos compartidos: los bloques pueden venir de la carpeta de otro mapa, y las
 - El editor añade **una línea** ahí, `MOD_SCENE_LOADED(gMainRoutineWork.next, &gOverlayArea);`. Es una macro que no se expande a nada salvo que la compilación defina `GSMOD`, así que la compilación original sigue coincidiendo con la comercial.
 - Con `GSMOD`, la macro llama a código generado por el editor en `games/tbs/src/mod/`. Ese código cambia los punteros a función de la tabla de entrada (entradas, salidas, colocaciones, eventos, regiones) por funciones que devuelven las tablas de sustitución del editor para esa escena, y deja el resto tal cual.
 - El mapa del mundo también es un overlay de escena, así que el mismo gancho abarca los iconos, salidas y eventos del mapa del mundo.
-- Los archivos `.c` de escena nunca se reescriben. Las tablas de sustitución viven en la carpeta del mod, en la ROM. Los archivos de datos puros (tablas de mapa, líneas de cofres) se siguen editando directamente.
+- Los archivos `.c` de escena nunca se reescriben. Las tablas de sustitución viven en la carpeta del mod, en la ROM. Los archivos de datos puros (tablas de mapa, filas de cofres) se siguen editando directamente.
 
 Las tablas subyacentes, como referencia:
 
@@ -78,7 +78,7 @@ El grafo de salidas es: código de colisión / script / región → tipo de sali
 
 La lista de comprobación está en `local-connections.md` §6:
 - 25 huecos libres en el directorio de recursos, fijados en 0x08320000;
-- añadir filas al final de `gMaps` (`map/resources.c`) y `scenes.s`;
+- añadir filas al final de `gMaps` (`map/resources.s`), `map/maps.tsv` y `scenes.s`;
 - añadir la fila del mapa a `ld_script.ld` antes de los overlays, más el overlay, la música, el nombre de zona y las reglas de encuentros;
 - grupo ≤ 0x7f, ids de escena < 511.
 
@@ -89,12 +89,12 @@ La lista de comprobación está en `local-connections.md` §6:
 | Cosa | Archivo | Notas |
 |---|---|---|
 | Celdas de suelo + capa superpuesta | `map/world/blocks.tsv` | 320×512 u32. Los trozos son de 16×16 celdas, dispuestos de 32 en ancho en el TSV y de 16×16 en el mundo. Suelo = trozo c, capa superpuesta = c + 320. Alternativos 256–319 (conjunto de nieve, puente de la historia). Bits de celda: 0–15 bloque, 16–23 código de paso/evento, 24–30 tipo de terreno (= región de encuentros), 31 banco de comportamiento. |
-| Bloques | `map/default/cells.tsv` | 4.386 × 4 bytes de tile. **Compartido con los mapas locales.** Mejor añadir al final. |
-| Zonas de paso | `map/default/attributes.tsv` | Por tile de 8×8, 4×4 nibbles. Gana la capa superpuesta, luego el suelo, si no 7. Los valores 5–12 son transitables. También compartido. |
+| Bloques | `map/default/cell_tiles.tsv` | 4.386 × 4 bytes de tile. **Compartido con los mapas locales.** Mejor añadir al final. |
+| Zonas de paso | `map/default/collision.tsv` | Por tile de 8×8, 4×4 nibbles. Gana la capa superpuesta, luego el suelo, si no 7. Los valores 5–12 son transitables. También compartido. |
 | Gráficos | `graphics/world_map/*.png` | 8bpp, 256 tiles por capa, 224 colores. El conjunto B es el norte nevado. Conservar el modo y los índices del PNG. |
-| Iconos de pueblo / entrar | `scene/world_map.c` `gWorldMapPlacements`, `gWorldMapEvents`, `gWorldMapExits` | Icono = actor 8 + fila. Tocarlo dispara el activador 100 + actor → `EVENT_EXIT` → salida → (escena, entrada). Algunas entradas son códigos de paso en su lugar. Debe mantenerse alineado con `gWorldMap_PlaceMarkers` (actor 11 + i). |
-| Salir al mundo | `gWorldMapEntrances` | El `SCENE_EXIT(n, 2, e)` de un pueblo coloca al grupo en la fila e. |
-| Encuentros | reglas de `object/zonedata.c` → zonas de `object/encounter.tsv` | Tipo de terreno + comportamiento → regla → zona (104 filas fijas). |
+| Iconos de pueblo / entrar | `scene/world_map.c` `gWorldMapActorPlacements`, `gWorldTriggers`, `gWorldMapExits` | Icono = actor 8 + fila. Tocarlo dispara el activador 100 + actor → `EVENT_EXIT` → salida → (escena, entrada). Algunas entradas son códigos de paso en su lugar. Debe mantenerse alineado con `gMapScreen_AreaMarkers` del mapa de pausa (actor 11 + i). |
+| Salir al mundo | `gWorldSceneEntrances` | El `SCENE_EXIT(n, 2, e)` de un pueblo coloca al grupo en la fila e. |
+| Encuentros | reglas de `field/world_map_encounter_rules.c` → zonas de `field/encounter_zones.c` | Tipo de terreno + comportamiento → regla → zona (104 filas fijas). |
 
 Salvedades:
 - El mapa de la pantalla de pausa (`picture.png`) es arte aparte, así que hay que repintarlo a mano después de editar la costa.
@@ -106,7 +106,7 @@ Salvedades:
 | Etapa | Entrega | Verificación |
 |---|---|---|
 | **1. Visor** ✅ | Los 182 mapas locales renderizados correctamente; capas; información al pasar el ratón | ida y vuelta de 895 archivos; renderizar todo; comprobaciones visuales |
-| **1b. Fidelidad del renderizado** | Composición de mezcla, tiles animados (reproducir/fotograma), anclaje del paralaje, recorte por límites de cámara | Comparar con los renderizados validados de `rendering.md`; idealmente capturas de mGBA |
+| **1b. Fidelidad del renderizado** | Composición de mezcla (resplandores de luz con su intensidad media ✅), tiles animados (reproducir/fotograma), anclaje del paralaje, recorte por límites de cámara | Comparar con los renderizados validados de `rendering.md`; idealmente capturas de mGBA |
 | **2. Pintado local** ✅ salvo el compositor de bloques nuevos | Paleta de bloques a partir del atlas; pintar por capa; pinceles de colisión/altura; compositor de bloques nuevos (elegir 4 tiles); deshacer/rehacer; guardar con el codificador de marcadores de posición | Guardado sin editar idéntico byte a byte; guardado editado que compila (`make tbs-en`); arranca en mGBA |
 | **3. Marcadores + tablas de escena** ✅ añadir, rellenar, mover y quitar cofres; puertas enlazadas con un clic (reenlazar, añadir, quitar, puertas con script incluidas); eventos en palabras con líneas nuevas, letreros, mensajes al pisar, personas y condiciones; zonas de salida; mover piedras; entradas, PNJ, salidas | Colocación de cofres/piedras (marcador + colisión + evento); edición de entradas/salidas/colocaciones; navegación del grafo de salidas entre mapas | Ida y vuelta de tablas idéntica byte a byte en las 201 escenas; compilación; probar en juego un cambio de salida |
 | **4. Visor del mapa del mundo** ✅ | Mundo visto desde arriba con los conjuntos A/B, capa superpuesta, zonas de paso, capa de tipo de terreno/encuentros, iconos de pueblos y enlaces de salida | Portar el prototipo de investigación; comparar con `world_mixed_small.png` |

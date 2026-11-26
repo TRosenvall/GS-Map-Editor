@@ -30,7 +30,7 @@ The engine layer that exists today stays the foundation. That covers the file fo
 
 ## Naming layer (research needed, mostly lookups)
 
-- **Collision codes:** wall, floor, ledges, climb spots, search spots, hazard, exits, chests. Sources: `step.c`, `events.c`, the research docs.
+- **Collision codes:** wall, floor, ledges, climb spots, search spots, hazard, exits, chests. Sources: alchemy's field code and its `field/README.md`, the research docs.
 - **Scenes:** `scenes.s` names plus area names (the game's own location names) for display.
 - **Items:** `include/item_ids.h` names, plus item icons from the game's graphics.
 - **Sprites:** sprite id → name and a preview image from the object graphics.

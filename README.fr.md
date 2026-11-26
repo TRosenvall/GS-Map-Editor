@@ -1,4 +1,4 @@
-<!-- translated from README.md @ e3e09daf168c -->
+<!-- translated from README.md @ 4cd107cf5ad4 -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · [Deutsch](README.de.md) · **Français** · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -158,7 +158,7 @@ Appuyez sur **Regarder** (V) pour regarder sans rien modifier.
 - **Zoom :** de 1× à 4×.
 - **Calques :** chaque lieu en a jusqu'à trois, appelés **Sol**, **Milieu** et **Au-dessus**. Vous pouvez masquer chacun d'eux. Cochez **Avancé** pour avoir des curseurs qui les estompent. Certains lieux éclairent leurs salles avec une couche que le jeu n'affiche que faiblement, comme la lueur d'une torche, et l'éditeur la dessine de la même façon. Pendant que vous peignez sur cette couche avec **Peindre**, elle est dessinée en entier pour que vous la voyiez.
 - **Superpositions :** cochez **Praticabilité**, **Hauteur** pour voir la hauteur du sol, ou **Grille** pour voir les cases.
-- **Sol caché et chemins qui se croisent :** le sol surélevé est dessiné plus haut à l'écran, donc le haut d'une falaise peut couvrir le sol derrière. Cochez **Vue à plat** pour dessiner chaque case là où se trouve vraiment son sol, sans la surélever, et atteindre ainsi le sol en dessous. Les images restent à leur place. Quelques lieux ont aussi un second chemin au-dessus du premier, comme un pont au-dessus d'une fosse. **Praticabilité** et **Hauteur** montrent les deux chemins ensemble, et des rayures rouges marquent leurs croisements. Un clic sur un endroit rayé modifie le chemin du haut, ou le dernier choisi à cet endroit si vous le réglez dans **Où des chemins se croisent**. Maj-clic modifie l'autre. **Là où les personnages peuvent se tenir** suit aussi l'équipe sur un pont. Pour créer un pont, choisissez **Praticabilité** ou **Hauteur**, choisissez **Milieu** sous **Peindre sur** et peignez ses cases avec une hauteur. Là où le pont rejoint un sol à une marche près, l'éditeur crée tout seul le passage pour monter et descendre. **Au-dessus** porte un second pont, qui peut croiser le premier ou partir de lui. Le jeu a trois couches : un lieu ne peut pas en empiler davantage. Peignez l'image du pont avec **Peindre**, sur la même couche. Cochez **Effacer ses cases à la place** pour retirer à nouveau des cases. Là où deux ou trois couches sont sous le curseur, la barre du bas affiche une ligne pour chacune et marque celle qu'un clic modifie.
+- **Sol caché et chemins qui se croisent :** le sol surélevé est dessiné plus haut à l'écran, donc le haut d'une falaise peut couvrir le sol derrière. Cochez **Vue à plat** pour dessiner chaque case là où se trouve vraiment son sol, sans la surélever, et atteindre ainsi le sol en dessous. Les images restent à leur place. Quelques lieux ont aussi un second chemin au-dessus du premier, comme un pont au-dessus d'une fosse. **Praticabilité** et **Hauteur** montrent les deux chemins ensemble, et des rayures rouges marquent leurs croisements. Un clic sur un endroit rayé modifie le chemin du haut, ou le dernier choisi à cet endroit si vous le réglez dans **Où des chemins se croisent**. Maj-clic modifie l'autre. **Là où les personnages peuvent se tenir** suit aussi l'équipe sur un pont. Pour créer un pont, choisissez **Praticabilité** ou **Hauteur**, choisissez **Milieu** sous **Peindre sur** et peignez ses cases avec une hauteur. Là où le pont rejoint un sol à une marche près, l'éditeur crée tout seul le passage pour monter et descendre. **Au-dessus** porte un second pont, qui peut croiser le premier ou partir de lui. Le jeu a trois couches : un lieu ne peut pas en empiler davantage. Peignez l'image du pont avec **Peindre**, sur la même couche. Cochez **Effacer ses cases à la place** pour retirer à nouveau des cases. Là où deux ou trois couches sont sous le curseur, la barre du bas affiche une ligne pour chacune et marque celle qu'un clic modifie. Appuyer sur Maj ou la relâcher déplace la marque aussitôt.
 - Les **coffres** sont toujours visibles sur la carte. Les portes, les personnages et les événements apparaissent quand vous utilisez leurs outils.
 
 ## Peindre : l'apparence du sol
@@ -170,7 +170,7 @@ Appuyez sur **Peindre** (B).
 3. Cliquez ou faites glisser sur la carte.
 4. Enregistrez.
 
-Cochez **Remplir** dans la barre du haut (ou appuyez sur F) : un clic remplit alors toute la zone d'un seul tenant qui a le même bloc que la case cliquée, sur ce calque. Remplir fonctionne aussi dans **Praticabilité** et **Hauteur**, en suivant alors la même praticabilité ou la même hauteur. Annuler défait un remplissage entier d'un coup.
+Cochez **Remplir** dans la barre du haut (ou appuyez sur F) : un clic remplit alors toute la zone d'un seul tenant qui a le même bloc que la case cliquée, sur ce calque. Remplir fonctionne aussi dans **Praticabilité** et **Hauteur**, en suivant alors la même praticabilité ou la même hauteur, mais pas sur un pont : ceux-là se peignent case par case. Annuler défait un remplissage entier d'un coup.
 
 Chaque lieu a son propre jeu de blocs, donc le panneau change d'un lieu à l'autre.
 
@@ -239,7 +239,7 @@ Tous les emplacements qui semblent dégagés ne conviennent pas pour y placer qu
 | Orange | Une porte, une sortie ou une case de passage : quelqu'un placé là gênerait. |
 | Rouge | Le groupe ne peut pas s'approcher assez en marchant pour parler. |
 
-C'est calculé à partir des propres règles de déplacement du jeu, en partant de chaque point où le groupe arrive dans le lieu : on peut monter ou descendre d'un niveau à la fois, les murs arrêtent, et on peut parler à quelqu'un jusqu'à deux cases de distance. Les changements que font les événements du lieu lui-même, comme une porte que la Psynergie ouvre ou un pont que l'histoire abaisse, sont suivis aussi : ce qu'ils ouvrent apparaît en violet. Quelques changements dépendent de l'endroit où le joueur agit, comme pousser un pilier, et ne peuvent pas être calculés d'avance : ce qu'ils ouvrent apparaît encore en rouge.
+C'est calculé à partir des propres règles de déplacement du jeu, en partant de chaque point où le groupe arrive dans le lieu : on peut monter ou descendre d'un niveau à la fois, les murs arrêtent, les ponts font passer au-dessus du sol en dessous, et on peut parler à quelqu'un jusqu'à deux cases de distance. Les changements que font les événements du lieu lui-même, comme une porte que la Psynergie ouvre ou un pont que l'histoire abaisse, sont suivis aussi : ce qu'ils ouvrent apparaît en violet. Quelques changements dépendent de l'endroit où le joueur agit, comme pousser un pilier, et ne peuvent pas être calculés d'avance : ce qu'ils ouvrent apparaît encore en rouge.
 
 Quand un emplacement pose problème, l'éditeur dit lequel avec des mots simples, par exemple « le sol ici est 4 niveaux plus haut que le chemin le plus proche », ou que se tenir là couperait le groupe d'une porte. Puis il propose une solution :
 
@@ -436,6 +436,7 @@ Sous Windows et Linux, utilisez Ctrl pour ⌘ et Alt pour ⌥.
 | ⇧⌘Z | Rétablir | Rétablir |
 | ⌘S | Enregistrer | |
 | ⌥-clic | Prendre un bloc, ou dans Praticabilité et Hauteur le pinceau ou la hauteur de la case | Prendre un bloc ou une région |
+| ⇧-clic | Où des chemins se croisent, modifier l'autre chemin | |
 | ⇧ en relâchant | Aligner les personnages sur les 8 pixels les plus proches | |
 | Échap | Fermer une fenêtre, ou revenir à la copie dans Tampon | Fermer une fenêtre |
 
