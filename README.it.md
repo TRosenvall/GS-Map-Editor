@@ -1,4 +1,4 @@
-<!-- translated from README.md @ bc2600e76436 -->
+<!-- translated from README.md @ e3e09daf168c -->
 # GS Map Editor
 
 [English](README.md) · [Español](README.es.md) · [Deutsch](README.de.md) · [Français](README.fr.md) · **Italiano** · [日本語](README.ja.md)
@@ -11,7 +11,7 @@ L'editor lavora su [alchemy](https://github.com/PascalPixel/alchemy), un progett
 
 > **Anteprima: cerchiamo tester.** L'editor copre l'edizione inglese di The Broken Seal, su macOS e, come primo test, su Windows. È stato provato soprattutto su un solo Mac Intel, e la versione Windows non è mai stata eseguita su un vero PC Windows, quindi ogni segnalazione aiuta, anche "ha funzionato": [scaricalo](https://github.com/TRosenvall/GS-Map-Editor/releases), provalo e [raccontaci com'è andata](https://github.com/TRosenvall/GS-Map-Editor/issues/new?template=bug_report.md). Tieni un backup di ogni mod a cui tieni.
 
-**Versione di alchemy:** questo editor è testato con il commit di alchemy [`0240eeebad`](https://github.com/PascalPixel/alchemy/commit/0240eeebadf7da77a5220e5869831b532ed1bc58) (2026-11-17). La configurazione scarica esattamente quel commit. Alchemy cambia in fretta, quindi una copia più recente potrebbe non funzionare finché l'editor non si mette in pari. Quando una nuova versione dell'editor viene provata con un commit più recente, una copia configurata prima mostra **Aggiorna il codice sorgente…** nella barra in alto: salva le tue modifiche come backup, porta la copia a quel commit con la tua mod e costruisce il gioco per verificarla. Se qualcosa non si può trasferire, la copia torna esattamente com'era.
+**Versione di alchemy:** questo editor è testato con il commit di alchemy [`9bf56b6993`](https://github.com/PascalPixel/alchemy/commit/9bf56b699328033f913aed8d81505eac1cce8868) (2026-11-25). La configurazione scarica esattamente quel commit. Alchemy cambia in fretta, quindi una copia più recente potrebbe non funzionare finché l'editor non si mette in pari. Quando una nuova versione dell'editor viene provata con un commit più recente, una copia configurata prima mostra **Aggiorna il codice sorgente…** nella barra in alto: salva le tue modifiche come backup, porta la copia a quel commit con la tua mod e costruisce il gioco per verificarla. Se qualcosa non si può trasferire, la copia torna esattamente com'era.
 
 ## Indice
 
