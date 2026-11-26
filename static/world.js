@@ -264,7 +264,10 @@ function paintCell(gx, gy) {
 }
 function drawPending() { $('#pend').innerHTML = ''; }
 async function hover(gx, gy) {
-  const c = await cells(gx, gy), kind = (c[0] >>> 24) & 0x7f, code = (c[0] >>> 16) & 0xff;
+  // A chunk still loading answers late: only the square the cursor is on now is shown.
+  const at = W.hoverAt = `${gx},${gy}`, c = await cells(gx, gy);
+  if (W.hoverAt !== at) return;
+  const kind = (c[0] >>> 24) & 0x7f, code = (c[0] >>> 16) & 0xff;
   const st = code && W.data?.places.steps.find(s => s.gx === gx && s.gy === gy);
   const region = W.data?.regions[kind] || T('Region {n}', { n: kind });
   const leads = st?.lead ? ` · ${st.lead.label ? T('leads to <b>{place}</b>', { place: esc(st.lead.label) }) : T('leads to <b>nowhere</b>')}` : '';
