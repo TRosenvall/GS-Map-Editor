@@ -176,4 +176,3 @@ def engine_names(root):
 # Build output
 ROM = "out/tbs-en/tbs-en.gba"
 ELF = "out/tbs-en/tbs-en.elf"
-OVERLAYS = "out/tbs-en/overlays"

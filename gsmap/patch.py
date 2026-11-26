@@ -358,21 +358,6 @@ def export(root, out_dir, cache_dir, env, log, name, author="", description="", 
             "for_sha1": want, "mod_sha1": hashlib.sha1(mod).hexdigest()}
 
 
-def play_patch(root, cache_dir, out_dir, env, log, patch, name="mod", settings=None):
-    """Apply someone's patch to this Mac's unmodified build; returns the
-    patched game's path. The unmodified build equals the retail game, so
-    a patch made for a cartridge dump applies to it too."""
-    stock_path, _ = stock_rom(root, cache_dir, env, log, settings=settings)
-    game = bps_apply(open(stock_path, "rb").read(), patch)
-    os.makedirs(out_dir, exist_ok=True)
-    path = os.path.join(out_dir, slug(name) + ".gba")
-    with open(path, "wb") as f:
-        f.write(game)
-    meta = patch_metadata(patch).decode("utf-8", "replace")
-    log(tr("Patched game ready: {path}", path=path))
-    return {"game": path, "about": meta}
-
-
 # ---- IPS and UPS ----------------------------------------------------------------------------
 # IPS (1990s): records of (3-byte offset, 2-byte size, bytes), size 0 = a run
 # of one byte; "EOF", then optionally a 3-byte size to truncate to. No

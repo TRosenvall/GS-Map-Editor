@@ -16,7 +16,7 @@ rendering (see README.md):
   unique block: at load the k-th 0xfff cell, row-major over the whole
   128x128 grid, becomes block k with its top nibble kept
   (field/map_grid_convert.s). The placeholder count always
-  equals the number of rows in cell_pictures.tsv.
+  equals the number of rows in cell_tiles.tsv (cell_pictures.tsv before).
 - A cell picture is 2x2 GBA text-BG entries: tile 10 bits, hflip 0x400,
   vflip 0x800, palette in the top 4 bits.
 - Absolute tile = char_base*512 + (entry & 0x3ff); char block 1..3 hold the
@@ -133,7 +133,7 @@ def _assembly_files(top):
     return [path for ext in ASSEMBLY for path in found[ext]]
 
 
-_KEPT = {}  # map.s path -> ((mtime, size), its English edition's lines); a map is opened often
+_KEPT = {}  # map.inc path -> ((mtime, size), its English edition's lines); a map is opened often
 
 
 def _kept_file_lines(path):
@@ -163,10 +163,11 @@ class DirectoryError(Exception):
 
 
 class Markers:
-    """A map's chests and Psynergy stones: the `treasure_spot` lines of its
-    map.s, in the English edition's branch. Rows are [x, z, code], the last
-    being the 0xff end row, so they read like a table; save() rewrites only
-    those lines, leaving other editions' branches alone."""
+    """A map's chests and Psynergy stones before 2026-11-25: the
+    `treasure_spot` lines of its map.inc (map.s before 2026-11-17), in the
+    English edition's branch. Rows are [x, z, code], the last being the 0xff
+    end row, so they read like a table; save() rewrites only those lines,
+    leaving other editions' branches alone."""
 
     END = [0xFF, 0xFF, 0xFF]
 
@@ -356,7 +357,7 @@ class MapInfo:
         ][:3]
         self.tileset = None  # display name of the char block 1 tile set
         self.palette = None  # display name when a recolour palette is used
-        self.resources = None  # from map/maps.c, see Project._read_directory
+        self.resources = None  # from gMaps, see Project._read_directory
         self.alternates = []  # further gMaps rows naming this map
 
     @property
@@ -364,6 +365,10 @@ class MapInfo:
         """Visible size in metatiles (16 px)."""
         left, top, right, bottom = self.bounds
         return (right - left) // 2, (bottom - top) // 2
+
+    def gmaps_rows(self):
+        """The rows of gMaps that name this map."""
+        return {r["row"] for r in [self.resources] + self.alternates if r}
 
     def source(self, kind, default_name):
         """Source file of a table (CELL_PICTURES, SHAPES, GRID, ...)."""
@@ -522,6 +527,15 @@ class Project:
             # silently draw the wrong tiles.
             raise DirectoryError(tr("The resource directory has a line the editor doesn't understand: {line}. "
                                     "It would misplace every map's art after that point.", line=repr(s)))
+        return out
+
+    def row_to_map(self):
+        """{gMaps row: the first map it names}."""
+        out = {}
+        for n, info in self.maps.items():
+            for r in [info.resources] + info.alternates:
+                if r:
+                    out.setdefault(r["row"], n)
         return out
 
     def maps_path(self):
@@ -713,7 +727,7 @@ class Project:
         return out, k
 
     def render_inputs(self, info):
-        """The files render() reads for this map: its map.inc and tables, its
+        """The files render() reads for this map: its header and tables, its
         palette and its tile sheets. A picture made from them stays right
         until one of them changes."""
         paths = {info.path, info.grid_path(), *info.sources.values()}
@@ -732,15 +746,13 @@ class Project:
         return sorted(n for n, m in self.maps.items() if self.marker_path(m) == path)
 
     def load_markers(self, info):
-        """(path, Markers), which save themselves back into map.inc."""
+        """(path, Spots or Markers), which save themselves back to path."""
         path = self.marker_path(info)
         return path, (Spots(path) if info.spots else Markers(path))
 
     def markers(self, info):
         """(x, z, id) rows, end marker excluded."""
         _, t = self.load_markers(info)
-        if t is None:
-            return []
         return [tuple(r[:3]) for r in t.rows if tuple(r[:3]) != (0xFF, 0xFF, 0xFF)]
 
     def apply_edits(self, info, edits, marker_ops=None, new_shapes=None, shapes_base=None):
@@ -821,10 +833,8 @@ class Project:
         # Marker moves: rewrite the row, write the id into the new cell's
         # collision code and restore the old cell, all in one save.
         marker_path, marker_table = self.load_markers(info)
-        marker_rows = marker_table.rows if marker_table else []
+        marker_rows = marker_table.rows
         for op in marker_ops or []:
-            if marker_table is None:
-                raise ValueError(tr("this map has no chest list to edit"))
             if len(self.marker_users(marker_path)) > 1:
                 raise ValueError(tr("{file} is shared by maps {maps}; not editable yet",
                                     file=os.path.basename(marker_path), maps=", ".join(self.marker_users(marker_path))))

@@ -23,7 +23,6 @@ from .tileset import retired_blocks
 
 _STOCK = {}  # game source root -> keys of the issues the unmodified game has
 TEMP_FLAGS = range(0x200, 0x400)  # scene and group temporaries: cleared on entering
-CHEST_FLAGS = range(0xE00, 0x1000)
 
 
 def changed_maps(project):
@@ -366,12 +365,10 @@ class Checker:
         return self.names.scene_label(sc["id"]) if sc else tr("overlay {n}", n=f"{ovl:#x}")
 
     def _scene_count(self, info):
-        rows = {r["row"] for r in [info.resources] + info.alternates if r}
-        return len(self.scenes.for_rows(rows))
+        return len(self.scenes.for_rows(info.gmaps_rows()))
 
     def _place(self, info):
         if info is None:
             return None
-        rows = {r["row"] for r in [info.resources] + info.alternates if r}
-        scs = self.scenes.for_rows(rows)
+        scs = self.scenes.for_rows(info.gmaps_rows())
         return self.names.scene_label(scs[0]["id"]) if scs else tr("map {n}", n=info.number)

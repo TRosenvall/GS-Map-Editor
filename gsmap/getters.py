@@ -21,7 +21,7 @@ follow gets every table it names; with no source, every table of the kind.
 import os
 import re
 
-from .doors import _scan, _scene_files, _source_text
+from .doors import _scene_files, _source_text
 
 # gMainRoutineState is gMainRoutineWork before 2026-11-25.
 _SCENE_TEST = re.compile(r"^\(*\s*(?:\w+|gMainRoutine(?:Work|State)\.next)\s*(==|!=)\s*\(s32\)\s*&\s*SceneId_(\w+)\s*\)*$")

@@ -23,9 +23,9 @@ while you stand there, and shows it again once you step off and come back
 
 import re
 
-from .doors import DoorEditor, script_docs
+from .doors import FREE_CODES, DoorEditor, script_docs
 from .i18n import tr
-from .messages import Messages, compose, plain, tidy
+from .messages import Messages, compose, tidy
 from .modgen import Overrides, generate
 from .names import read_flag_names
 from .sceneedit import EVENTS_END, FIRST_ACTOR, LAST_PARTY_SPRITE, MAX_ACTOR, actor_numbers
@@ -33,7 +33,7 @@ from .sceneedit import EVENTS_END, FIRST_ACTOR, LAST_PARTY_SPRITE, MAX_ACTOR, ac
 KINDS = {0: "talk", 1: "exit", 2: "touch", 3: "search", 4: "item", 5: "psynergy", 6: "raised", 7: "talk-stopped"}
 
 
-def search_targets(tr=tr):
+def search_targets():
     """What a search event is aimed at, by its target number, in the editor's words."""
     return [tr("something"), tr("a chest"), tr("a jar"), tr("a barrel"), tr("a wall"), tr("the ground"),
             tr("a rock"), tr("a hole"), tr("a grave"), tr("a tree"), tr("the underbrush"), tr("a door"),
@@ -43,14 +43,8 @@ def search_targets(tr=tr):
             tr("a shelf"), tr("a wardrobe"), tr("firewood"), tr("some books"), tr("a well")]
 
 
-# The same list in English (search_targets() gives it in the editor's language).
-SEARCH_TARGETS = search_targets(lambda text: text)
 FLAG_SET = 0x1000
 ABILITY_NAMES = 819  # message 819 + ability id is its name (all 34 named abilities, ability_ids.h)
-
-
-def flag_names(root):
-    return read_flag_names(root)
 
 
 def flag_label(n, names):
@@ -146,7 +140,7 @@ class EventEditor(DoorEditor):
         exits = self._tables([o], ov, "exits", need=False, scene_ids={scene_id})
         msgs = Messages(self.project.root)
         docs = script_docs(self.project.tbs, o)
-        fnames = flag_names(self.names.root)
+        fnames = read_flag_names(self.names.root)
         numbers = actor_numbers(people)
         by_actor = {a: p for a, p in zip(numbers, people)}
         cells = self._window_cells(info)
@@ -309,7 +303,7 @@ class EventEditor(DoorEditor):
                 raise ValueError(tr("that spot already has a message or search; change it instead"))
         else:
             taken = self._taken_codes(overlays, events_all)
-            code = next((c for c in list(range(1, 100)) + list(range(239, 99, -1)) if c not in taken), None)
+            code = next((c for c in FREE_CODES if c not in taken), None)
             if code is None:
                 raise ValueError(tr("This place has no room for more of these."))
         ov, rows = self._table(o, symbol)

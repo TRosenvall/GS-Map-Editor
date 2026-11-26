@@ -246,12 +246,6 @@ class Names:
 
     # ---- lookups ------------------------------------------------------------
 
-    def collision_range(self, code):
-        for r in self.collision:
-            if r["lo"] <= code <= r["hi"]:
-                return r
-        return None
-
     def item_name(self, item_id):
         it = self.items.get(item_id)
         return it["name"] if it else tr("item {n}", n=item_id)
