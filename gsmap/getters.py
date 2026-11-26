@@ -23,7 +23,7 @@ import re
 
 from .doors import _scan, _scene_files, _source_text
 
-_SCENE_TEST = re.compile(r"^\(*\s*(?:\w+|gMainRoutineWork\.next)\s*(==|!=)\s*\(s32\)\s*&\s*SceneId_(\w+)\s*\)*$")
+_SCENE_TEST = re.compile(r"^\(*\s*(?:\w+|gMainRoutine(?:Work|State)\.next)\s*(==|!=)\s*\(s32\)\s*&\s*SceneId_(\w+)\s*\)*$")
 
 
 _SCENE_MACROS = {}  # scene_ids.h path -> (mtime, {SCENE_VALE: "Vale"})
