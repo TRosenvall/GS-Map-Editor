@@ -1,4 +1,4 @@
-<!-- translated from README.md @ bc2600e76436 -->
+<!-- translated from README.md @ e3e09daf168c -->
 # GS Map Editor
 
 [English](README.md) · **Español** · [Deutsch](README.de.md) · [Français](README.fr.md) · [Italiano](README.it.md) · [日本語](README.ja.md)
@@ -11,7 +11,7 @@ El editor funciona sobre [alchemy](https://github.com/PascalPixel/alchemy), un p
 
 > **Versión preliminar: se buscan testers.** El editor cubre la edición inglesa de The Broken Seal, en macOS y, como prueba temprana, en Windows. Se ha probado sobre todo en un solo Mac con Intel, y la versión de Windows nunca se ha ejecutado en un PC con Windows de verdad, así que cada informe ayuda, incluido "me funcionó": [descárgalo](https://github.com/TRosenvall/GS-Map-Editor/releases), pruébalo y [cuéntanos qué tal fue](https://github.com/TRosenvall/GS-Map-Editor/issues/new?template=bug_report.md). Guarda una copia de seguridad de cualquier mod que te importe.
 
-**Versión de alchemy:** este editor está probado con el commit de alchemy [`0240eeebad`](https://github.com/PascalPixel/alchemy/commit/0240eeebadf7da77a5220e5869831b532ed1bc58) (2026-11-17). La instalación descarga exactamente ese commit. Alchemy cambia rápido, así que puede que una copia más nueva no funcione hasta que el editor se ponga al día. Cuando una nueva versión del editor se prueba con un commit más nuevo, una copia instalada antes muestra **Actualizar el código fuente…** en la barra superior: guarda tus cambios como copia de seguridad, lleva la copia a ese commit con tu mod y construye el juego para comprobarlo. Si algo no se puede trasladar, la copia vuelve a quedar exactamente como estaba.
+**Versión de alchemy:** este editor está probado con el commit de alchemy [`9bf56b6993`](https://github.com/PascalPixel/alchemy/commit/9bf56b699328033f913aed8d81505eac1cce8868) (2026-11-25). La instalación descarga exactamente ese commit. Alchemy cambia rápido, así que puede que una copia más nueva no funcione hasta que el editor se ponga al día. Cuando una nueva versión del editor se prueba con un commit más nuevo, una copia instalada antes muestra **Actualizar el código fuente…** en la barra superior: guarda tus cambios como copia de seguridad, lleva la copia a ese commit con tu mod y construye el juego para comprobarlo. Si algo no se puede trasladar, la copia vuelve a quedar exactamente como estaba.
 
 ## Contenido
 

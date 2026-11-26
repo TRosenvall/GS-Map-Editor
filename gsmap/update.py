@@ -15,7 +15,10 @@ everything the player made is uncommitted changes in it. The update:
      A place's chests and stones (the `treasure_spot` rows of its map file)
      are carried by the editor itself: upstream renames those files and the
      labels in them, which git can't follow, so the rows are merged into the
-     same place's file in the new version, found by its row in the map table;
+     same place's file in the new version, found by its row in the map table.
+     A copy from before alchemy's table-file maps (0240eeebad and older) has
+     its changed map files converted instead (gsmap/legacy_maps.py), into the
+     place's folder in the new version, again found by its map table row;
   4. builds the game and checks the editor can read the copy.
 
 If any step fails (a change that can't be carried, a build that breaks), the
@@ -29,13 +32,14 @@ the pinned commit. Someone's own checkout, on a branch, is never moved.
 
 import glob
 import os
+import re
 import shutil
 import subprocess
 import tempfile
 import threading
 import time
 
-from . import layout, preflight
+from . import layout, legacy_maps, preflight
 from .i18n import tr
 from .setup import ALCHEMY_PIN, ALCHEMY_URL, GIT_LIMITS, RUNNING, SUPPORT, build_env
 
@@ -104,6 +108,23 @@ def offer(root):
         return None
 
 
+def _table_folders(text):
+    """Each map table row's folder, in row order, from its comment: map/
+    resources.s's `map ...  @ folder` rows, or resources.c's `{...}, // folder`."""
+    rows = re.findall(r"^\tmap \w+,[^\n@]*@ ([a-z0-9_]+)", text, re.M)
+    return rows or re.findall(r"^\s*\{[^\n]*\}, // ([a-z0-9_]+)", text, re.M)
+
+
+def _new_folder(folder, old_rows, new_rows, maps_dir):
+    """The folder in the new version holding the place the old version kept
+    in `folder`: the one its map table rows name now (the rows keep their
+    order: alchemy builds the same game), else one of the same name."""
+    found = {new_rows[i] for i, f in enumerate(old_rows) if f == folder and i < len(new_rows)}
+    if len(found) == 1:
+        return found.pop()
+    return folder if os.path.isdir(os.path.join(maps_dir, folder)) else None
+
+
 def merge_rows(base, mine, theirs, end):
     """Theirs (the new version's rows), less what mine removed from base, plus
     what mine added, in order, ending with `end`."""
@@ -149,7 +170,8 @@ class Update:
             self.old = _out(root, "rev-parse", "HEAD")
             self.old_compilers = self._compilers(self.old)
             self.gcc_head = _out(os.path.join(root, "alchemy-gcc"), "rev-parse", "HEAD", check=False)
-            self.markers = self._read_markers()
+            self.maps = self._read_maps()
+            self.markers = {} if self.maps is not None else self._read_markers()
             self.saved, self.carried = self._save()
         except Stop as e:
             return self._finish(False, str(e))
@@ -223,6 +245,8 @@ class Update:
             # The compilers are the new version's own, never carried over.
             redone = [p for p in (layout.HOOK_FILE, layout.object_list(root)[0], "alchemy-gcc") if p]
             redone += [rel for rel, _, _ in self.markers.values()]  # carried by _carry_markers
+            redone += [f"{layout.MAPS}/{folder}/{name}" for folder, files in (self.maps or {}).items()
+                       for name in files]  # carried by _carry_maps
             _git(root, "reset", "-q", "HEAD", "--", *redone, env=env, check=False)
             carried = _out(root, "commit-tree", _out(root, "write-tree", env=env), "-p", "HEAD",
                            "-m", "Your changes, to carry to the new version", env=env)
@@ -272,6 +296,74 @@ class Update:
             mt.rows = merge_rows(base, mine, mt.rows, Markers.END)
             mt.save()
 
+    def _read_maps(self):
+        """None for a copy whose maps are table files already. Otherwise
+        {folder: {file name: (the old version's text, the player's)}} for each
+        map file in the old layout that the player changed, with
+        self.old_rows, each map table row's folder, to find the place again."""
+        root = self.root
+        tracked = _out(root, "ls-files", "-z", "--", layout.MAPS).split("\0")
+        if not any(legacy_maps.OLD_GRID.match(os.path.basename(rel)) for rel in tracked):
+            return None
+        self.old_rows = _table_folders(_git(root, "show", f"HEAD:{layout.map_table(root)}", check=False).stdout)
+        out = {}
+        changed = _out(root, "diff", "--name-only", "-z", "HEAD", "--", layout.MAPS).split("\0")
+        changed += _out(root, "ls-files", "--others", "--exclude-standard", "-z", "--", layout.MAPS).split("\0")
+        for rel in changed:
+            parts = os.path.relpath(rel, layout.MAPS).split(os.sep) if rel else []
+            if len(parts) != 2 or not legacy_maps.is_old_file(parts[1]):
+                continue
+            base = _git(root, "show", f"HEAD:{rel}", check=False)
+            path = os.path.join(root, rel)
+            mine = open(path, encoding="utf-8").read() if os.path.exists(path) else None
+            out.setdefault(parts[0], {})[parts[1]] = (base.stdout if base.returncode == 0 else None, mine)
+        return out
+
+    def _carry_maps(self):
+        """Each changed old-layout map file into its place's table files in the
+        new version: only the tables the player's change touches, and only
+        where the new version still has what the old one had there, else the
+        update stops. Chests are merged row by row, as _carry_markers does."""
+        if not self.maps:
+            return
+        root = self.root
+        self.say(tr("Carrying your map changes over to the new map files…"))
+        with open(os.path.join(root, layout.map_table(root)), encoding="utf-8") as f:
+            new_rows = _table_folders(f.read())
+        for folder, files in self.maps.items():
+            target = _new_folder(folder, self.old_rows, new_rows, os.path.join(root, layout.MAPS))
+            if target is None:
+                raise Stop(tr("the place in {file} isn't in the new version.", file=f"{layout.MAPS}/{folder}"))
+            here = os.path.join(root, layout.MAPS, target)
+            for name, (base, mine) in files.items():
+                rel = f"{layout.MAPS}/{folder}/{name}"
+                if base is None or mine is None:
+                    raise Stop(tr("your mod adds or removes {file}, which the new version keeps differently.", file=rel))
+                try:
+                    before, after = legacy_maps.convert(name, base), legacy_maps.convert(name, mine)
+                except ValueError:
+                    raise Stop(tr("{file} differs by language edition, so your changes to it can't be carried "
+                                  "over automatically.", file=rel)) from None
+                for table, text in after.items():
+                    path = os.path.join(here, table)
+                    have = open(path, encoding="utf-8").read() if os.path.exists(path) else None
+                    if table == "spots.tsv":  # each edition's chests merged, as _carry_markers does
+                        theirs, base_rows = legacy_maps.read_spots(have), legacy_maps.read_spots(before[table])
+                        mine_rows = legacy_maps.read_spots(text)
+                        text = legacy_maps.spots_table({e: merge_rows(base_rows[e], mine_rows[e], theirs[e], [])[:-1]
+                                                        for e in legacy_maps.EDITIONS})
+                    elif text == before.get(table):
+                        continue  # a table this change didn't touch
+                    elif have != before.get(table):
+                        raise Stop(tr("the new version changed the same parts of {files} that your mod changed, so "
+                                      "they can't be combined automatically.", files=rel))
+                    if text is None:
+                        if have is not None:
+                            os.remove(path)
+                    elif text != have:
+                        with open(path, "w", encoding="utf-8", newline="") as f:
+                            f.write(text)
+
     def _fetch(self):
         root = self.root
         if not _known(root, ALCHEMY_PIN):
@@ -310,6 +402,7 @@ class Update:
                           detail=(p.stderr or p.stdout).strip()[-300:]))
         _git(root, "reset", "-q")  # as before: the changes uncommitted, nothing staged
         self._carry_markers()
+        self._carry_maps()
 
     def _rebuild(self):
         root = self.root

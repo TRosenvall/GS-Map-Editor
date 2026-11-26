@@ -139,12 +139,14 @@ HOOK_INCLUDE = '#include "../mod/mod_hook.h"\n'
 def ensure_hook(root):
     """Put the mod's hook into the checkout if it isn't there: without it, the
     scene edits in mod.c are never linked or called. Does nothing when it is."""
+    load_line, call = layout.hook(root)
+
     def hook(text):
-        if layout.HOOK_CALL in text:
+        if call in text:
             return text
-        if layout.HOOK_AFTER not in text:
+        if load_line not in text:
             raise ValueError(tr("this version of the game source loads scenes differently; the editor needs updating for it"))
-        text = text.replace(layout.HOOK_AFTER, layout.HOOK_AFTER + layout.HOOK_CALL, 1)
+        text = text.replace(load_line, load_line + call, 1)
         last = list(re.finditer(r"^#include .*\n", text, re.M))[-1]
         return text[:last.end()] + HOOK_INCLUDE + text[last.end():]
 
@@ -275,15 +277,25 @@ def step_message_functions(messages):
 
 
 def window_colour_fields(root):
-    """The window colour settings' fields in MainRoutineWork: two named ones
-    since alchemy 35909133bc, an array of two before."""
-    for rel in ("include/system/main_routine_work.h", "include/main_routine_work.h"):
+    """The window colour settings' fields in the main routine's state: two
+    named ones since alchemy 35909133bc, an array of two before."""
+    for rel in ("include/system/main_routine_state.h", "include/system/main_routine_work.h",
+                "include/main_routine_work.h"):
         path = os.path.join(root, "games/tbs", rel)
         if os.path.exists(path):
             with open(path, encoding="utf-8") as f:
                 if re.search(r"\bwindowHue\s*;", f.read()):
                     return "windowHue", "windowBrightness"
     return "windowColor[0]", "windowColor[1]"
+
+
+def engine_spelling(root, text):
+    """The C above names the engine's state as alchemy did up to 0240eeebad
+    (gMainRoutineWork, gFieldWork); spell it as this checkout does."""
+    names = layout.engine_names(root)
+    for old, key in (("MainRoutineWork_InitializeDefaults", "INIT"), ("gMainRoutineWork", "MAIN"), ("gFieldWork", "FIELD")):
+        text = re.sub(rf"\b{old}\b", names[key], text)
+    return text
 
 
 def generate(root, scenes, overrides):
@@ -389,6 +401,7 @@ def generate(root, scenes, overrides):
             "#else\nvoid Mod_SceneLoaded(int scene, struct SceneEntryPoints *entries) {\n"
             "  (void)scene;\n  (void)entries;\n}\n#endif /* TBS_EDITION_EN */\n",
         )
+    text = engine_spelling(root, text)
     mod_dir = overrides.dir
     atomic_write(os.path.join(mod_dir, "mod.c"), text)
     enabled = bool(tables) or playable

@@ -71,16 +71,23 @@ ITEM_ICON = f"{SRC}/graphics/ui/menu_icons/item_{{icon:03d}}.png"  # before 2026
 # The mod's folder and hook
 MOD = f"{SRC}/mod"
 HOOK_FILE = f"{SRC}/system/main_routine.c"
-HOOK_AFTER = "  Overlay_Load(table[gMainRoutineWork.next].resourceId, &gOverlayArea);\n"
-HOOK_CALL = "  MOD_SCENE_LOADED(gMainRoutineWork.next, &gOverlayArea);\n"
+# The line Scene_LoadOverlay loads a scene's overlay with, and the mod's call
+# after it. Alchemy renamed gMainRoutineWork to gMainRoutineState after
+# 0240eeebad; older copies have the first spelling.
+HOOKS = (
+    ("  Overlay_Load(table[gMainRoutineState.next].resourceId, &gOverlayArea);\n",
+     "  MOD_SCENE_LOADED(gMainRoutineState.next, &gOverlayArea);\n"),
+    ("  Overlay_Load(table[gMainRoutineWork.next].resourceId, &gOverlayArea);\n",
+     "  MOD_SCENE_LOADED(gMainRoutineWork.next, &gOverlayArea);\n"),
+)
 # Where the mod's object joins the link: last in the Game Pak, after the
-# scene overlays. Alchemy lists objects in its linker script; copies set up
-# before 2026-11-12 list them in objects.tsv instead.
+# scene overlays' list (after the overlays themselves before 9bf56b6993).
+# Alchemy lists objects in its linker script; copies set up before 2026-11-12
+# list them in objects.tsv instead.
+_MOD_LINK = f'        "*/{MOD}/mod.o"(.text)\n        "*/{MOD}/mod.o"(.rodata)\n'
 OBJECT_LISTS = (
-    ("games/tbs/ld_script.ld",
-     f'        "*/{SRC}/system/overlay/overlays.o"(.data .overlays)\n',
-     f'        "*/{MOD}/mod.o"(.text)\n'
-     f'        "*/{MOD}/mod.o"(.rodata)\n'),
+    ("games/tbs/ld_script.ld", f'        "*/{SRC}/system/overlay/overlays.list.o"(.data .overlays)\n', _MOD_LINK),
+    ("games/tbs/ld_script.ld", f'        "*/{SRC}/system/overlay/overlays.o"(.data .overlays)\n', _MOD_LINK),
     ("games/tbs/objects.tsv",
      f"main\trom_tail_02\t{SRC}/system/overlay/overlays\n",
      f"main\trom_tail_02\t{MOD}/mod\t.text\n"
@@ -102,17 +109,40 @@ def map_table(root):
     return first_existing(root, MAP_TABLES)
 
 
+def _read(root, rel):
+    try:
+        with open(os.path.join(root, rel), encoding="utf-8") as f:
+            return f.read()
+    except OSError:
+        return None
+
+
 def object_list(root):
-    """(path, the line the mod's rows follow, the rows) for this checkout."""
-    for entry in OBJECT_LISTS:
-        if os.path.exists(os.path.join(root, entry[0])):
-            return entry
-    return OBJECT_LISTS[0]
+    """(path, the line the mod's rows follow, the rows) for this checkout: the
+    first whose line its file has, then the first whose rows it has, else the
+    first whose file exists."""
+    texts = {path: _read(root, path) for path, _, _ in OBJECT_LISTS}
+    for part in (1, 2):
+        for entry in OBJECT_LISTS:
+            text = texts[entry[0]]
+            if text is not None and entry[part] in text:
+                return entry
+    return next((e for e in OBJECT_LISTS if texts[e[0]] is not None), OBJECT_LISTS[0])
 
 
-MOD_INCLUDES = ("types.h", "field/scene.h", "field/scene_tables.h", "system/frame.h", "system/main_routine_work.h",
-                "field/event_commands.h", "field/field_work.h", "scene_ids.h", "scene_exits.h", "game/game.h",
-                "window/window.h", "system/system.h", "field/field.h")
+def hook(root):
+    """(the overlay-loading line, the mod's call) as this checkout spells them."""
+    text = _read(root, HOOK_FILE) or ""
+    return next((h for h in HOOKS if h[1] in text or h[0] in text), HOOKS[0])
+
+
+MOD_INCLUDES = ("types.h", "field/scene.h", "field/scene_tables.h", "system/frame.h", "system/main_routine_state.h",
+                "field/event_commands.h", "field/field_state.h", "field/field_sequence.h", "scene_ids.h",
+                "scene_exits.h", "game/game.h", "window/window.h", "system/system.h", "field/field.h")
+# Between 2026-11-17 and the State rename after 0240eeebad.
+MOD_INCLUDES_WORK = ("types.h", "field/scene.h", "field/scene_tables.h", "system/frame.h", "system/main_routine_work.h",
+                     "field/event_commands.h", "field/field_work.h", "scene_ids.h", "scene_exits.h", "game/game.h",
+                     "window/window.h", "system/system.h", "field/field.h")
 # Before 2026-11-17 the headers sat flat or under module/<bank>/.
 MOD_INCLUDES_FLAT = ("types.h", "field/scene.h", "field/scene_tables.h", "frame.h", "main_routine_work.h",
                      "module/field/event_commands.h", "field_work.h", "scene_ids.h", "scene_exits.h",
@@ -120,10 +150,27 @@ MOD_INCLUDES_FLAT = ("types.h", "field/scene.h", "field/scene_tables.h", "frame.
                      "field.h", "window.h")
 
 
+def state_names(root):
+    """True when this checkout names the engine's state gMainRoutineState and
+    gFieldState (after 0240eeebad), not gMainRoutineWork and gFieldWork."""
+    return os.path.exists(os.path.join(root, INCLUDE, "system/main_routine_state.h"))
+
+
 def mod_includes(root):
     """The headers mod.c includes, as this checkout lays them out."""
-    flat = os.path.isdir(os.path.join(root, INCLUDE, "module"))
-    return MOD_INCLUDES_FLAT if flat else MOD_INCLUDES
+    if os.path.isdir(os.path.join(root, INCLUDE, "module")):
+        return MOD_INCLUDES_FLAT
+    return MOD_INCLUDES if state_names(root) else MOD_INCLUDES_WORK
+
+
+# What mod.c calls the engine's state, by state_names(): the main routine's
+# state, its reset to defaults, and the field's state.
+ENGINE_NAMES = {True: {"MAIN": "gMainRoutineState", "INIT": "MainRoutineState_InitializeDefaults", "FIELD": "gFieldState"},
+                False: {"MAIN": "gMainRoutineWork", "INIT": "MainRoutineWork_InitializeDefaults", "FIELD": "gFieldWork"}}
+
+
+def engine_names(root):
+    return ENGINE_NAMES[state_names(root)]
 
 
 # Build output

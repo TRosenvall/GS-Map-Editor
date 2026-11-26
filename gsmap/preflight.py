@@ -106,7 +106,8 @@ def _check(root):
 
     # The hook must be there or have somewhere to go.
     source = read(layout.HOOK_FILE)
-    if layout.HOOK_CALL not in source and layout.HOOK_AFTER not in source:
+    after, call = layout.hook(root)
+    if call not in source and after not in source:
         problems.append(tr("Can't find where scenes get loaded in {path}, so edits to people, doors "
                            "and events couldn't reach the game.", path=layout.HOOK_FILE))
     objects = read(objects_path)
