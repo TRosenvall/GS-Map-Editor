@@ -14,7 +14,7 @@ A chest is four things that must agree (docs/research/local-connections.md §3):
 
 A Psynergy Stone is the same four things, with an examine event instead:
 {EXAMINE_TRIGGER(EXAMINE_SILENT), code, flag, FIND_PSYNERGY_STONE}
-(field/scene_tables.h). treasure_spots.c then places the stone, which
+(field/scene_tables.h). field_sequence_treasure_spots.c then places the stone, which
 restores all PP, in place of a chest; the flag is set once it is used.
 
 So a new code must be unused by every event table the map's scenes can load,
@@ -38,7 +38,7 @@ FIND_STONE = 0x300000
 def placed_codes(rows, codes):
     """The marker codes among `codes` that one event table turns into a chest or a
     Psynergy Stone: the only markers the game counts toward its 10
-    (treasure_spots.c). A marker with no such event places nothing."""
+    (field_sequence_treasure_spots.c). A marker with no such event places nothing."""
     return {r["trigger"] for r in rows if r["control"] != EVENTS_END and r["trigger"] in codes
             and is_marker(r)}
 

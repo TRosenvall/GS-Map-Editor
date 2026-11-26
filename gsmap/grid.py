@@ -7,7 +7,7 @@ edition's own grid adds its suffix, grid_picture_es.tsv), read by TableGrid
 below. Each of the first three is a header of column numbers and 128 rows of
 128 decimal values. grid_actors.tsv lists only the cells whose block word has
 its top nibble set: `column row layer priority`, the layer marker being bits
-12-13 and the priority bits 14-15 (field/map_grid.c).
+12-13 and the priority bits 14-15 (field/field_map_grid.c).
 
 Before that it was one text file, map.txt (header, then one text row per grid row):
 

@@ -16,7 +16,7 @@ rendering (see README.md):
   unique block: at load the k-th 0xfff cell, row-major over the whole
   128x128 grid, becomes block k with its top nibble kept
   (field/map_grid_convert.s). The placeholder count always
-  equals the number of rows in cell_pictures.tsv.
+  equals the number of rows in cell_tiles.tsv (cell_pictures.tsv before).
 - A cell picture is 2x2 GBA text-BG entries: tile 10 bits, hflip 0x400,
   vflip 0x800, palette in the top 4 bits.
 - Absolute tile = char_base*512 + (entry & 0x3ff); char block 1..3 hold the
@@ -45,12 +45,12 @@ EDITION = "TBS_EDITION_EN"
 TABLE_EDITION = "en"  # a table row for one edition names it in its "edition" column
 EMPTY = 0xFFF
 # A cell's shape is one byte, and the game reads the table as four bytes a row
-# into Ram_MapGridShapes, with the tileset animation 0x1000 bytes on (map_grid.c).
+# into Ram_MapGridShapes, with the tileset animation 0x1000 bytes on (field_map_grid.c).
 SHAPE_MAX = 256
 # Every value a cell holding a placeholder can have (cells are 16 bits): a
 # quick test of whether a grid row holds any.
 _PLACEHOLDERS = frozenset((top << 12) | EMPTY for top in range(16))
-# Shape kinds whose height function reads all three samples (field/terrain.c);
+# Shape kinds whose height function reads all three samples (field/field_terrain.c);
 # the others read one or two.
 _THREE_SAMPLES = frozenset((5, 6, 10, 11, 12, 13))
 
@@ -868,7 +868,7 @@ class Project:
 
     def shape_rows(self, info):
         """[kind, h0, h1, h2] per shape id, heights signed, in 8-px units
-        (field/field/terrain.c: a sample is in eight-pixel units)."""
+        (field/field_terrain.c: a sample is in eight-pixel units)."""
         t = self._parsed(info.source("SHAPES", "shapes.tsv"), tablemod.load)
         return [[r[0]] + [v - 256 if v > 127 else v for v in r[1:4]] for r in t.rows]
 
@@ -876,11 +876,11 @@ class Project:
         """How the place's blend script shows its layers, as one steady look:
         {"layers": [...], "a": strength, "b": what shows through}, or None.
 
-        field/field/map_animation.c runs the script each frame: a control row
+        field/field_tile_animation.c (BlendScript_Run) runs the script each frame: a control row
         sets BLDCNT, each level row sets BLDALPHA (the layer's own strength in
         its low byte, what's below in the high one, in sixteenths) and waits.
         The levels are averaged over their waits, so a flicker shows at its
-        middle strength. Layer k shows on BG 3 - k (field/field/map_layers.c).
+        middle strength. Layer k shows on BG 3 - k (field/field_map_grid.c).
         Only alpha blending is read; a brightness fade is left out."""
         path = info.sources.get("BLEND")
         if not path or not os.path.exists(path):

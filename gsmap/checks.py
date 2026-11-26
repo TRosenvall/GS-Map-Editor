@@ -159,7 +159,7 @@ class Checker:
         markers = p.markers(info)
         # The limit is per scene: on loading, the game places at most MARKER_MAX
         # of the markers that scene's own events make a chest or a Psynergy
-        # Stone (treasure_spots.c). A map holding several houses has a scene per
+        # Stone (field_sequence_treasure_spots.c). A map holding several houses has a scene per
         # house, each counting only its own.
         codes = {code for _, _, code in markers}
         ov = doors._read_overrides()
@@ -170,7 +170,7 @@ class Checker:
                 continue
             for _, name, rows in tables:
                 # A chest (SEARCH(SEARCH_CHEST)) or a Psynergy Stone (a plain search
-                # finding FIND_PSYNERGY_STONE), as treasure_spots.c tells them.
+                # finding FIND_PSYNERGY_STONE), as field_sequence_treasure_spots.c tells them.
                 placed = placed_codes(rows, codes)
                 if len(placed) > MARKER_MAX:
                     add("error", "too-many-chests", info,

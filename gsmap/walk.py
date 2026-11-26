@@ -2,24 +2,26 @@
 game's own rules (alchemy's games/tbs/src/field):
 
 - A step is 8 pixels, and is taken only when five probes 8 pixels out, straight
-  ahead and 22.5 and 45 degrees either side, are clear (player_control.c).
+  ahead and 22.5 and 45 degrees either side, are clear (field_player_control.c).
 - A probe is clear unless its cell is a wall (cell behavior 255), or its ground
   is more than 8 pixels above, or 12 below, the ground the walker stands on
-  (terrain.c, MapGrid_CheckCollision).
+  (field_terrain.c, MapGrid_CheckCollision).
 - Heights come from each cell's shape: a kind and up to three samples, read by
-  one of sixteen functions (terrain.c), with two tables (terrain_tables.c).
+  one of sixteen functions (field_terrain.c), with two tables (terrain_tables.c).
 - A ledge (252) is hopped down, a climbing spot (253) climbed, a gap (254)
   jumped two cells forward (field/README.md, "Cells that act on their own").
 - Talking reaches the nearest person within 32 pixels and 48 above or below
   (field/README.md, "Talking"). Two people bump when they come within their
   radii less 2 pixels each: 8 for a standard sprite, so 12 apart.
 - A step trigger whose script slides the leader (Imil's ice) is followed as
-  Imil_RunIceSlide does: cell by cell until a wall, ground more than 8 pixels
-  up, or another kind of cell.
+  Leader_SlideOnIce does (scene/shared/leader_slide_on_ice.c): cell by cell
+  until a wall, ground more than 8 pixels up, or another kind of cell.
 - A cell whose word carries a layer marker (bits 12-13, the layer + 1) moves
   whoever stands on it onto that layer, whose window then gives the cells
-  under them (field_actor_camera.c): a bridge over a floor. Points on layer 0
-  are (x, z); points on another layer are (x, z, layer).
+  under them (field_actor_camera.c): a bridge over a floor. Off a bridge's
+  own ground, that layer is followed only over the floor under it (not a
+  wall, and within a step of its height), so blank cells don't open walls. Points on layer 0 are (x, z); points on
+  another layer are (x, z, layer).
 
 The party is followed from every arrival point of the scene. Cells the room's
 own code changes as it plays (a door Psynergy opens, a bridge the story lowers;
@@ -90,7 +92,7 @@ def _tdiv(a, b):
 
 def height_at(row, x, y, lerp, index):
     """Ground height (16.16 pixels) at pixel (x, y) of a cell whose shape row is
-    [kind, s0, s1, s2] as unsigned bytes. Follows terrain.c line for line."""
+    [kind, s0, s1, s2] as unsigned bytes. Follows field_terrain.c line for line."""
     if not row:
         return 0
     kind = row[0] & 15
@@ -292,7 +294,7 @@ class Walk:
         return True
 
     def _slide_end(self, x, z, dx, dz, layer=0):
-        """Where Imil_RunIceSlide leaves the leader who has just stepped onto
+        """Where Leader_SlideOnIce leaves the leader who has just stepped onto
         the slide cell under (x, z) going (dx, dz): a cell centre."""
         cx, cz = (int(x) // 16) * 16 + 8, (int(z) // 16) * 16 + 8
         start = self.behavior(cx, cz, layer)

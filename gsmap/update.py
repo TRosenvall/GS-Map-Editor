@@ -12,13 +12,15 @@ everything the player made is uncommitted changes in it. The update:
      which follows files upstream moved or renamed. The two lines the editor's
      hook adds to alchemy's own files are left out and put back afterwards
      (modgen.ensure_hook), and mod.c is written afresh (modgen.generate).
-     A place's chests and stones (the `treasure_spot` rows of its map file)
-     are carried by the editor itself: upstream renames those files and the
-     labels in them, which git can't follow, so the rows are merged into the
-     same place's file in the new version, found by its row in the map table.
-     A copy from before alchemy's table-file maps (0240eeebad and older) has
-     its changed map files converted instead (gsmap/legacy_maps.py), into the
-     place's folder in the new version, again found by its map table row;
+     In a copy whose places keep their chests and stones as `treasure_spot`
+     rows of a map file, those rows are carried by the editor itself:
+     upstream renames those files and the labels in them, which git can't
+     follow, so the rows are merged into the same place's file in the new
+     version, found by its row in the map table. A copy from before alchemy's
+     table-file maps (0240eeebad and older) has its changed map files
+     converted instead (gsmap/legacy_maps.py), into the place's folder in the
+     new version, again found by its map table row. The notes on imported
+     tile sets (mod/tilesets.json) move to their places' new names the same way;
   4. builds the game and checks the editor can read the copy.
 
 If any step fails (a change that can't be carried, a build that breaks), the
