@@ -53,15 +53,15 @@ def _check(root):
                          (layout.EXIT_NAMES, tr("Can't find the exit names ({path}).")),
                          (layout.TEXT_EN, tr("Can't find the English text ({path}).")),
                          (layout.WORLD_BLOCKS, tr("Can't find the world map ({path}).")),
-                         (layout.WORLD_CELLS, tr("Can't find the world map's blocks ({path}).")),
-                         (layout.WORLD_COLLISION, tr("Can't find the world map's walkability ({path}).")),
+                         (layout.first_existing(root, layout.WORLD_CELLS), tr("Can't find the world map's blocks ({path}).")),
+                         (layout.first_existing(root, layout.WORLD_COLLISION), tr("Can't find the world map's walkability ({path}).")),
                          (layout.WORLD_GRAPHICS, tr("Can't find the world map's art ({path}).")),
                          (objects_path, tr("Can't find the object list ({path}).")),
                          (layout.HOOK_FILE, tr("Can't find the code that loads scenes ({path}).")),
                          (layout.FLAG_NAMES, tr("Can't find the flag names ({path}).")),
                          (layout.SPRITE_NAMES, tr("Can't find the sprite names ({path}).")),
                          (layout.ITEM_TABLE, tr("Can't find the item list ({path}).")),
-                         (layout.AREA_RULES, tr("Can't find the area names ({path})."))):
+                         (layout.first_existing(root, layout.AREA_RULES), tr("Can't find the area names ({path})."))):
         need(rel, problem)
     for folder in layout.SCENE_SOURCES:
         need(folder, tr("Can't find the scene code ({path})."))
@@ -96,7 +96,7 @@ def _check(root):
     characters = tr("Can't find the character names in {path}, so things would show numbers instead of names.")
     alphabet = tr("Can't find the text alphabet in {path}, so things would show numbers instead of names.")
     for rel, anchor, problem in ((layout.SPRITE_NAMES, "enum SpriteId", sprites),
-                                 (layout.AREA_RULES, "gArea_NameRules", areas),
+                                 (layout.first_existing(root, layout.AREA_RULES), "gArea_NameRules", areas),
                                  (layout.TEXT_EN, 'msgctxt "MsgItemName"', items),
                                  (layout.TEXT_EN, 'msgctxt "MsgDebugAreaName"', areas),
                                  (layout.TEXT_EN, 'msgctxt "MsgCharacterName"', characters),

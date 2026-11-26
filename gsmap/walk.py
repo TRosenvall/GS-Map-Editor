@@ -70,10 +70,11 @@ def _tables(games_root):
     with open(path, encoding="utf-8") as f:
         text = re.sub(r"/\*.*?\*/|//[^\n]*", "", f.read(), flags=re.S)
     out = []
-    for name in ("gTerrain_LerpWeightTable", "gTerrain_SampleIndexTable"):
-        m = re.search(rf"{name}\s*\[\s*256\s*\]\s*=\s*\{{(.*?)\}}", text, re.S)
+    # The weights are gTerrain_RoundedSquareMask since 2026-11-25.
+    for names in (("gTerrain_RoundedSquareMask", "gTerrain_LerpWeightTable"), ("gTerrain_SampleIndexTable",)):
+        m = next(filter(None, (re.search(rf"{name}\s*\[\s*256\s*\]\s*=\s*\{{(.*?)\}}", text, re.S) for name in names)), None)
         if not m:
-            raise ValueError(f"{name} isn't in {TABLES}")
+            raise ValueError(f"{names[-1]} isn't in {TABLES}")
         values = [int(v, 0) for v in re.findall(r"0x[0-9a-fA-F]+|\d+", m.group(1))]
         if len(values) != 256:
             raise ValueError(f"{name} doesn't have 256 entries")

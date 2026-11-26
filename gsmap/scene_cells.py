@@ -12,7 +12,8 @@ MapGrid_CopyCells copies whole cells. Older alchemy versions call the routines
 under them directly, some through a `Far` stand-in; those count the same. Copies of pictures alone change nothing
 underfoot and are left out. Only calls written in plain numbers are read: a
 copy to a place worked out while playing (where a pillar was pushed) can't be
-known beforehand.
+known beforehand. Since 2026-11-25 many copies name their cells (an enum constant
+in the scene's source or its header); those count as their numbers.
 
 One overlay serves several rooms, and each room only runs part of its code.
 What runs in a room is followed from what the room itself starts: its own
@@ -28,14 +29,19 @@ from .doors import _scene_files, _source_text, sources_generation
 from .getters import _decide, _matching, _scene_macros, _strip_comments
 from .sceneedit import scene_tables
 
-COPY = re.compile(r"\bMapGrid_(CopyCellAttributes|CopyCellAttributeRect|CopyCells|CopyCellPictureCellsRect)(?:Far)?"
-                  r"\(\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*\)")
+COPY = re.compile(r"\bMapGrid_(CopyCellAttributes|CopyCellAttributeRect|CopyCells|CopyCellPictureCellsRect|CopyCellTilesCellsRect)(?:Far)?"
+                  r"\(([^;{}]*?)\)\s*;")
+# An argument the editor can work out: numbers and the source's named numbers
+# (an enum constant or #define, TREASURY_WALL_CELL_COLUMN since 2026-11-25),
+# with + - * and brackets.
+ARITHMETIC = re.compile(r"[\d\s+\-*()]+")
 # A top-level definition: a function, or data with an initializer.
 DEFINITION = re.compile(r"^(?!static\s+inline\b)[A-Za-z_][\w \t\*]*?\b(\w+)\s*(\([^;{}]*\)|\[[^\]]*\])?\s*(?:=\s*)?\{", re.M)
 IDENTIFIER = re.compile(r"\b[A-Za-z_]\w*\b")
 INLINE = re.compile(r"^static\s+inline\b[^;{]*?\b(\w+)\s*\([^;{}]*\)\s*\{", re.M)
 ROOM_KINDS = ("events", "placements")
-WHOLE = {"CopyCells", "CopyCellPictureCellsRect"}  # copies the picture as well
+# Copy the picture as well (CopyCellPictureCellsRect is CopyCellTilesCellsRect since 2026-11-25).
+WHOLE = {"CopyCells", "CopyCellPictureCellsRect", "CopyCellTilesCellsRect"}
 
 
 def _definitions(text):
@@ -140,12 +146,83 @@ def room_changes(tbs, overlay, scene_name):
             if word in defs and word not in seen:
                 seen.add(word)
                 queue.append(word)
+    numbers_key = ("named numbers", tbs, sources_generation(tbs))
+    numbers = overlay.memo.get(numbers_key)
+    if numbers is None:
+        numbers = overlay.memo[numbers_key] = _numbers(tbs, overlay)
     changes = []
     for _, body in order:
-        changes += [(*(int(v) for v in m.groups()[1:]), m.group(1) in WHOLE) for m in COPY.finditer(body)]
+        for m in COPY.finditer(body):
+            args = [_value(a, numbers) for a in _split_arguments(_expand(m.group(2), numbers))]
+            if len(args) == 6 and None not in args:
+                changes.append((*args, m.group(1) in WHOLE))
     changes = _through_saves(changes)
     overlay.memo[key] = changes
     return changes
+
+
+def _numbers(tbs, overlay):
+    """{NAME: value} of the enum constants and #defines in the overlay's
+    sources and the headers next to them that they include."""
+    import os
+    from .doors import _named_numbers
+    text = []
+    for path in _scene_files(tbs, overlay.tables):
+        source = _source_text(path)
+        text.append(source)
+        for inc in re.findall(r'^#include "([^"]+)"', source, re.M):
+            header = os.path.join(os.path.dirname(path), inc)
+            if os.path.exists(header):
+                with open(header, encoding="utf-8") as f:
+                    text.append(f.read())
+    joined = "\n".join(text)
+    numbers = _named_numbers(joined)
+    # Object-like macros spelling out part of an argument list: `#define VINE_CELL 31, 0`.
+    for name, body in re.findall(r"^#define\s+(\w+)[ \t]+([^\n]*?)\s*(?://[^\n]*)?$", joined, re.M):
+        if name not in numbers and "," in body and re.fullmatch(r"[\w\s,+\-*()]+", body):
+            numbers[name] = MacroText(body)
+    return numbers
+
+
+class MacroText(str):
+    """A macro's text, put in place before a call's arguments are split."""
+
+
+def _expand(text, numbers):
+    for _ in range(4):  # macros naming macros
+        new = re.sub(r"\b[A-Za-z_]\w*\b",
+                     lambda m: numbers[m.group(0)] if isinstance(numbers.get(m.group(0)), MacroText) else m.group(0), text)
+        if new == text:
+            break
+        text = new
+    return text
+
+
+def _split_arguments(text):
+    """A call's arguments, split at the commas outside brackets."""
+    out, depth, start = [], 0, 0
+    for i, c in enumerate(text):
+        if c == "(":
+            depth += 1
+        elif c == ")":
+            depth -= 1
+        elif c == "," and depth == 0:
+            out.append(text[start:i])
+            start = i + 1
+    out.append(text[start:])
+    return out
+
+
+def _value(argument, numbers):
+    """An argument as a number, or None when it is worked out while playing."""
+    text = re.sub(r"\b[A-Za-z_]\w*\b", lambda m: str(numbers[m.group(0)]) if isinstance(numbers.get(m.group(0)), int) else "?",
+                  " ".join(argument.split()))
+    if not ARITHMETIC.fullmatch(text) or not text.strip():
+        return None
+    try:
+        return int(eval(text, {"__builtins__": {}}, {}))  # noqa: S307  digits and + - * ( ) only
+    except (SyntaxError, ZeroDivisionError, TypeError):
+        return None
 
 
 def _through_saves(changes):

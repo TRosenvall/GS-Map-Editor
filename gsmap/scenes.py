@@ -1,7 +1,7 @@
 """Scenes and their overlay tables, read from a built edition.
 
 Tables are read as bytes from each scene overlay's built image
-(out/<edition>/overlays/resource_<id>.bin, loaded at gOverlayArea =
+(out/<edition>/overlays/<name>.bin, resource_<id>.bin before 2026-11-25, loaded at gOverlayArea =
 0x02008000) using the overlay ELF's symbols. This gives exact values, with
 no C macros to evaluate. Layouts are from games/tbs/include/field/scene.h and
 scene_tables.h, and the exit walk is Scene_TakeExit (system/main_routine.c).
@@ -193,6 +193,112 @@ class Overlay:
         return self._funcs.get(self.getters[kind] & ~1)
 
 
+def _asm_lines(text):
+    """An assembly file's lines with its @ comments removed."""
+    return [line.split("@", 1)[0] for line in text.split("\n")]
+
+
+def _macro_rows(text, macro):
+    """The arguments of each use of a macro, in order: `map Vale, Field_Vale, ...`."""
+    rows = []
+    for line in _asm_lines(text):
+        m = re.match(r"\s*" + macro + r"(?:\s+(.*))?$", line)
+        if m:
+            rows.append([a.strip() for a in (m.group(1) or "").split(",")])
+    return rows
+
+
+def enum_values(text, enum):
+    """{NAME: value} of a C enum, counting as the compiler does."""
+    m = re.search(r"enum\s+" + enum + r"\s*\{(.*?)\}", text, re.S)
+    out, n = {}, 0
+    if not m:
+        return out
+    body = re.sub(r"//[^\n]*|/\*.*?\*/", "", m.group(1), flags=re.S)
+    for item in body.split(","):
+        item = item.strip()
+        if not item:
+            continue
+        name, _, value = item.partition("=")
+        if value.strip():
+            try:
+                n = int(value.strip(), 0)
+            except ValueError:
+                n = out.get(value.strip(), n)
+        out[name.strip()] = n
+        n += 1
+    return out
+
+
+def _read(root, rel):
+    try:
+        with open(os.path.join(root, rel), encoding="utf-8") as f:
+            return f.read()
+    except OSError:
+        return ""
+
+
+def overlay_numbers(root):
+    """{name: resource id} of the directory's `overlay NAME` rows: OverlayId_NAME
+    is its row's number (gamepak/resource_directory.s). Empty for checkouts that
+    write the scene table's overlays as numbers."""
+    out, row = {}, 0
+    for line in _asm_lines(_read(root, layout.DIRECTORY)):
+        m = re.match(r"\s*(resource|map_resource|overlay)(?:\s+(\w*))?", line)
+        if not m:
+            continue
+        if m.group(1) == "overlay":
+            out[m.group(2)] = row
+        row += 1
+    return out
+
+
+def map_numbers(root):
+    """{name: row} of gMaps as `map NAME, ...` rows write it (map/resources.s):
+    MapIndex_NAME is its row's number. Empty for checkouts with a C map table."""
+    return {r[0]: i for i, r in enumerate(_macro_rows(_read(root, layout.MAP_ROWS), "map"))}
+
+
+def read_scene_table(root):
+    """The scene table (field/scenes.s), one row per scene. Its overlay, area and
+    map are numbers, or since 2026-11-25 the names OverlayId_, enum AreaId and
+    MapIndex_ give them."""
+    text = _read(root, layout.SCENE_TABLE)
+    if not text:
+        raise FileNotFoundError(os.path.join(root, layout.SCENE_TABLE))
+    # An older table names its map by number or an .equiv (MapIndex_World).
+    named = {n: int(v, 0) for n, v in re.findall(r"\.equiv\s+(\w+)\s*,\s*(\w+)", text) if re.fullmatch(r"\d+|0x[0-9a-fA-F]+", v)}
+    overlays = maps = areas = None
+
+    def number(value, table, prefix=""):
+        try:
+            return int(value, 0)
+        except ValueError:
+            pass
+        if value in named:
+            return named[value]
+        if value.startswith(prefix) and value[len(prefix):] in table:
+            return table[value[len(prefix):]]
+        return table[value]
+
+    rows = []
+    for args in _macro_rows(text, "scene"):
+        if len(args) < 5:
+            continue
+        if overlays is None and not re.fullmatch(r"\d+|0x[0-9a-fA-F]+", args[1]):
+            overlays, maps = overlay_numbers(root), map_numbers(root)
+            areas = enum_values(_read(root, layout.AREA_IDS), "AreaId")
+        rows.append({
+            "id": len(rows),
+            "name": args[0] or None,
+            "overlay": number(args[1], overlays or {}, "OverlayId_"),
+            "group": number(args[2], areas or {}),
+            "variant": int(args[3], 0),
+            "layered_row": number(args[4], maps or {}, "MapIndex_"),
+        })
+    return rows
+
+
 class Scenes:
     """The scene table (field/scenes.s) and each scene's overlay, for one edition."""
 
@@ -202,28 +308,23 @@ class Scenes:
         self.out = os.path.join(root, "out", f"tbs-{edition}")
         self.scenes = self._read_scene_table()
         self._overlays = {}
+        # Since 2026-11-25 an overlay builds as overlays/<its name>.elf.
+        self._overlay_names = {n: name for name, n in overlay_numbers(root).items()}
 
     def _read_scene_table(self):
-        path = os.path.join(self.root, layout.SCENE_TABLE)
-        rows = []
-        text = open(path, encoding="utf-8").read()
-        # A scene's map is a number or an .equiv name (MapIndex_World).
-        named = {n: int(v, 0) for n, v in re.findall(r"\.equiv\s+(\w+)\s*,\s*(\w+)", text) if re.fullmatch(r"\d+|0x[0-9a-fA-F]+", v)}
-        for line in text.split("\n"):
-            m = re.match(r"\s*scene\s+(\w*)\s*,\s*(\w+)\s*,\s*(\w+)\s*,\s*(\w+)\s*,\s*(\w+)", line)
-            if m:
-                rows.append({
-                    "id": len(rows),
-                    "name": m.group(1) or None,
-                    "overlay": int(m.group(2), 0),
-                    "group": int(m.group(3), 0),
-                    "variant": int(m.group(4), 0),
-                    "layered_row": named[m.group(5)] if m.group(5) in named else int(m.group(5), 0),
-                })
-        return rows
+        return read_scene_table(self.root)
+
+    def overlay_base(self, ovl_id):
+        """An overlay's built files, less .elf or .bin: overlays/<name> (since
+        2026-11-25) or overlays/resource_<id>."""
+        name = self._overlay_names.get(ovl_id)
+        folder = os.path.join(self.out, "overlays")
+        if name:
+            return os.path.join(folder, name)
+        return os.path.join(folder, f"resource_{ovl_id:x}")
 
     def overlay(self, ovl_id):
-        base = os.path.join(self.out, "overlays", f"resource_{ovl_id:x}")
+        base = self.overlay_base(ovl_id)
         try:
             stamp = os.stat(base + ".elf").st_mtime_ns
         except FileNotFoundError:

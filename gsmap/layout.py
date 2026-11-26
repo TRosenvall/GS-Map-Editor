@@ -23,12 +23,18 @@ FIRST_MAP_ENTRIES = ("Field_EmptyMap", "Field_Map001")  # what gMaps' positions 
 
 # Scenes
 SCENE_TABLE = f"{SRC}/field/scenes.s"              # gScenes
+# Since 2026-11-25 gScenes names its overlay (OverlayId_, a row of DIRECTORY),
+# area (enum AreaId) and map (MapIndex_, a `map` row of MAP_ROWS).
+AREA_IDS = f"{INCLUDE}/area_ids.h"
+MAP_ROWS = f"{SRC}/map/resources.s"
 SCENE_SOURCES = (f"{SRC}/scene", f"{SRC}/debug")   # where the overlays' C lives
 EXIT_NAMES = f"{INCLUDE}/scene_exits.h"
 EXIT_REQUEST = "Import_EventSetExitRequest"        # what a scene script calls to leave
 WORLD_PLACEMENTS = "gWorldMapActorPlacements"
-AREA_MARKERS = (f"{SRC}/field/world_picture_markers.c", f"{SRC}/field/scripts.s")  # gWorldPicture_AreaMarkers: pause-map markers, actor 11 + row (scripts.s before 2026-11-17)
-AREA_MARKERS_LABEL = "gWorldPicture_AreaMarkers"
+# Pause-map markers, actor 11 + row: gMapScreen_AreaMarkers in map_screen_markers.c since
+# 2026-11-25, gWorldPicture_AreaMarkers before (scripts.s before 2026-11-17).
+AREA_MARKERS = (f"{SRC}/field/map_screen_markers.c", f"{SRC}/field/world_picture_markers.c", f"{SRC}/field/scripts.s")
+AREA_MARKERS_LABELS = ("gMapScreen_AreaMarkers", "gWorldPicture_AreaMarkers")
 SCENE_HEADERS = {f"{INCLUDE}/field/scene.h": ["struct SceneEntryPoints) == 48", "struct SceneExitRegion) == 16"],
                  f"{INCLUDE}/field/scene_tables.h": ["struct SceneEntrance) == 24", "struct ActorPlacement) == 24",
                                                      "struct Trigger) == 12"]}
@@ -45,19 +51,21 @@ FLAG_NAMES = f"{INCLUDE}/flags.h"                  # FLAG_* defines
 SPRITE_NAMES = f"{INCLUDE}/sprite_ids.h"           # enum SpriteId
 ITEM_TABLE = f"{SRC}/game/item_table.c"            # type and icon per item
 ITEM_NAMES = f"{INCLUDE}/item_ids.h"               # enum ItemId: which row each [ITEM_*] is
-AREA_RULES = f"{SRC}/field/scene_rules.s"          # gArea_NameRules
+AREA_RULES = (f"{SRC}/field/area_name_rules.s", f"{SRC}/field/scene_rules.s")  # gArea_NameRules (scene_rules.s before 2026-11-25)
 SPRITE_TABLE = f"{SRC}/graphics/sprite/sprites.tsv"  # a row per sprite id; its pictures column names <name>.png
 SPRITE_PICTURE_DIR = f"{SRC}/graphics/sprite"
 SPRITE_PICTURE = f"{SRC}/graphics/sprite/spr_{{id:03d}}.png"  # before 2026-11-13, with no sprites.tsv
 
 # The world map
 WORLD_BLOCKS = f"{SRC}/map/world/blocks.tsv"
-WORLD_CELLS = f"{SRC}/map/default/cell_pictures.tsv"
-WORLD_COLLISION = f"{SRC}/map/default/collision.txt"
+# Newest first: cell_tiles.tsv and collision.tsv since 2026-11-25.
+WORLD_CELLS = (f"{SRC}/map/default/cell_tiles.tsv", f"{SRC}/map/default/cell_pictures.tsv")
+WORLD_COLLISION = (f"{SRC}/map/default/collision.tsv", f"{SRC}/map/default/collision.txt")
 WORLD_GRAPHICS = f"{SRC}/graphics/world_map"
 
 # Art cut at runtime
-ITEM_ICONS = f"{SRC}/graphics/ui/menu_icons.s"     # gItemIcons: icon n is its n-th label's .incbin, as a .png
+ITEM_ICON_LIST = f"{SRC}/graphics/ui/menu_icons/list.tsv"  # since 2026-11-25: a row per picture, `gItemIcons\t<name>` -> <name>.png beside it
+ITEM_ICONS = f"{SRC}/graphics/ui/menu_icons.s"     # before: gItemIcons, icon n is its n-th label's .incbin, as a .png
 ITEM_ICON = f"{SRC}/graphics/ui/menu_icons/item_{{icon:03d}}.png"  # before 2026-11-13
 
 # The mod's folder and hook

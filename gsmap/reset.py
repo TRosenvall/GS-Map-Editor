@@ -214,7 +214,7 @@ def reset_world(project, scenes, names, settings=None):
     root = project.root
     base = _base(root, settings)
     from .encounters import Encounters
-    changed = sum(_restore(root, base, rel) for rel in (layout.WORLD_BLOCKS, layout.WORLD_CELLS, layout.WORLD_COLLISION))
+    changed = sum(_restore(root, base, rel) for rel in (layout.WORLD_BLOCKS, layout.first_existing(root, layout.WORLD_CELLS), layout.first_existing(root, layout.WORLD_COLLISION)))
     # Only the world map's zones: places' battles are theirs to reset.
     try:
         changed += _restore_zones(root, base, Encounters(root).world_zones())
