@@ -75,7 +75,7 @@ class CellTiles(Table):
     """cell_tiles.tsv: rows of four 16-bit entries, written three columns a corner."""
 
     def __init__(self, rows, lines):
-        super().__init__([(c, "u16") for c in CORNERS], rows, [[None] * 4 for _ in rows])
+        super().__init__([(c, "u16") for c in CORNERS], rows, None)  # the lines keep the spellings
         self._lines = lines  # each row's text as read; None once it changes
 
     def set(self, row, col, value):
@@ -108,9 +108,11 @@ class CellTiles(Table):
 
 def _parse_cell_tiles(lines):
     rows = []
+    entries = {}  # entry -> itself: the same few entries recur, kept as one object each
     for line in lines[1:]:
         c = line.split("\t")
-        rows.append([int(c[k]) | FLIPS[c[k + 1]] | (int(c[k + 2]) << 12) for k in (0, 3, 6, 9)])
+        row = [int(c[k]) | FLIPS[c[k + 1]] | (int(c[k + 2]) << 12) for k in (0, 3, 6, 9)]
+        rows.append([entries.setdefault(e, e) for e in row])
     return CellTiles(rows, lines[1:])
 
 

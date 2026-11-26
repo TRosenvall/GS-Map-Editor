@@ -29,6 +29,8 @@ rendering (see README.md):
 - Layer windows wrap at 128 cells.
 """
 
+import collections
+import contextlib
 import glob
 import os
 import re
@@ -47,6 +49,7 @@ EMPTY = 0xFFF
 # A cell's shape is one byte, and the game reads the table as four bytes a row
 # into Ram_MapGridShapes, with the tileset animation 0x1000 bytes on (map_grid.c).
 SHAPE_MAX = 256
+SHEETS_KEPT = 96  # tile sheets kept in colour (Project._sheet_rgba): three sheets of a map's every palette row, twice
 # Every value a cell holding a placeholder can have (cells are 16 bits): a
 # quick test of whether a grid row holds any.
 _PLACEHOLDERS = frozenset((top << 12) | EMPTY for top in range(16))
@@ -156,6 +159,22 @@ def _field_label(name):
 
 def _preprocess(text, defined):
     return "\n".join(line for _, line in _kept_lines(text, defined))
+
+
+def _stamp(path, needed=True):
+    """(mtime, size) of a file, to tell when it changes; None when it's missing
+    and not `needed` (a missing needed file raises FileNotFoundError)."""
+    try:
+        st = os.stat(path)
+    except FileNotFoundError:
+        if needed:
+            raise
+        return None
+    return st.st_mtime_ns, st.st_size
+
+
+def _load_shared_grid(path):
+    return gridmod.load(path, shared=True)
 
 
 class DirectoryError(Exception):
@@ -385,7 +404,7 @@ class Project:
         self._scan_maps()
         self._scan_symbols()
         self._read_directory()
-        self._sheet_cache = {}
+        self._sheet_cache = collections.OrderedDict()
         self._parse_cache = {}
 
     def reload(self):
@@ -590,7 +609,7 @@ class Project:
         dropped with it (_parse_cache.pop(path) after a save)."""
         # a grid in the table layout is four files: any of them changing counts
         files = gridmod.table_paths(path).values() if gridmod.is_table_grid(path) else [path]
-        stamp = tuple((st.st_mtime_ns, st.st_size) for st in (os.stat(f) for f in files if f == path or os.path.exists(f)))
+        stamp = tuple(_stamp(f, f == path) for f in files)
         hit = self._parse_cache.get(path)
         if hit is None or hit[0] != stamp:
             hit = self._parse_cache[path] = (stamp, {})
@@ -600,7 +619,8 @@ class Project:
         return made[key]
 
     def load_grid(self, info, plane):
-        return self._parsed(info.grid_path(), gridmod.load).plane(plane)
+        # Rows holding the same values may be one list: read-only, as _parsed says.
+        return self._parsed(info.grid_path(), _load_shared_grid).plane(plane)
 
     def load_metatiles(self, info):
         return self._parsed(info.cells_path(), tablemod.load)
@@ -610,7 +630,10 @@ class Project:
     def _sheet_rgba(self, path, pal_row, palette):
         key = (path, pal_row, tuple(map(tuple, palette)))
         img = self._sheet_cache.get(key)
-        if img is None:
+        if img is not None:
+            with contextlib.suppress(KeyError):  # another request's drawing may just have let it go
+                self._sheet_cache.move_to_end(key)
+        else:
             p = Image.open(path).copy()
             # 4bpp PNGs may index 0..15; map every index into the 16 colours,
             # colour 0 of every 16 being transparent.
@@ -621,6 +644,11 @@ class Project:
             p.putpalette(flat * 16, "RGBA")
             img = p.convert("RGBA")
             self._sheet_cache[key] = img
+            # Only the newest: each is a sheet in colour (128 KiB), one per
+            # palette row a map uses, and drawing every map would keep a GiB.
+            with contextlib.suppress(KeyError):
+                while len(self._sheet_cache) > SHEETS_KEPT:
+                    self._sheet_cache.popitem(last=False)
         return img
 
     def metatile_atlas(self, info, char_base):
@@ -665,17 +693,20 @@ class Project:
         return info.layers[li][0] // 2, info.layers[li][1] // 2
 
     @staticmethod
-    def resolve_placeholders(cells):
+    def resolve_placeholders(cells, copy=True):
         """Copy of the block plane with each 0xfff numbered as the game does:
-        the k-th one, row-major, becomes block k with its top nibble kept."""
+        the k-th one, row-major, becomes block k with its top nibble kept.
+        copy=False keeps rows with no placeholder as they are (shared rows)."""
         out, k = [], 0
         for row in cells:
+            if _PLACEHOLDERS.isdisjoint(row):
+                out.append(list(row) if copy else row)
+                continue
             r = list(row)
-            if not _PLACEHOLDERS.isdisjoint(r):
-                for i, v in enumerate(r):
-                    if (v & 0xFFF) == EMPTY:
-                        r[i] = (v & 0xF000) | k
-                        k += 1
+            for i, v in enumerate(r):
+                if (v & 0xFFF) == EMPTY:
+                    r[i] = (v & 0xF000) | k
+                    k += 1
             out.append(r)
         return out
 
@@ -939,7 +970,7 @@ class Project:
         """The block plane with placeholders numbered, kept until the grid
         changes. Shared: treat it as read-only."""
         return self._parsed(info.grid_path(), lambda path: self.resolve_placeholders(
-            self.load_grid(info, "metatile").cells), key="resolved")
+            self.load_grid(info, "metatile").cells, copy=False), key="resolved")
 
     def render_layer(self, info, li, blocks=None, atlas=None):
         """One layer's window (header bounds) as transparent RGBA."""
