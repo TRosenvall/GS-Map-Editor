@@ -51,7 +51,7 @@ SOUTH, NORTH = (0, 1), (0, -1)
 # The five probes of a step, as (cos, sin) turns of the heading.
 PROBES = tuple((math.cos(math.radians(a)), math.sin(math.radians(a))) for a in (0, 22.5, -22.5, 45, -45))
 # Each heading's probes as offsets from where the walker stands, worked out the
-# way Walk._step_ok always has: 8 * (dx * c - dz * s), 8 * (dz * c + dx * s).
+# way the steps always have been: 8 * (dx * c - dz * s), 8 * (dz * c + dx * s).
 PROBE_OFFSETS = {(dx, dz): tuple((8 * (dx * c - dz * s), 8 * (dz * c + dx * s)) for c, s in PROBES)
                  for dx, dz in DIRS}
 # The same offsets rounded down: from a whole pixel (every lattice point is
@@ -209,6 +209,7 @@ class Walk:
         self._heights = {}  # shape id -> its 16x16 heights, row-major (16.16 pixels)
         self._before = {}  # arrival lattice point -> (reach, standing) with no one in the way
         self._standable = {}  # lattice point -> whether standing() keeps it
+        self._cells = None  # what cells() gives
         self.changes = tuple(tuple(c) for c in changes or ())
         self._build()
 
@@ -265,32 +266,6 @@ class Walk:
         """The lattice point nearest map pixel (x, z)."""
         return (int(round((x - self.x0) / GRID)) * GRID + self.x0, int(round((z - self.z0) / GRID)) * GRID + self.z0)
 
-    def _clear(self, x, z, ground, layer=0):
-        if not self.inside(x, z) or self.behavior(x, z, layer) == WALL:
-            return False
-        d = self.ground(x, z, layer) - ground
-        return -STEP_DOWN <= d <= STEP_UP
-
-    def _step_ok(self, x, z, dx, dz, layer=0):
-        # _clear for each probe, written out: this runs for every lattice point,
-        # and (x, z) is always one, in whole pixels (see PROBE_STEPS).
-        g = self.ground(x, z, layer)
-        x0, z0 = self.x0, self.z0
-        x1, z1 = x0 + self.w * 16, z0 + self.h * 16
-        (ox, oz), col, shp, heights = self.origins[layer], self.col, self.shp, self._heights
-        for ax, az in PROBE_STEPS[(dx, dz)]:
-            px, pz = x + ax, z + az
-            if not (x0 <= px < x1 and z0 <= pz < z1):
-                return False
-            gx, gz = (ox + px // 16) % 128, (oz + pz // 16) % 128
-            if col[gz][gx] == WALL:
-                return False
-            v = shp[gz][gx]  # self.ground(px, pz), written out
-            d = (heights.get(v) or self._shape_heights(v))[(pz & 15) * 16 + (px & 15)] - g
-            if not -STEP_DOWN <= d <= STEP_UP:
-                return False
-        return True
-
     def _slide_end(self, x, z, dx, dz, layer=0):
         """Where Imil_RunIceSlide leaves the leader who has just stepped onto
         the slide cell under (x, z) going (dx, dz): a cell centre."""
@@ -312,12 +287,34 @@ class Walk:
         slide, hop, climb or jump, and `to` a graph point (_point)."""
         out = []
         L = layer
-        here = self.behavior(x, z, L)
-        at = lambda p, kind: out.append((self._point(*p, L), kind))
+        markers = self.markers
+        at = (lambda p, kind: out.append((self._point(*p, L), kind))) if markers else \
+            (lambda p, kind: out.append((p if L == 0 else (*p, L), kind)))  # _point, with no markers
+        # A step is taken when each of its probes is inside the map, not a
+        # wall, and no more than STEP_UP above or STEP_DOWN below the ground
+        # here. Written out: this runs for every lattice point, and (x, z) is
+        # always one, in whole pixels (see PROBE_STEPS). _cell_heights holds
+        # each cell's heights, as ground() reads them (made by _graph).
+        (ox, oz), col, cell_heights = self.origins[L], self.col, self._cell_heights
+        x0, z0 = self.x0, self.z0
+        x1, z1 = x0 + self.w * 16, z0 + self.h * 16
+        gx, gz = (ox + x // 16) % 128, (oz + z // 16) % 128
+        here = col[gz][gx]
+        g = cell_heights[gz][gx][(z & 15) * 16 + (x & 15)]
         for dx, dz in DIRS:
             tx, tz = x + GRID * dx, z + GRID * dz
-            ahead = self.behavior(tx, tz, L) if self.inside(tx, tz) else WALL
-            if self._step_ok(x, z, dx, dz, L):
+            ahead = col[(oz + tz // 16) % 128][(ox + tx // 16) % 128] if x0 <= tx < x1 and z0 <= tz < z1 else WALL
+            for ax, az in PROBE_STEPS[(dx, dz)]:
+                px, pz = x + ax, z + az
+                if not (x0 <= px < x1 and z0 <= pz < z1):
+                    break
+                qx, qz = (ox + px // 16) % 128, (oz + pz // 16) % 128
+                if col[qz][qx] == WALL:
+                    break
+                d = cell_heights[qz][qx][(pz & 15) * 16 + (px & 15)] - g
+                if not -STEP_DOWN <= d <= STEP_UP:
+                    break
+            else:  # every probe clear: the step is taken
                 if ahead in self.slide and self.grid_cell(tx, tz, L) != self.grid_cell(x, z, L):
                     end, _ = self._slide_end(tx, tz, dx, dz, L)
                     at(end, "slide")
@@ -411,6 +408,9 @@ class Walk:
             if hit is not None:
                 _GRAPHS.move_to_end(key)
         if hit is None:
+            # Every cell's heights, looked up once for _moves' many probes.
+            heights = self._heights
+            self._cell_heights = [[heights.get(v) or self._shape_heights(v) for v in row] for row in self.shp]
             nodes = [(self.x0 + i * GRID, self.z0 + j * GRID)
                      for j in range(self.h * 16 // GRID) for i in range(self.w * 16 // GRID)]
             if base is not None:
@@ -442,15 +442,30 @@ class Walk:
                    if self.col[gz][gx] != col[gz][gx] or self.shp[gz][gx] != shp[gz][gx]]
         cols = {(gx + d) % 128 for gx, _ in changed for d in range(-3, 4)}
         rows = {(gz + d) % 128 for _, gz in changed for d in range(-3, 4)}
+        near = {((gx + i) % 128, (gz + j) % 128) for gx, gz in changed for i in range(-3, 4) for j in range(-3, 4)}
+        far = {LEDGE, CLIMB, *self.slide}  # cells whose moves follow a row or column
         out = dict(edges)
         for n in [*nodes, *(n for n in edges if len(n) == 3)]:
             gx, gz = self.grid_cell(*n)
             if gx in cols or gz in rows:
+                # Further than three cells from every change, only a hop, climb
+                # or slide reaches one, and those start from such a cell here
+                # or a step away.
+                if len(n) == 2 and (gx, gz) not in near and not self._starts_far(n, far):
+                    continue
                 if self.behavior(*n) == WALL or (len(n) == 3 and not self._layer_point(n)):
                     out.pop(n, None)
                 else:
                     out[n] = self._moves(*n)
         return out
+
+    def _starts_far(self, n, far):
+        """Whether layer-0 point n, or a cell a step from it, is one of `far`."""
+        x, z = n
+        if self.behavior(x, z) in far:
+            return True
+        return any(self.inside(x + GRID * dx, z + GRID * dz) and self.behavior(x + GRID * dx, z + GRID * dz) in far
+                   for dx, dz in DIRS)
 
     def _other_layers(self, edges, slide_ends):
         """Adds to `edges` the moves from every point on another layer that a
@@ -598,6 +613,13 @@ class Walk:
         story); slide: a slide cell (someone there is in the way of a slide);
         trigger: a door, exit or step spot (keep it clear); cut: the party
         can't get near; wall: a wall."""
+        # The graph doesn't change once built, and the editor asks again each
+        # time the walk is shown: worked out once.
+        if self._cells is None:
+            self._cells = self._work_out_cells()
+        return list(self._cells)
+
+    def _work_out_cells(self):
         standing = self.floor_view(self.standing())
         before = self.floor_view(self.before_reach)
         stand_cells = {}
