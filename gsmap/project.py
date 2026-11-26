@@ -35,7 +35,7 @@ import re
 
 from PIL import Image
 
-from . import layout
+from . import fsio, layout
 from .fsio import atomic_write
 from .i18n import tr
 from . import grid as gridmod
@@ -252,24 +252,26 @@ def _content_source(path, kind):
 class Spots:
     """A map's chests and Psynergy stones in the table layout: spots.tsv,
     `column row subject edition`, read as Markers reads treasure_spot lines.
-    Rows for another edition are kept as they are. A map with none has no
-    file, and saving none removes it."""
+    The rows the English edition reads are edited, each keeping its edition
+    mark; rows for another edition stay as they are, where they are. A map
+    with none has no file, and saving none removes it."""
 
     END = [0xFF, 0xFF, 0xFF]
     HEADER = "column\trow\tsubject\tedition"
 
     def __init__(self, path):
         self.path = path
-        self.rows, self._other = [], []
+        self.rows, self._tags, self._other = [], [], []
         if os.path.exists(path):
             with open(path, encoding="utf-8") as f:
                 lines = [line for line in f.read().split("\n")[1:] if line]
             for line in lines:
                 cells = line.split("\t")
                 if len(cells) > 3 and cells[3] not in ("", TABLE_EDITION):
-                    self._other.append(line)
+                    self._other.append((len(self.rows), line))  # before the English row it preceded
                 else:
                     self.rows.append([int(v) for v in cells[:3]])
+                    self._tags.append(cells[3:])  # [], [""] or ["en"], written back as read
         self.rows.append(list(self.END))
 
     def set(self, row, col, value):
@@ -277,15 +279,28 @@ class Spots:
 
     def insert(self, index, values):
         self.rows.insert(index, list(values))
+        # Where other editions have rows of their own, a new chest is English
+        # only, as the old map files' English branch was.
+        self._tags.insert(index, [TABLE_EDITION] if self._other else [])
+        self._other = [(at + (at > index), line) for at, line in self._other]
 
     def delete(self, index):
         del self.rows[index]
+        if index < len(self._tags):
+            del self._tags[index]
+        self._other = [(at - (at > index), line) for at, line in self._other]
 
     def save(self):
-        lines = [f"{x}\t{z}\t{code}" for x, z, code in self.rows if [x, z, code] != self.END] + self._other
+        mine = [r for r in self.rows if r != self.END]
+        tags = self._tags + [[]] * (len(mine) - len(self._tags))
+        lines = []
+        for i, ((x, z, code), tag) in enumerate(zip(mine, tags)):
+            lines += [line for at, line in self._other if at == i]
+            lines.append("\t".join([str(x), str(z), str(code)] + tag))
+        lines += [line for at, line in self._other if at >= len(mine)]
         if not lines:
             if os.path.exists(self.path):
-                os.remove(self.path)
+                fsio.remove(self.path)  # through the transaction, so Undo brings it back
             return
         atomic_write(self.path, "\n".join([self.HEADER] + lines) + "\n")
 

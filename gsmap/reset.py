@@ -182,9 +182,12 @@ def reset_map(project, scenes, names, info, settings=None, shared_too=False):
                         for o in project.maps.values())
     for rel in [r for r in listing if r.endswith(RESTORED)] + sorted(borrowed):
         changed += (_restore_shared_shapes if rel == shapes and shared_shapes else _restore)(root, base, rel)
-    for name in TABLES:
-        rel = f"{folder}/{name}"
-        if rel not in listing and rel not in borrowed and os.path.exists(os.path.join(root, rel)):
+    # A borrowed grid's actors table can be one the editor made too.
+    made = [f"{folder}/{name}" for name in TABLES if f"{folder}/{name}" not in borrowed]
+    made += [rel for rel in sorted(borrowed) if os.path.basename(rel) in TABLES
+             and _git(root, "cat-file", "-e", f"{base}:{rel}").returncode != 0]
+    for rel in made:
+        if rel not in listing and os.path.exists(os.path.join(root, rel)):
             fsio.remove(os.path.join(root, rel))
             changed += 1
     # Imported pictures live in the place's own tile sheets.

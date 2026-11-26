@@ -28,6 +28,7 @@ as lists sharing its own cells.
 import os
 import re
 
+from . import fsio
 from .fsio import atomic_write
 from .i18n import tr
 
@@ -186,15 +187,19 @@ class TableGrid:
         return Plane(self.planes[name], 0xFFFF if name == "metatile" else 0xFF)
 
     def to_files(self):
-        """{path: text} of every table, as the planes now stand."""
+        """{path: text} of every table, as the planes now stand. The actors'
+        is None when no cell has an actor's bits: ags-graphics refuses a
+        grid_actors.tsv with no rows, so the file goes (or never comes)."""
         words = self.planes["metatile"]
         out = {}
         for name, stem in TABLE_PLANES:
             rows = [[w & 0xFFF for w in r] for r in words] if name == "metatile" else self.planes[name]
             out[self.paths[stem]] = _plane_text(rows)
         actors = [f"{x}\t{y}\t{(w >> 12) & 3}\t{w >> 14}" for y, r in enumerate(words) for x, w in enumerate(r) if w >> 12]
-        if actors or self._texts.get(self.paths[ACTORS]) is not None:
+        if actors:
             out[self.paths[ACTORS]] = "\n".join([ACTORS_HEADER] + actors) + "\n"
+        elif self._texts.get(self.paths[ACTORS]) is not None:
+            out[self.paths[ACTORS]] = None
         return out
 
 
@@ -222,12 +227,17 @@ def parse_tables(paths, texts):
 
 
 def save_tables(grid):
-    """Write the tables that changed; their paths."""
+    """Write the tables that changed, removing an actors table left with no
+    rows; their paths."""
     written = []
     for path, text in grid.to_files().items():
         if grid._texts.get(path) != text:
-            atomic_write(path, text)
-            grid._texts[path] = text
+            if text is None:
+                fsio.remove(path)
+                grid._texts.pop(path, None)
+            else:
+                atomic_write(path, text)
+                grid._texts[path] = text
             written.append(path)
     return written
 

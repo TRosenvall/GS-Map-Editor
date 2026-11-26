@@ -478,5 +478,93 @@ if on_branch:
 with tempfile.TemporaryDirectory() as plain:
     check("nor is a folder that isn't a git copy", updatemod.offer(plain) is None)
 
+
+# ---- the table layout (alchemy 9bf56b6993 and later)
+from gsmap import fsio  # noqa: E402
+from gsmap import grid as gridmod  # noqa: E402
+from gsmap.project import Spots  # noqa: E402
+if os.path.exists(os.path.join(source, layout.MAP_LIST)):
+    with tempfile.TemporaryDirectory() as tmp:
+        p, s, n = fixture(tmp)
+        hist = os.path.join(tmp, "history")
+        # ags-graphics refuses a grid_actors.tsv with no rows: the last actor
+        # painted away takes the file with it, and Undo brings it back.
+        lent = {m.grid_path() for m in p.maps.values() if m.folder not in m.grid_path()}
+        bare = next(m for m in p.maps.values() if os.path.exists(m.grid_path()) and m.folder in m.grid_path()
+                    and m.grid_path() not in lent and len(m.grid_paths()) == 4 and not os.path.exists(m.grid_paths()[3]))
+        actors = gridmod.table_paths(bare.grid_path())["grid_actors"]
+        block = p.resolved_blocks(bare)[0][0] & 0xFFF
+        with fsio.transaction(tmp, hist, "a roof"):
+            p.apply_edits(bare, [{"plane": "block", "x": 0, "y": 0, "value": 0x1000 | block}])
+        check("a cell given a layer marker adds grid_actors.tsv",
+              read(actors) == "column\trow\tlayer\tpriority\n0\t0\t1\t0\n", read(actors) if os.path.exists(actors) else None)
+        with fsio.transaction(tmp, hist, "no roof"):
+            p.apply_edits(bare, [{"plane": "block", "x": 0, "y": 0, "value": block}])
+        check("and painting the last one away removes it, never leaving a header alone", not os.path.exists(actors))
+        fsio.undo_last(hist, tmp)
+        check("Undo puts the file back", os.path.exists(actors) and read(actors).count("\n") == 2)
+
+        # spots.tsv rows for one edition: only the English ones are edited,
+        # each keeping its mark, and the others stay where they were.
+        spots = os.path.join(tmp, "spots.tsv")
+        text = "column\trow\tsubject\tedition\n1\t1\t100\tja\n2\t2\t101\ten\n3\t3\t102\n4\t4\t103\tde\n"
+        write(spots, text)
+        t = Spots(spots)
+        check("only the English edition's chests are read", [r[:3] for r in t.rows[:-1]] == [[2, 2, 101], [3, 3, 102]], t.rows)
+        t.save()
+        check("an unchanged list saves byte for byte", read(spots) == text, read(spots))
+        t.insert(2, [5, 5, 104])
+        t.save()
+        check("a chest added where editions differ is English only, the rest in place",
+              read(spots) == text.replace("4\t4\t103\tde\n", "4\t4\t103\tde\n5\t5\t104\ten\n"), read(spots))
+        t.delete(0)
+        t.set(0, 0, 9)
+        t.save()
+        check("a chest marked English stays English: removing and moving keep the other editions'",
+              read(spots) == "column\trow\tsubject\tedition\n1\t1\t100\tja\n9\t3\t102\n4\t4\t103\tde\n5\t5\t104\ten\n",
+              read(spots))
+        write(spots, "column\trow\tsubject\tedition\n3\t3\t102\n")
+        with fsio.transaction(tmp, hist, "the last chest"):
+            t = Spots(spots)
+            t.delete(0)
+            t.save()
+        check("the last chest removed takes spots.tsv with it", not os.path.exists(spots))
+        fsio.undo_last(hist, tmp)
+        check("and Undo brings it back", os.path.exists(spots) and read(spots).endswith("3\t3\t102\n"))
+
+        # Reset of a place drawing another's grid: an actors table the editor
+        # made in that other folder goes, as the grid goes back.
+        lender = next((m for m in p.maps.values() if m.folder not in m.grid_path()
+                       and not os.path.exists(gridmod.table_paths(m.grid_path())["grid_actors"])), None)
+        if lender is not None:
+            def git(*args):
+                return subprocess.run(["git", "-C", tmp, *args], capture_output=True, text=True)
+            git("init", "-q")
+            git("add", "-A")
+            git("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "base")
+            base = git("rev-parse", "HEAD").stdout.strip()
+            lent = gridmod.table_paths(lender.grid_path())["grid_actors"]
+            block = p.resolved_blocks(lender)[0][0] & 0xFFF
+            p.apply_edits(lender, [{"plane": "block", "x": 0, "y": 0, "value": 0x1000 | block}])
+            made = os.path.exists(lent)
+            try:
+                resetmod.reset_map(p, s, n, p.maps[lender.number], settings={"base_commit": base})
+            except ValueError as e:
+                check("Reset of a place drawing another's grid", False, e)
+            check("Reset of a place drawing another's grid takes away the actors table the editor made there",
+                  made and not os.path.exists(lent) and git("status", "--porcelain", "games").stdout == "",
+                  git("status", "--porcelain", "games").stdout)
+
+# A map table that doesn't name its rows' folders (maps.c, with numbered folders):
+# the update finds each row's folder as the editor reads the copy.
+table_text = read(os.path.join(source, layout.map_table(source)))
+if not updatemod._table_folders(table_text):
+    u = updatemod.Update.__new__(updatemod.Update)
+    u.root = source
+    rows = u._rows_by_project()
+    check("each map table row's folder is found without folder comments",
+          rows and all(rows[r["row"]] == os.path.basename(m.folder) for m in Project(source).maps.values()
+                       for r in [m.resources] + m.alternates if r), rows[:5])
+
 print("FAILED" if failed else "all ok")
 sys.exit(1 if failed else 0)

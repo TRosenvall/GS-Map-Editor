@@ -352,6 +352,8 @@ class Update:
         if not any(legacy_maps.OLD_GRID.match(os.path.basename(rel)) for rel in tracked):
             return None
         self.old_rows = _table_folders(_git(root, "show", f"HEAD:{layout.map_table(root)}", check=False).stdout)
+        if not self.old_rows:
+            self.old_rows = self._rows_by_project()
         out = {}
         changed = _out(root, "diff", "--name-only", "-z", "HEAD", "--", layout.MAPS).split("\0")
         changed += _out(root, "ls-files", "--others", "--exclude-standard", "-z", "--", layout.MAPS).split("\0")
@@ -364,6 +366,17 @@ class Update:
             mine = open(path, encoding="utf-8").read() if os.path.exists(path) else None
             out.setdefault(parts[0], {})[parts[1]] = (base.stdout if base.returncode == 0 else None, mine)
         return out
+
+    def _rows_by_project(self):
+        """Each map table row's folder as the editor reads the copy: for a
+        table whose rows don't name their folders (map/maps.c in copies as
+        old as 5ca23b1fe1, whose folders are numbered)."""
+        from .project import Project
+        by_row = {}
+        for info in Project(self.root).maps.values():
+            for res in filter(None, [info.resources] + info.alternates):
+                by_row[res["row"]] = os.path.basename(info.folder)
+        return [by_row.get(i) for i in range(max(by_row) + 1)] if by_row else []
 
     def _carry_maps(self):
         """Each changed old-layout map file into its place's table files in the
