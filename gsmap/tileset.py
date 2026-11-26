@@ -10,7 +10,8 @@ more background VRAM. Importing an image therefore:
   3. places new tiles in blank tiles no block uses, then, if needed, in tiles
      only used by blocks the map doesn't place - those blocks are *retired*:
      the editor hides them and Stamp refuses them, so nothing draws them;
-  4. appends one block per 16x16 cell to the map's cell_pictures.tsv.
+  4. appends one block per 16x16 cell to the map's cell_tiles.tsv
+     (cell_pictures.tsv before 2026-11-25).
 
 Only for maps with their own tile set (the debug sandbox). Retired blocks and
 the block family (the table a map's blocks were copied from, for Stamp) are
