@@ -77,13 +77,15 @@ def shown(entry):
 
 class Cache:
     """Computed images by key. A slow image holds up only requests for itself,
-    and one that a save outdated while it was being made isn't kept."""
+    and one that a save outdated while it was being made isn't kept. `limits`
+    caps how many of a kind (a key's first part) are kept, the newest."""
 
-    def __init__(self):
+    def __init__(self, limits=None):
         self.lock = threading.Lock()
         self.items = {}
         self.making = {}
         self.drops = 0
+        self.limits = limits or {}
 
     def get(self, key, make):
         with self.lock:
@@ -99,6 +101,11 @@ class Cache:
             with self.lock:
                 if self.drops == drops:
                     self.items[key] = value
+                    limit = self.limits.get(key[0])
+                    if limit is not None:
+                        kept = [k for k in self.items if k[0] == key[0]]  # oldest first
+                        for k in kept[:-limit]:
+                            del self.items[k]
                 self.making.pop(key, None)
             return value
 
@@ -126,7 +133,8 @@ def host_allowed(headers, local_only=True):
 
 
 def make_handler(project, token=None, local_only=True):
-    cache = Cache()
+    # A walking graph is several MB (walk.py): keep the places last walked.
+    cache = Cache(limits={"walk": 8})
     state = {"scenes": None}
     names = Names(project.root)
 
