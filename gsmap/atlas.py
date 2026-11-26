@@ -301,7 +301,8 @@ def layout_key(project, lang):
              (f"{layout.SRC}/mod/overrides.json", layout.map_table(project.root), layout.SCENE_TABLE)]
     # A door's cells can change with no scene edit (painted, or removed where
     # another map still uses its code), and links start from them.
-    files += sorted({info.grid_path() for info in project.maps.values()})
+    # (In the table layout the doors' codes are in grid_behavior.tsv: every grid file counts.)
+    files += sorted({p for info in project.maps.values() for p in info.grid_paths()})
     return f"{lang}-{head[:12]}-{_stamp(files)}"
 
 
