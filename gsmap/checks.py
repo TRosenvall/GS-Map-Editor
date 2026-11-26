@@ -365,12 +365,10 @@ class Checker:
         return self.names.scene_label(sc["id"]) if sc else tr("overlay {n}", n=f"{ovl:#x}")
 
     def _scene_count(self, info):
-        rows = {r["row"] for r in [info.resources] + info.alternates if r}
-        return len(self.scenes.for_rows(rows))
+        return len(self.scenes.for_rows(info.gmaps_rows()))
 
     def _place(self, info):
         if info is None:
             return None
-        rows = {r["row"] for r in [info.resources] + info.alternates if r}
-        scs = self.scenes.for_rows(rows)
+        scs = self.scenes.for_rows(info.gmaps_rows())
         return self.names.scene_label(scs[0]["id"]) if scs else tr("map {n}", n=info.number)

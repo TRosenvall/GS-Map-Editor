@@ -291,7 +291,7 @@ class DoorEditor(SceneEditor):
         cells = {v: c for v, c in self._window_cells(info).items() if 1 <= v <= 239}
         ov = self._read_overrides()
         out = {}
-        for sc in self.scenes.for_rows(self._map_rows(info)):
+        for sc in self.scenes.for_rows(info.gmaps_rows()):
             try:
                 o = self.scenes.overlay(sc["overlay"])
                 events = self._tables([o], ov, "events", need=False, scene_ids={sc["id"]})

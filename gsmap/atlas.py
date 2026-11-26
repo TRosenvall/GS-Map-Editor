@@ -27,15 +27,6 @@ WORLD_SPREAD = 2.5  # world map pixels to atlas pixels, before clusters are push
 WORLD_SCENE = 2
 
 
-def _row_to_map(project):
-    out = {}
-    for n, info in project.maps.items():
-        for r in [info.resources] + info.alternates:
-            if r:
-                out.setdefault(r["row"], n)
-    return out
-
-
 def _overlaps(a, b, gap):
     return not (a[0] + a[2] + gap <= b[0] or b[0] + b[2] + gap <= a[0] or
                 a[1] + a[3] + gap <= b[1] or b[1] + b[3] + gap <= a[1])
@@ -43,7 +34,7 @@ def _overlaps(a, b, gap):
 
 def build(project, scenes, names, world_places=None, saved=None):
     """{maps: [{map, label, area, x, y, w, h}], links: [{from, to, fx, fy, tx, ty, label}]}."""
-    rm = _row_to_map(project)
+    rm = project.row_to_map()
     scene_map = {s["id"]: rm.get(s["layered_row"]) for s in scenes.scenes}
     maps = {}
     for s in scenes.scenes:

@@ -69,12 +69,9 @@ class SceneEditor:
             ov.data["tables"] = {}
         return ov
 
-    def _map_rows(self, info):
-        return {r["row"] for r in [info.resources] + info.alternates if r}
-
     def _overlays(self, info, scene_id=None):
         """Overlays of the map's scenes (or of one of them)."""
-        found = [s for s in self.scenes.for_rows(self._map_rows(info))
+        found = [s for s in self.scenes.for_rows(info.gmaps_rows())
                  if scene_id is None or s["id"] == scene_id]
         if not found:
             raise ValueError(tr("no scene uses this map") if scene_id is None
@@ -100,7 +97,7 @@ class SceneEditor:
         return names
 
     def _map_scene_ids(self, info):
-        return {s["id"] for s in self.scenes.for_rows(self._map_rows(info))}
+        return {s["id"] for s in self.scenes.for_rows(info.gmaps_rows())}
 
     def _tables(self, overlays, ov, kind, need=True, scene_ids=None):
         """[(overlay, symbol, rows as the mod build sees them)] for every table
@@ -128,7 +125,7 @@ class SceneEditor:
         ids = {o.id for o in overlays}
         rows = {s["layered_row"] for s in self.scenes.scenes if s["overlay"] in ids}
         return [m for m in self.project.maps.values()
-                if any(r and r["row"] in rows for r in [m.resources] + m.alternates)]
+                if m.gmaps_rows() & rows]
 
     def _taken_codes(self, overlays, event_tables):
         taken = {r["trigger"] for _, _, rs in event_tables for r in rs}

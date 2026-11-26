@@ -351,6 +351,10 @@ class MapInfo:
         left, top, right, bottom = self.bounds
         return (right - left) // 2, (bottom - top) // 2
 
+    def gmaps_rows(self):
+        """The rows of gMaps that name this map."""
+        return {r["row"] for r in [self.resources] + self.alternates if r}
+
     def source(self, kind, default_name):
         """Source file of a table (CELL_PICTURES, SHAPES, GRID, ...)."""
         return self.sources.get(kind, os.path.join(self.folder, default_name))
@@ -508,6 +512,15 @@ class Project:
             # silently draw the wrong tiles.
             raise DirectoryError(tr("The resource directory has a line the editor doesn't understand: {line}. "
                                     "It would misplace every map's art after that point.", line=repr(s)))
+        return out
+
+    def row_to_map(self):
+        """{gMaps row: the first map it names}."""
+        out = {}
+        for n, info in self.maps.items():
+            for r in [info.resources] + info.alternates:
+                if r:
+                    out.setdefault(r["row"], n)
         return out
 
     def maps_path(self):

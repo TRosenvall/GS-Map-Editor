@@ -258,16 +258,8 @@ def make_handler(project, token=None, local_only=True):
 
     threading.Thread(target=warm_up, daemon=True).start()
 
-    def row_to_map():
-        out = {}
-        for n, info in project.maps.items():
-            for r in [info.resources] + info.alternates:
-                if r:
-                    out.setdefault(r["row"], n)
-        return out
-
     def scene_summary():
-        rm = row_to_map()
+        rm = project.row_to_map()
         return [dict(s, map=rm.get(s["layered_row"])) for s in scenes().scenes]
 
     def entrance_numbers(ovl_id):
@@ -288,7 +280,7 @@ def make_handler(project, token=None, local_only=True):
 
     def map_scenes(n):
         info = project.maps[n]
-        rows = {r["row"] for r in [info.resources] + info.alternates if r}
+        rows = info.gmaps_rows()
         ov = Overrides(project.root)
         out = []
         for sc in scenes().for_rows(rows):
@@ -541,7 +533,7 @@ def make_handler(project, token=None, local_only=True):
                 m = re.fullmatch(r"/api/map/(\w+)/legend", path)
                 if m and m.group(1) in project.maps:
                     info = project.maps[m.group(1)]
-                    rows = {r["row"] for r in [info.resources] + info.alternates if r}
+                    rows = info.gmaps_rows()
                     lg = names.map_legend(scenes().for_rows(rows), scenes())
                     # only codes this map actually uses (overlays share event tables)
                     present = {v for row in project.load_grid(info, "collision").cells for v in row}
@@ -590,7 +582,7 @@ def make_handler(project, token=None, local_only=True):
                     # The index reads every exit table; rebuild it only after writes.
                     if state.get("conn") is None:
                         state["conn"] = Connections(project, scenes(), names)
-                    return self.send_json(state["conn"].around(int(m.group(1)), row_to_map()))
+                    return self.send_json(state["conn"].around(int(m.group(1)), project.row_to_map()))
                 m = re.fullmatch(r"/api/map/(\w+)/events", path)
                 if m and m.group(1) in project.maps:
                     q = parse_qs(urlsplit(self.path).query)
@@ -656,7 +648,7 @@ def make_handler(project, token=None, local_only=True):
                 m = re.fullmatch(r"/api/scene/(\d+)/arrivals", path)
                 if m:
                     sid = int(m.group(1))
-                    rm = row_to_map()
+                    rm = project.row_to_map()
                     sc = scene_by_id(sid)
                     if sc is None:
                         return self.send_json({"error": "no such scene"}, 404)
@@ -1119,7 +1111,7 @@ def make_handler(project, token=None, local_only=True):
                         arrivals = de.entrances(sid)
                         # Scene 0 is the title screen, where a game starts anyway.
                         if sid != 0 and arrivals:
-                            n = row_to_map().get(sc["layered_row"])
+                            n = project.row_to_map().get(sc["layered_row"])
                             info = project.maps.get(n)
                             try:
                                 walk = walk_for(n, sid) if info else None
