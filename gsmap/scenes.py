@@ -1,7 +1,7 @@
 """Scenes and their overlay tables, read from a built edition.
 
 Tables are read as bytes from each scene overlay's built image
-(out/<edition>/overlays/resource_<id>.bin, loaded at gOverlayArea =
+(out/<edition>/overlays/<name>.bin, resource_<id>.bin before 2026-11-25, loaded at gOverlayArea =
 0x02008000) using the overlay ELF's symbols. This gives exact values, with
 no C macros to evaluate. Layouts are from games/tbs/include/field/scene.h and
 scene_tables.h, and the exit walk is Scene_TakeExit (system/main_routine.c).
@@ -308,12 +308,23 @@ class Scenes:
         self.out = os.path.join(root, "out", f"tbs-{edition}")
         self.scenes = self._read_scene_table()
         self._overlays = {}
+        # Since 2026-11-25 an overlay builds as overlays/<its name>.elf.
+        self._overlay_names = {n: name for name, n in overlay_numbers(root).items()}
 
     def _read_scene_table(self):
         return read_scene_table(self.root)
 
+    def overlay_base(self, ovl_id):
+        """An overlay's built files, less .elf or .bin: overlays/<name> (since
+        2026-11-25) or overlays/resource_<id>."""
+        name = self._overlay_names.get(ovl_id)
+        folder = os.path.join(self.out, "overlays")
+        if name:
+            return os.path.join(folder, name)
+        return os.path.join(folder, f"resource_{ovl_id:x}")
+
     def overlay(self, ovl_id):
-        base = os.path.join(self.out, "overlays", f"resource_{ovl_id:x}")
+        base = self.overlay_base(ovl_id)
         try:
             stamp = os.stat(base + ".elf").st_mtime_ns
         except FileNotFoundError:
