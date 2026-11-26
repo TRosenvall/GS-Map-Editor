@@ -23,7 +23,6 @@ from .tileset import retired_blocks
 
 _STOCK = {}  # game source root -> keys of the issues the unmodified game has
 TEMP_FLAGS = range(0x200, 0x400)  # scene and group temporaries: cleared on entering
-CHEST_FLAGS = range(0xE00, 0x1000)
 
 
 def changed_maps(project):

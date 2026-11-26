@@ -29,7 +29,7 @@ from gsmap.reset import reset_map, reset_world
 from gsmap.doors import script_exit_kinds as script_kinds
 from gsmap.messages import Messages
 from gsmap.modgen import DamagedFile, Overrides, generate, validate_rows
-from gsmap.names import Names
+from gsmap.names import Names, read_flag_names
 from gsmap.project import Project
 from gsmap.scenes import Scenes
 from gsmap.scene_cells import room_changes
@@ -39,7 +39,7 @@ from gsmap.doors import DoorEditor
 from gsmap.checks import Checker
 from gsmap.encounters import Encounters
 from gsmap import atlas as atlasmod
-from gsmap.events import EventEditor, flag_names, flag_label, search_targets
+from gsmap.events import EventEditor, flag_label, search_targets
 from gsmap.connections import Connections
 from gsmap import world as worldmod
 from gsmap import patch as patchmod
@@ -189,10 +189,14 @@ def make_handler(project, token=None, local_only=True):
         same = sharing(n)
         cache.drop(lambda k: k[0] == "walk" or (k[1] in same and k[0] != "atlas"))  # tiles are unchanged
 
+    def scene_by_id(sid):
+        """Scene sid's row of gScenes, or None."""
+        return next((s for s in scenes().scenes if s["id"] == sid), None)
+
     def room_cell_changes(sid):
         """The cell copies scene sid's own code makes (scene_cells.py); none
         when its overlay or sources can't be read, as before they were followed."""
-        sc = next((s for s in scenes().scenes if s["id"] == sid), None)
+        sc = scene_by_id(sid)
         if sc is None:
             return ()
         try:
@@ -415,10 +419,10 @@ def make_handler(project, token=None, local_only=True):
             "own_tileset": tilesetmod.own_tileset(project, info),
             "markers": [
                 {"index": i, "x": r[0], "z": r[1], "id": r[2]}
-                for i, r in enumerate((marker_table or type("T", (), {"rows": []})).rows)
+                for i, r in enumerate(marker_table.rows)
                 if tuple(r[:3]) != (0xFF, 0xFF, 0xFF)
             ],
-            "markers_editable": marker_table is not None and len(project.marker_users(marker_path)) == 1,
+            "markers_editable": len(project.marker_users(marker_path)) == 1,
             "grids": planes,
             # layers the game shows faintly, as light glows (see Project.blend)
             "blend": project.blend(info),
@@ -594,7 +598,7 @@ def make_handler(project, token=None, local_only=True):
                         sid = int(q["scene"][0])
                     except (KeyError, ValueError):
                         return self.send_json({"error": "no scene given"}, 400)
-                    sc_ = next((s_ for s_ in scenes().scenes if s_["id"] == sid), None)
+                    sc_ = scene_by_id(sid)
                     if sc_ is None:
                         return self.send_json({"error": "no such scene"}, 404)
                     ee = EventEditor(project, scenes(), names)
@@ -607,7 +611,7 @@ def make_handler(project, token=None, local_only=True):
                     d["regions"] = ee.regions(sid)
                     return self.send_json(d)
                 if path == "/api/flags":
-                    fn = flag_names(project.root)
+                    fn = read_flag_names(project.root)
                     return self.send_json({"flags": [{"flag": k, "label": flag_label(k, fn)} for k in sorted(fn)],
                                            "search_targets": search_targets()})
                 if path == "/api/update":
@@ -636,14 +640,14 @@ def make_handler(project, token=None, local_only=True):
                     return self.send_json({str(k): v for k, v in doors.items()})
                 m = re.fullmatch(r"/api/scene/(\d+)/battles", path)
                 if m:
-                    sc = next((s for s in scenes().scenes if s["id"] == int(m.group(1))), None)
+                    sc = scene_by_id(int(m.group(1)))
                     if sc is None:
                         return self.send_json({"error": "no such scene"}, 404)
                     try:
                         enc = Encounters(project.root)
                     except (OSError, ValueError) as e:
                         return self.send_json({"error": tr("Can't read the game's battles: {why}", why=e)}, 409)
-                    fnames = flag_names(names.root)
+                    fnames = read_flag_names(names.root)
                     by_name = {s["name"]: s["id"] for s in scenes().scenes}
                     return self.send_json({
                         "battles": enc.scene_battles(sc["name"], lambda f: flag_label(f, fnames),
@@ -653,7 +657,7 @@ def make_handler(project, token=None, local_only=True):
                 if m:
                     sid = int(m.group(1))
                     rm = row_to_map()
-                    sc = next((s for s in scenes().scenes if s["id"] == sid), None)
+                    sc = scene_by_id(sid)
                     if sc is None:
                         return self.send_json({"error": "no such scene"}, 404)
                     info = project.maps.get(rm.get(sc["layered_row"]))
@@ -691,14 +695,6 @@ def make_handler(project, token=None, local_only=True):
                 m = re.fullmatch(r"/api/map/(\w+)/scenes", path)
                 if m and m.group(1) in project.maps:
                     return self.send_json(map_scenes(m.group(1)))
-                m = re.fullmatch(r"/api/map/(\w+)/layer/(\d)\.png", path)
-                if m and m.group(1) in project.maps:
-                    n, li = m.group(1), int(m.group(2))
-                    info = project.maps[n]
-                    if not info.tileset:
-                        return self.send_json({"error": "no tileset known for this map"}, 404)
-                    body = cache.get(("layer", n, li), lambda: png(project.render_layer(info, li)))
-                    return self.send_bytes(body, "image/png")
                 m = re.fullmatch(r"/api/map/(\w+)/atlas/(\d)\.png", path)
                 if m and m.group(1) in project.maps:
                     n, base = m.group(1), int(m.group(2))
@@ -1116,7 +1112,7 @@ def make_handler(project, token=None, local_only=True):
                     note = tr("Your game is open in mGBA.")
                     if body.get("scene") is not None:
                         sid = int(body["scene"])
-                        sc = next((s for s in scenes().scenes if s["id"] == sid), None)
+                        sc = scene_by_id(sid)
                         if sc is None:
                             return self.send_json({"error": tr("That place isn't in the game.")}, 400)
                         de = DoorEditor(project, scenes(), names)

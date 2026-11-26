@@ -31,6 +31,9 @@ from .sceneedit import EVENTS_END, EXITS_END, SceneEditor
 
 EVENT_EXIT, EVENT_TOUCH = 0x1, 0x2
 ANY_KIND = 0xFF
+# The cell codes a new door or event spot may take: low codes, then 239
+# downward, since chests take 100..239 for their markers from 100 upward.
+FREE_CODES = tuple(range(1, 100)) + tuple(range(239, 99, -1))
 
 
 _FILE_CACHE = {}  # scene .c path -> (mtime, defined table symbols, {function: kinds}, docs, text)
@@ -384,12 +387,11 @@ class DoorEditor(SceneEditor):
         ov = Overrides(p.root)
         events = self._tables(overlays, ov, "events", scene_ids={scene_id})
         exits = self._tables(overlays, ov, "exits", scene_ids={scene_id})
-        # Doors take low codes, then 239 downward: chests need 100..239 for their
-        # markers and take them from 100 upward. Free in every overlay that can
-        # load this map: other scenes on it would otherwise react to the cell.
+        # A code from FREE_CODES, free in every overlay that can load this map:
+        # other scenes on it would otherwise react to the cell.
         every = self._overlays(info)
         taken = self._taken_codes(every, self._tables(every, ov, "events"))
-        code = next((c for c in list(range(1, 100)) + list(range(239, 99, -1)) if c not in taken), None)
+        code = next((c for c in FREE_CODES if c not in taken), None)
         if code is None:
             raise ValueError(tr("This place has no room for more doors."))
         # A kind no exit, exit event or region of the overlay uses; high kinds,
