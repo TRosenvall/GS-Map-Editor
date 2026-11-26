@@ -28,14 +28,15 @@ from .doors import _scene_files, _source_text, sources_generation
 from .getters import _decide, _matching, _scene_macros, _strip_comments
 from .sceneedit import scene_tables
 
-COPY = re.compile(r"\bMapGrid_(CopyCellAttributes|CopyCellAttributeRect|CopyCells|CopyCellPictureCellsRect)(?:Far)?"
+COPY = re.compile(r"\bMapGrid_(CopyCellAttributes|CopyCellAttributeRect|CopyCells|CopyCellPictureCellsRect|CopyCellTilesCellsRect)(?:Far)?"
                   r"\(\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*\)")
 # A top-level definition: a function, or data with an initializer.
 DEFINITION = re.compile(r"^(?!static\s+inline\b)[A-Za-z_][\w \t\*]*?\b(\w+)\s*(\([^;{}]*\)|\[[^\]]*\])?\s*(?:=\s*)?\{", re.M)
 IDENTIFIER = re.compile(r"\b[A-Za-z_]\w*\b")
 INLINE = re.compile(r"^static\s+inline\b[^;{]*?\b(\w+)\s*\([^;{}]*\)\s*\{", re.M)
 ROOM_KINDS = ("events", "placements")
-WHOLE = {"CopyCells", "CopyCellPictureCellsRect"}  # copies the picture as well
+# Copy the picture as well (CopyCellPictureCellsRect is CopyCellTilesCellsRect since 2026-11-25).
+WHOLE = {"CopyCells", "CopyCellPictureCellsRect", "CopyCellTilesCellsRect"}
 
 
 def _definitions(text):
