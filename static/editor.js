@@ -843,6 +843,7 @@ function drawColumns(cols) {
   const z = +$('#zoom').value, s = 16 * z, h = m.size[1], cv = $('#cv'), ctx = cv.getContext('2d');
   if (cv.width !== m.size[0] * s || cv.height !== h * s) return drawAll();
   if ($('#ovShape').checked && heightShade(m).range !== S.shadeRange) return drawAll();  // a new lowest or highest ground
+  cols = withPointColumns(cols);
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.beginPath();
@@ -854,6 +855,22 @@ function drawColumns(cols) {
   const crossings = drawGroundOverlays(ctx, cols); drawStand(ctx); drawCrossings(ctx, crossings);
   markPending(ctx); drawMarkers(ctx); drawDoors(ctx); drawEvents(ctx); drawPoints(ctx); drawCellMark(ctx);
   ctx.restore();
+}
+// Columns `cols` and those drawPoints draws over from them: an arrival point
+// or a person is wider than a square and raised with the ground it stands on,
+// so one standing in a changed column is redrawn whole.
+function withPointColumns(cols) {
+  const t = table(), out = new Set(cols), W = S.map.size[0];
+  if (!t || !['entrances', 'placements'].includes(t.kind)) return out;
+  for (const r of rowsOf(t)) {
+    if ((t.kind === 'entrances' ? r.entrance : r.sprite) < 0) continue;
+    const [x] = pointPx(t, r);
+    if (!cols.has(Math.floor(x / 16))) continue;
+    // Unzoomed pixels either side: the picture, else the ring or square and its number.
+    const img = t.kind === 'placements' && spriteImage(r.sprite), half = Math.max(12, (img?.naturalWidth || 0) / 2 + 1);
+    for (let c = Math.max(0, Math.floor((x - half) / 16)); c <= Math.min(W - 1, Math.floor((x + half) / 16)); c++) out.add(c);
+  }
+  return out;
 }
 
 // Redraws at most once a frame: dragging a brush with an overlay on would
